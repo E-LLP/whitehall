@@ -90,6 +90,22 @@ class DetailedGuide < Edition
     parse_base_path_from_related_mainstream_url(url)
   end
 
+  def related_mainstream
+    base_paths = []
+    base_paths.push(related_mainstream_base_path)
+    base_paths.push(additional_related_mainstream_base_path)
+    base_paths.compact!
+
+    if base_paths.any?
+      Whitehall.publishing_api_v2_client
+        .lookup_content_ids(base_paths: base_paths)
+        .values
+        .compact
+    else
+      []
+    end
+  end
+
   def government
     @government ||= Government.on_date(date_for_government) unless date_for_government.nil?
   end
