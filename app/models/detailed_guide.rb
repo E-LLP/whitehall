@@ -29,11 +29,11 @@ class DetailedGuide < Edition
   end
 
   def related_detailed_guide_ids
-    related_to_editions.where(type: 'DetailedGuide').map(&:id)
+    related_to_editions.where(type: 'DetailedGuide').pluck(:id)
   end
 
   def related_detailed_guide_content_ids
-    related_to_editions.where(type: 'DetailedGuide').map(&:content_id).uniq
+    published_related_detailed_guides.map(&:content_id)
   end
 
   # Ensure that we set related detailed guides without stomping on other related documents
