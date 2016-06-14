@@ -14,13 +14,23 @@ check.add_expectation("title") do |content_store_payload, record|
 end
 
 check.add_expectation("related_guides") do |content_store_payload, record|
-  payload_ids = content_store_payload["links"]["related_guides"].map { |rg| rg["content_id"] }.to_set
-  payload_ids == record.related_detailed_guide_content_ids.to_set
+  if record.state == 'draft'
+    # TODO: Add explanation about LinkSet sharing between published and draft as to why
+    # this is necessary.
+    true
+  else
+    payload_ids = content_store_payload["links"]["related_guides"].map { |rg| rg["content_id"] }.to_set
+    payload_ids == record.related_detailed_guide_content_ids.to_set
+  end
 end
 
 check.add_expectation("related_mainstream") do |content_store_payload, record|
-  payload_rm_content_ids = content_store_payload["links"]["related_mainstream"].map { |rg| rg["content_id"] }.to_set
-  payload_rm_content_ids == record.related_mainstream.to_set
+  if record.state == 'draft'
+    true
+  else
+    payload_rm_content_ids = content_store_payload["links"]["related_mainstream"].map { |rg| rg["content_id"] }.to_set
+    payload_rm_content_ids == record.related_mainstream.to_set
+  end
 end
 
 check.add_expectation("political") do |content_store_payload, record|
