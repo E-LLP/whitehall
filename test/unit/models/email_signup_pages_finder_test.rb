@@ -1,16 +1,15 @@
 require "test_helper"
 
 class EmailSignupPagesFinderTest < ActiveSupport::TestCase
-
   test 'EmailSignupPagesFinder.find returns a data structure representing the email signup pages for the MHRA' do
     signup_page = EmailSignupPagesFinder.find(mhra)
 
-    assert_equal signup_page.map {|p| p[:text] },
-      [
-        'Drug alerts and medical device alerts',
-        'Drug Safety Update',
-        'News and publications from the MHRA',
-      ]
+    assert_equal signup_page.map { |p| p[:text] },
+                 [
+                   'Drug alerts and medical device alerts',
+                   'Drug Safety Update',
+                   'News and publications from the MHRA',
+                 ]
   end
 
   test 'EmailSignupPagesFinder.find returns nil for a non-matching organisations' do

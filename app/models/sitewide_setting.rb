@@ -1,4 +1,4 @@
-class SitewideSetting < ActiveRecord::Base
+class SitewideSetting < ApplicationRecord
   validates :govspeak, presence: true, if: :on
   validates :key, presence: true
   validates_uniqueness_of :key
@@ -11,5 +11,4 @@ class SitewideSetting < ActiveRecord::Base
   def name
     key.humanize
   end
-
 end

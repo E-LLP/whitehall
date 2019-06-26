@@ -45,6 +45,27 @@
 
 <%= render_partial_if_exists 'extra_metadata' %>
 
+<%= render partial: '/admin/shared/tagging/show_topics_box', locals: {
+  path_to_edit_tags: edit_admin_edition_tags_path(@edition.id),
+  selected_taxon_paths: @edition_taxons.map(&:full_path),
+  no_topics_message: 'No topics - please add a topic before publishing'
+} %>
+
+
+<%= render partial: '/admin/shared/tagging/legacy_associations_box', locals: {
+  path_to_edit_associations: edit_admin_edition_legacy_associations_path(@edition.id),
+  edition: @edition,
+  no_associations_message: 'No associations'
+} %>
+
+<% if @edition.can_be_tagged_to_worldwide_taxonomy? %>
+  <%= render partial: '/admin/shared/tagging/show_world_topics_box', locals: {
+    path_to_edit_tags: edit_admin_edition_world_tags_path(@edition.id),
+    selected_taxon_paths: @edition_world_taxons.map(&:full_path),
+    no_topics_message: 'No worldwide related topics'
+  } %>
+<% end %>
+
 <% if @edition.translatable? %>
   <section class="translations" id="translations">
     <h2>
@@ -178,13 +199,32 @@
   </section>
 <% end %>
 
-<% if @edition.respond_to?(:has_associated_needs?) && @edition.has_associated_needs? %>
+<% if @edition.document.associated_needs.any? %>
   <section id="user-needs-section">
-    <h2>Associated user needs</h2>
+    <h2>Associated user needs
+      <% if @edition.id == @edition.document.latest_edition.id %>
+        <span class="pull-right">
+          <%= link_to admin_edit_needs_path(content_id: @edition.document.content_id), title: "Add/remove needs of #{@edition.title}", class: "btn btn-default" do %>
+            <i class="glyphicon glyphicon-edit"></i> Add/remove needs
+          <% end %>
+        </span>
+      <% end %>
+    </h2>
     <table class="table table-bordered">
       <tbody>
-        <%= render partial: 'need', collection: @edition.associated_needs %>
+        <%= render partial: 'need', collection: @edition.document.associated_needs %>
       </tbody>
     </table>
   </section>
+<% else %>
+    <section id="user-needs-section">
+      <h2>Associated user needs</h2>
+      <% if @edition.id == @edition.document.latest_edition.id %>
+        <span>
+          <%= link_to admin_edit_needs_path(content_id: @edition.document.content_id), title: "Add/remove needs of #{@edition.title}", class: "btn btn-default" do %>
+            <i class="glyphicon glyphicon-edit"></i> Add/remove needs
+          <% end %>
+        </span>
+      <% end %>
+    </section>
 <% end %>

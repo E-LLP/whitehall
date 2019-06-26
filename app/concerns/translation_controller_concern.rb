@@ -2,8 +2,8 @@ module TranslationControllerConcern
   extend ActiveSupport::Concern
 
   included do
-    before_filter :load_translatable_item
-    before_filter :load_translated_models, except: [:index]
+    before_action :load_translatable_item
+    before_action :load_translated_models, except: [:index]
     helper_method :translation_locale
   end
 
@@ -13,7 +13,7 @@ module TranslationControllerConcern
 
   def update
     if translatable_item.update_attributes(translation_params)
-      save_draft_translation_async if send_downstream?
+      save_draft_translation if send_downstream?
       redirect_to update_redirect_path, notice: notice_message("saved")
     else
       render action: 'edit'
@@ -33,8 +33,8 @@ module TranslationControllerConcern
     %{#{translation_locale.english_language_name} translation for "#{translated_item_name}" #{action}.}
   end
 
-  def save_draft_translation_async
-    Whitehall::PublishingApi.save_draft_translation_async(translatable_item, translation_locale.code)
+  def save_draft_translation
+    Whitehall::PublishingApi.save_draft_translation(translatable_item, translation_locale.code)
   end
 
   def send_downstream?

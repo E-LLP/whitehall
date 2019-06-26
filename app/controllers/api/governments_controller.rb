@@ -1,5 +1,8 @@
 class Api::GovernmentsController < PublicFacingController
-  skip_before_filter :restrict_request_formats
+  skip_before_action :set_cache_control_headers
+  skip_before_action :restrict_request_formats
+  before_action :set_api_cache_control_headers
+  before_action :set_api_access_control_allow_origin_headers
   respond_to :json
 
   self.responder = Api::Responder
@@ -18,6 +21,7 @@ class Api::GovernmentsController < PublicFacingController
   end
 
 private
+
   def respond_with_not_found
     respond_with Hash.new, status: :not_found
   end

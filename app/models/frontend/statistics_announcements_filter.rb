@@ -1,10 +1,7 @@
-
 class Frontend::StatisticsAnnouncementsFilter < FormObject
   named "StatisticsAnnouncementsFilter"
-  attr_accessor :keywords,
-                :from_date, :to_date,
-                :organisations, :topics,
-                :page
+  attr_accessor :keywords
+  attr_reader :from_date, :to_date
 
   RESULTS_PER_PAGE = 40
 
@@ -17,7 +14,7 @@ class Frontend::StatisticsAnnouncementsFilter < FormObject
   end
 
   def page=(page_number)
-    if page_number.to_i > 0
+    if page_number.to_i.positive?
       @page = page_number.to_i
     end
   end
@@ -25,19 +22,15 @@ class Frontend::StatisticsAnnouncementsFilter < FormObject
   def to_date=(date)
     date = Chronic.parse(date, guess: :end, endian_precedence: :little) if date.is_a? String
     @to_date = if date.present?
-      (date - 1.seconds).to_date
-    else
-      nil
-    end
+                 (date - 1.seconds).to_date
+               end
   end
 
   def from_date=(date)
     date = Chronic.parse(date, guess: :begin, endian_precedence: :little) if date.is_a? String
     @from_date = if date.present?
-      date.to_date
-    else
-      nil
-    end
+                   date.to_date
+                 end
   end
 
   def organisations=(organisations)
@@ -49,19 +42,21 @@ class Frontend::StatisticsAnnouncementsFilter < FormObject
   end
 
   def organisation_slugs
-    organisations.map &:slug
+    organisations.map(&:slug)
   end
 
-  def topics=(topics)
-    @topics = Topic.where(slug: Array(topics))
+  def topic_ids
+    topics.map(&:content_id)
+  end
+
+  def topics=(ids)
+    @topics = Taxonomy::TopicTaxonomy.new.ordered_taxons.select do |taxon|
+      ids.include?(taxon.content_id)
+    end
   end
 
   def topics
     Array(@topics)
-  end
-
-  def topic_slugs
-    topics.map &:slug
   end
 
   def valid_filter_params
@@ -70,7 +65,7 @@ class Frontend::StatisticsAnnouncementsFilter < FormObject
     params[:to_date]       = to_date            if to_date.present?
     params[:from_date]     = from_date          if from_date.present?
     params[:organisations] = organisation_slugs if organisations.present?
-    params[:topics]        = topic_slugs        if topics.present?
+    params[:part_of_taxonomy_tree] = topic_ids if topics.present?
     params
   end
 
@@ -99,6 +94,7 @@ class Frontend::StatisticsAnnouncementsFilter < FormObject
   end
 
 private
+
   def get_results
     results = provider.search(valid_filter_params.merge(page: page, per_page: RESULTS_PER_PAGE))
     if should_include_cancellations_within_preceding_month?

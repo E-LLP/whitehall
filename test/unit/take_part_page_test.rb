@@ -132,10 +132,6 @@ class TakePartPageTest < ActiveSupport::TestCase
     assert_equal 1, page_3.reload.ordering
   end
 
-  test 'is in the Whitehall searchable_classes list' do
-    assert Whitehall.searchable_classes.include?(TakePartPage)
-  end
-
   test 'returns search index data suitable for Rummageable' do
     page = create(:take_part_page, title: 'Build a new polling station', summary: 'Help people vote!')
 
@@ -164,6 +160,7 @@ class TakePartPageTest < ActiveSupport::TestCase
   end
 
   test 'removes page from search index on destroying' do
+    Services.asset_manager.stubs(:whitehall_asset).returns('id' => 'http://asset-manager/assets/asset-id')
     page = create(:take_part_page)
 
     Whitehall::SearchIndex.expects(:delete).with(page)
@@ -178,18 +175,18 @@ class TakePartPageTest < ActiveSupport::TestCase
     results = TakePartPage.search_index.to_a
 
     assert_equal 2, results.length
-    assert_equal({'title' => 'Build a new polling station',
+    assert_equal({ 'title' => 'Build a new polling station',
                   'content_id' => "845593d6-273d-4440-b44a-8c44ab530c9e",
                   'link' => "/government/get-involved/take-part/build-a-new-polling-station",
                   'indexable_content' => 'Everyone can build a building.',
                   'format' => 'take_part',
-                  'description' => 'Help people vote!'}, results[0])
-    assert_equal({'title' => 'Stand for election',
+                  'description' => 'Help people vote!' }, results[0])
+    assert_equal({ 'title' => 'Stand for election',
                   'content_id' => "a7a3a7f3-f967-4723-8de3-1e2d8f9fb4cb",
                   'link' => "/government/get-involved/take-part/stand-for-election",
                   'indexable_content' => 'Maybe you can change the system from within?',
                   'format' => 'take_part',
-                  'description' => 'Help govern this country!'}, results[1])
+                  'description' => 'Help govern this country!' }, results[1])
   end
 
   should_not_accept_footnotes_in :body

@@ -1,4 +1,4 @@
-#Testing Guide
+# Testing Guide
 
 ## Running tests locally
 
@@ -9,8 +9,8 @@ the Whitehall repository, or the location must be specified explicitly via the
 
 Two other environment variables can also be (optionally) set up, typically:
 
-    GOVUK_APP_DOMAIN=dev.gov.uk
-    GOVUK_ASSET_ROOT=http://static.dev.gov.uk
+    GOVUK_APP_DOMAIN=test.gov.uk
+    GOVUK_ASSET_ROOT=https://static.test.gov.uk
 
 Then run
 
@@ -41,7 +41,7 @@ To run individual tests or when debugging:
 
     ./script/javascript-test-server
 
-And go to http://localhost:3100/test/qunit in the browser
+And go to http://localhost:3100/teaspoon/default in the browser
 
 ### Shared mustache templates
 
@@ -56,8 +56,3 @@ In absence of this generated template, shared mustache inlines mustache template
 on the page, which enables developers to see changes to mustache without compiling. If this generated
 template is checked-in, shared mustache uses this file instead of inlining templates. Hence, we don't
 check-in this file.
-
-## Specifying a different endpoint for the GDS Content API
-
-Whitehall uses the GDS Content API to serve categorisation for
-Detailed Guidance. In tests, this is stubbed out, see `config/initializers/content_api.rb`.

@@ -6,9 +6,7 @@ module Edition::Publishing
 
     validates :major_change_published_at, presence: true, if: :published?
     validate :change_note_present!, if: :change_note_required?
-    validate :attachment_passed_virus_scan!, if: :virus_check_required?
-
-    attr_accessor :skip_virus_status_check
+    validate :attachment_uploaded_to_asset_manager!, if: :asset_manager_check_required?
 
     scope :significant_change, -> { where(minor_change: false) }
   end
@@ -29,7 +27,7 @@ module Edition::Publishing
   end
 
   def first_published_major_version?
-    published_major_version == 1 && published_minor_version == 0
+    published_major_version == 1 && published_minor_version.zero?
   end
 
   def published_version
@@ -44,22 +42,22 @@ module Edition::Publishing
     elsif draft? && new_record?
       false
     else
-      other_editions.published.any?
+      other_editions.published.exists?
     end
   end
 
   def change_note_present!
     if change_note.blank? && !minor_change
-      errors[:change_note] = "can't be blank"
+      errors.add(:change_note, "can't be blank")
     end
   end
 
-  def virus_check_required?
-    allows_attachments? && published? && (!skip_virus_status_check)
+  def asset_manager_check_required?
+    allows_attachments? && published?
   end
 
-  def attachment_passed_virus_scan!
-    errors.add(:attachments, "must have passed virus scanning.") unless valid_virus_state?
+  def attachment_uploaded_to_asset_manager!
+    errors.add(:attachments, "must have finished uploading.") unless uploaded_to_asset_manager?
   end
 
   def build_unpublishing(attributes = {})
@@ -89,5 +87,13 @@ module Edition::Publishing
   def reset_version_numbers
     self.published_major_version = previous_edition.try(:published_major_version)
     self.published_minor_version = previous_edition.try(:published_minor_version)
+  end
+
+  def unpublished?
+    !publicly_visible? && unpublishing.present?
+  end
+
+  def unpublished_edition
+    unpublished? ? unpublishing.edition : nil
   end
 end

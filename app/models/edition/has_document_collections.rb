@@ -1,4 +1,3 @@
-
 module Edition::HasDocumentCollections
   extend ActiveSupport::Concern
 
@@ -29,6 +28,7 @@ module Edition::HasDocumentCollections
     if new_record?
       raise(StandardError, 'cannot assign document collection to an unsaved edition')
     end
+
     document.document_collection_group_ids = ids
   end
 end

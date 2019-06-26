@@ -1,11 +1,9 @@
 module FeedHelper
-
   def atom_feed_url_for(resource)
     Whitehall.atom_feed_maker.url_for(resource)
   end
 
   def documents_as_feed_entries(documents, builder, feed_updated_timestamp = Time.current)
-    govdelivery_version = feed_wants_govdelivery_version?
     feed_updated_timestamp =
       if documents.any?
         documents.first.public_timestamp
@@ -15,8 +13,8 @@ module FeedHelper
     builder.updated feed_updated_timestamp
 
     documents.each do |document|
-      builder.entry(document, id: document_id(document, builder), url: public_document_url(document), published: document.first_public_at, updated: document.public_timestamp) do |entry|
-        document_as_feed_entry(document, builder, govdelivery_version)
+      builder.entry(document, id: document_id(document, builder), url: public_document_url(document), published: document.try(:first_public_at), updated: document.public_timestamp) do |_entry|
+        document_as_feed_entry(document, builder)
       end
     end
   end
@@ -28,7 +26,9 @@ module FeedHelper
     # spec.
     # The interpolation logic is straight out of:
     # http://api.rubyonrails.org/classes/ActionView/Helpers/AtomFeedHelper/AtomFeedBuilder.html#method-i-entry
-    id = record.document ? record.document.id : record.id
+    id = record.try(:document) ? record.document.id : record.id
+    return id if record.is_a?(RummagerDocumentPresenter)
+
     "tag:#{host},#{schema_date(builder)}:#{record.class}/#{id}"
   end
 
@@ -41,38 +41,25 @@ module FeedHelper
   end
 
   def feed_display_type_for(document)
-    return "News story" if (document.is_a?(WorldLocationNewsArticle))
+    return "News story" if document.is_a?(WorldLocationNewsArticle)
+
     document.display_type
   end
 
-  def document_as_feed_entry(document, builder, govdelivery_version = false)
+  def document_as_feed_entry(document, builder)
     builder.title "#{feed_display_type_for(document)}: #{document.title}"
     builder.category label: document.display_type, term: document.display_type
-    builder.summary entry_summary(document, govdelivery_version)
-    builder.content entry_content(document), type: 'html'
+    builder.summary entry_summary(document)
+    builder.content(entry_content(document), type: 'html') unless document.is_a?(RummagerDocumentPresenter)
   end
 
-  def entry_summary(document, govdelivery_version = false)
-    if govdelivery_version
-      change_note = document.most_recent_change_note
-      change_note = "[Updated: #{change_note}] " if change_note
-      "#{change_note}#{document.summary}"
-    else
-      document.summary
-    end
+  def entry_summary(document)
+    document.summary
   end
 
   def entry_content(document)
     change_note = document.most_recent_change_note
     change_note = "<p><em>Updated:</em> #{change_note}</p>" if change_note
     "#{change_note}#{govspeak_edition_to_html(document)}"
-  end
-
-  def feed_wants_govdelivery_version?
-    if params[:govdelivery_version].present? && params[:govdelivery_version] =~ /\A(?:true|yes|1|on)\Z/i
-      true
-    else
-      false
-    end
   end
 end

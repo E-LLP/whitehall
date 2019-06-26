@@ -3,18 +3,18 @@ class DocumentsController < PublicFacingController
   include PermissionsChecker
   include PublicDocumentRoutesHelper
 
-  before_filter :redirect_to_canonical_url
-  before_filter :find_document, only: [:show]
-  before_filter :set_slimmer_headers_for_document, only: [:show]
+  before_action :redirect_to_canonical_url
+  before_action :find_document, only: [:show]
+  before_action :set_slimmer_headers_for_document, only: [:show]
 
 private
 
-  def build_document_filter
-    search_backend.new(cleaned_document_filter_params)
+  def build_document_filter(filter_type = nil)
+    search_backend(filter_type).new(cleaned_document_filter_params)
   end
 
   def cleaned_document_filter_params
-    Whitehall::DocumentFilter::CleanedParams.new(params.except(:format, :commit, :_))
+    Whitehall::DocumentFilter::CleanedParams.new(params.except(:constraints, :format, :commit, :_))
   end
 
   def preview?
@@ -26,35 +26,37 @@ private
   end
 
   def find_document
-    if @document = find_document_or_edition
-      if scheduled_document = document_class.scheduled_for_publication_as(params[:id])
+    if (@document = find_document_or_edition)
+      if (scheduled_document = document_class.scheduled_for_publication_as(params[:id]))
         expire_on_next_scheduled_publication([scheduled_document])
       end
-    else
-      if @document = document_class.scheduled_for_publication_as(params[:id])
-        expire_on_next_scheduled_publication([@document])
-        render :coming_soon
-      elsif @unpublishing = find_unpublishing
-        if @unpublishing.redirect?
-          redirect_to @unpublishing.alternative_url
-        else
-          # NOTE: We should be returning a 410 here, but because 4XX statuses get clobbered upstream,
-          # we are forced to return 200 for now.
-          render :unpublished
-        end
+    elsif (@document = document_class.scheduled_for_publication_as(params[:id]))
+      expire_on_next_scheduled_publication([@document])
+      render :coming_soon
+    elsif (@unpublishing = find_unpublishing)
+      if @unpublishing.redirect?
+        redirect_to @unpublishing.alternative_url
       else
-        expires_in 5.minutes, public: true
-        render text: "Not found", status: :not_found
+        # NOTE: We should be returning a 410 here, but because 4XX statuses get clobbered upstream,
+        # we are forced to return 200 for now.
+        render :unpublished
       end
+    else
+      expires_in 5.minutes, public: true
+      render plain: "Not found", status: :not_found
     end
   end
 
   def document_related_policies
     @document.policies
+  rescue GdsApi::TimedOutException, GdsApi::HTTPServerError
+    []
   end
 
   def find_unpublishing
-    Unpublishing.from_slug(params[:id], document_class)
+    unpublishing = Unpublishing.from_slug(params[:id], document_class)
+
+    unpublishing if unpublishing && !unpublishing.edition.deleted?
   end
 
   def find_document_or_edition
@@ -63,6 +65,7 @@ private
 
   def find_document_or_edition_for_preview
     return unless current_user_can_preview?
+
     document = document_class.with_translations(I18n.locale).find(params[:preview])
     if can_preview?(document)
       expires_now

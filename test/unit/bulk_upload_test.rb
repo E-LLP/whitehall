@@ -1,7 +1,6 @@
 require 'test_helper'
 
 class BulkUploadTest < ActiveSupport::TestCase
-
   def attachments_params(*pairs)
     {}.tap do |params|
       pairs.each_with_index do |pair, i|
@@ -45,7 +44,7 @@ class BulkUploadTest < ActiveSupport::TestCase
     existing = edition.attachments.first
     paths = ['whitepaper.pdf', existing.filename].map { |name| file_fixture(name).path }
     bulk_upload = BulkUpload.from_files(edition, paths)
-    assert bulk_upload.attachments.all? { |a| a.attachment_data.new_record? }
+    assert(bulk_upload.attachments.all? { |a| a.attachment_data.new_record? })
   end
 
   test '.from_files sets replaced_by on existing AttachmentData when file re-attached' do
@@ -147,7 +146,7 @@ class BulkUploadZipFileTest < ActiveSupport::TestCase
   test 'is invalid if the zip file contains illegal file types' do
     zip_file = BulkUpload::ZipFile.new(a_zip_file_with_dodgy_file_types)
     refute zip_file.valid?
-    assert_match /contains invalid files/, zip_file.errors[:zip_file][0]
+    assert_match %r[contains invalid files], zip_file.errors[:zip_file][0]
   end
 
   test 'extracted_file_paths returns extracted file paths' do
@@ -173,33 +172,33 @@ class BulkUploadZipFileTest < ActiveSupport::TestCase
     assert extracted.include?(File.join(zip_file.temp_dir, 'extracted', 'greenpaper.pdf').to_s)
   end
 
-  def uploaded_file(file_fixturename)
-    ActionDispatch::Http::UploadedFile.new(
-      filename: file_fixturename,
-      tempfile: File.open(Rails.root.join('test', 'fixtures', file_fixturename))
+  def uploaded_file(file_fixturename, file_mime_type)
+    Rack::Test::UploadedFile.new(
+      File.open(Rails.root.join('test', 'fixtures', file_fixturename)),
+      file_mime_type
     )
   end
 
   def not_a_zip_file
-    uploaded_file('greenpaper.pdf')
+    uploaded_file('greenpaper.pdf', 'application/pdf')
   end
 
   def superficial_zip_file
-    ActionDispatch::Http::UploadedFile.new(
-      filename: 'greenpaper-not-a-zip.zip',
-      tempfile: File.open(Rails.root.join('test', 'fixtures', 'greenpaper.pdf'))
+    Rack::Test::UploadedFile.new(
+      File.open(Rails.root.join('test', 'fixtures', 'greenpaper-not-a-zip.zip')),
+      'application/zip'
     )
   end
 
   def a_zip_file
-    uploaded_file('two-pages-and-greenpaper.zip')
+    uploaded_file('two-pages-and-greenpaper.zip', 'application/zip')
   end
 
   def zip_file_with_os_x_resource_fork
-    uploaded_file('greenpaper-with-osx-resource-fork.zip')
+    uploaded_file('greenpaper-with-osx-resource-fork.zip', 'application/zip')
   end
 
   def a_zip_file_with_dodgy_file_types
-    uploaded_file('sample_attachment_containing_exe.zip')
+    uploaded_file('sample_attachment_containing_exe.zip', 'application/zip')
   end
 end

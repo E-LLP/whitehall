@@ -1,13 +1,13 @@
 class Admin::AttachmentsController < Admin::BaseController
-  before_filter :limit_attachable_access, if: :attachable_is_an_edition?
-  before_filter :check_attachable_allows_attachment_type
+  before_action :limit_attachable_access, if: :attachable_is_an_edition?
+  before_action :check_attachable_allows_attachment_type
 
   rescue_from Mysql2::Error, with: :handle_duplicate_key_errors_caused_by_double_create_requests
 
   def index; end
 
   def order
-    attachment_ids = params[:ordering].sort_by { |_, ordering| ordering.to_i }.map { |id, _| id }
+    attachment_ids = params.permit!.to_h[:ordering].sort_by { |_, ordering| ordering.to_i }.map { |id, _| id }
     attachable.reorder_attachments(attachment_ids)
 
     redirect_to attachable_attachments_path(attachable), notice: 'Attachments re-ordered'
@@ -17,6 +17,7 @@ class Admin::AttachmentsController < Admin::BaseController
 
   def create
     if save_attachment
+      attachment_updater
       redirect_to attachable_attachments_path(attachable), notice: "Attachment '#{attachment.title}' uploaded"
     else
       render :new
@@ -25,7 +26,11 @@ class Admin::AttachmentsController < Admin::BaseController
 
   def update
     attachment.attributes = attachment_params
+    if attachment.is_a?(FileAttachment)
+      attachment.attachment_data.attachable = attachable
+    end
     if save_attachment
+      attachment_updater
       message = "Attachment '#{attachment.title}' updated"
       redirect_to attachable_attachments_path(attachable), notice: message
     else
@@ -37,20 +42,23 @@ class Admin::AttachmentsController < Admin::BaseController
     errors = {}
     params[:attachments].each do |id, attributes|
       attachment = attachable.attachments.find(id)
-      if !attachment.update_attributes(attributes.permit(:title))
+      if attachment.update_attributes(attributes.permit(:title))
+        attachment_updater
+      else
         errors[id] = attachment.errors.full_messages
       end
     end
 
     if errors.empty?
-      render json: {result: :success}
+      render json: { result: :success }
     else
-      render json: {result: :failure, errors: errors }, status: :unprocessable_entity
+      render json: { result: :failure, errors: errors }, status: :unprocessable_entity
     end
   end
 
   def destroy
     attachment.destroy
+    attachment_updater
     redirect_to attachable_attachments_path(attachable), notice: 'Attachment deleted'
   end
 
@@ -65,6 +73,7 @@ class Admin::AttachmentsController < Admin::BaseController
   helper_method :attachable_attachments_path
 
 private
+
   def attachment
     @attachment ||= find_attachment || build_attachment
   end
@@ -98,16 +107,18 @@ private
   def build_file_attachment
     FileAttachment.new(attachment_params).tap do |file_attachment|
       file_attachment.build_attachment_data unless file_attachment.attachment_data
+      file_attachment.attachment_data.attachable = attachable
     end
   end
 
   def attachment_params
     params.fetch(:attachment, {}).permit(
-      :title, :locale, :isbn, :unique_reference, :command_paper_number,
-      :unnumbered_command_paper, :hoc_paper_number, :unnumbered_hoc_paper,
-      :parliamentary_session, :order_url, :price, :accessible, :external_url,
-      govspeak_content_attributes: [:id, :body, :manually_numbered_headings],
-      attachment_data_attributes: [:file, :to_replace_id, :file_cache]
+      :title, :locale, :isbn, :web_isbn, :unique_reference,
+      :command_paper_number, :unnumbered_command_paper, :hoc_paper_number,
+      :unnumbered_hoc_paper, :parliamentary_session, :order_url, :price, :accessible,
+      :external_url, :print_meta_data_contact_address,
+      govspeak_content_attributes: %i[id body manually_numbered_headings],
+      attachment_data_attributes: %i[file to_replace_id file_cache]
     ).merge(attachable: attachable)
   end
 
@@ -175,10 +186,14 @@ private
   end
 
   def save_attachment
-    if attachment.respond_to?(:save_and_update_publishing_api)
-      attachment.save_and_update_publishing_api
-    else
-      attachment.save
+    attachment.save.tap do |result|
+      if result && attachment.is_a?(HtmlAttachment)
+        Whitehall::PublishingApi.save_draft(attachment)
+      end
     end
+  end
+
+  def attachment_updater
+    ServiceListeners::AttachmentUpdater.call(attachable: attachable.reload)
   end
 end

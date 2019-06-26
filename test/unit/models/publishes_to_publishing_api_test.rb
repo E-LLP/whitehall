@@ -1,13 +1,11 @@
 require 'test_helper'
-require 'sidekiq/testing'
 
 class PublishesToPublishingApiTest < ActiveSupport::TestCase
   class TestObject
     include ActiveModel::Validations
     include ActiveModel::Validations::Callbacks
 
-    def self.after_commit
-    end
+    def self.after_commit; end
 
     def persisted?
       true
@@ -28,18 +26,18 @@ class PublishesToPublishingApiTest < ActiveSupport::TestCase
   setup do
     TestObject.stubs(:after_commit).with(
       :publish_to_publishing_api,
-      { if: :can_publish_to_publishing_api? }
+      if: :can_publish_to_publishing_api?
     )
     TestObject.stubs(:after_commit).with(
       :publish_gone_to_publishing_api,
-      { on: :destroy }
+      on: :destroy
     )
   end
 
   test "it hooks up publish_to_publishing_api correctly" do
     TestObject.expects(:after_commit).with(
       :publish_to_publishing_api,
-      { if: :can_publish_to_publishing_api? }
+      if: :can_publish_to_publishing_api?
     )
     include_module(TestObject.new)
   end
@@ -47,7 +45,7 @@ class PublishesToPublishingApiTest < ActiveSupport::TestCase
   test "it hooks up publish_gone_to_publishing_api correctly" do
     TestObject.expects(:after_commit).with(
       :publish_gone_to_publishing_api,
-      { on: :destroy }
+      on: :destroy
     )
     include_module(TestObject.new)
   end
@@ -63,21 +61,18 @@ class PublishesToPublishingApiTest < ActiveSupport::TestCase
     refute test_object.can_publish_to_publishing_api?
   end
 
-  test "publish to publishing api publishes async" do
-    test_object = include_module(TestObject.new)
-    Whitehall::PublishingApi.expects(:publish_async).with(test_object)
-    test_object.publish_to_publishing_api
-  end
-
-  test "publish gone to publishing api publishes async" do
+  test "publish gone to publishing api publishes gone async" do
     test_object = include_module(TestObject.new)
     Whitehall::PublishingApi.expects(:publish_gone_async)
-      .with("26d638-e253-4b6c-a5e6-82122c441e50")
+      .with("26d638-e253-4b6c-a5e6-82122c441e50", nil, nil)
     test_object.publish_gone_to_publishing_api
   end
 
   test "defines and executes published callback when published" do
-    Whitehall::PublishingApi.stubs(:publish_async)
+    Whitehall::PublishingApi.stubs(:publish)
+    Whitehall::PublishingApi.stubs(:save_draft)
+    Whitehall::PublishingApi.stubs(:patch_links)
+
     test_object = TestObject.new
     class << test_object
       include PublishesToPublishingApi

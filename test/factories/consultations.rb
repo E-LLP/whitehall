@@ -1,11 +1,16 @@
-FactoryGirl.define do
-  factory :consultation, class: Consultation, parent: :edition, traits: [:with_organisations, :with_topics] do
-    title "consultation-title"
-    body  "consultation-body"
+FactoryBot.define do
+  factory :consultation, class: Consultation, parent: :edition, traits: %i[with_organisations with_topics] do
+    title { "consultation-title" }
+    body { "consultation-body" }
     opening_at { 1.day.ago }
     closing_at { 6.weeks.from_now }
+    read_consultation_principles { true }
     transient do
       relevant_to_local_government { false }
+    end
+
+    trait(:with_html_attachment) do
+      attachments { [FactoryBot.build(:html_attachment)] }
     end
   end
 
@@ -28,7 +33,24 @@ FactoryGirl.define do
     closing_at { 1.day.ago }
   end
 
+  factory :unopened_consultation, parent: :published_consultation do
+    opening_at { 2.days.from_now }
+    closing_at { 3.days.from_now }
+  end
+
   factory :consultation_with_outcome, parent: :closed_consultation do
     outcome { create(:consultation_outcome) }
+  end
+
+  factory :consultation_with_outcome_file_attachment, parent: :closed_consultation do
+    outcome { create(:consultation_outcome, :with_file_attachment) }
+  end
+
+  factory :consultation_with_outcome_html_attachment, parent: :closed_consultation do
+    outcome { create(:consultation_outcome, :with_html_attachment) }
+  end
+
+  factory :consultation_with_public_feedback_html_attachment, parent: :closed_consultation do
+    public_feedback { create(:consultation_public_feedback, :with_html_attachment) }
   end
 end

@@ -2,8 +2,8 @@ require 'unit/whitehall/authority/authority_test_helper'
 require 'ostruct'
 
 class WorldWriterTest < ActiveSupport::TestCase
-  def world_writer(world_locations, id = 1)
-    OpenStruct.new(id: id, gds_editor?: false,
+  def world_writer(world_locations, id = 1, gds_editor = false)
+    OpenStruct.new(id: id, gds_editor?: gds_editor,
                    departmental_editor?: false, world_editor?: false,
                    world_writer?: true, organisation: nil,
                    can_force_publish_anything?: false,
@@ -27,19 +27,19 @@ class WorldWriterTest < ActiveSupport::TestCase
   end
 
   test 'can see an edition about their location that is access limited if it is limited to their organisation' do
-    org = 'organisation'
+    organisation = 'organisation'
     user = world_writer(['hat land', 'tie land'])
-    user.stubs(:organisation).returns(org)
-    edition = with_locations(limited_publication([org]), ['shirt land', 'hat land'])
+    user.stubs(:organisation).returns(organisation)
+    edition = with_locations(limited_publication([organisation]), ['shirt land', 'hat land'])
     assert enforcer_for(user, edition).can?(:see)
   end
 
   test 'cannot see an edition about their locaiton that is access limited if it is limited an organisation they don\'t belong to' do
-    org1 = 'organisation_1'
-    org2 = 'organisation_2'
+    organisation_1 = 'organisation_1'
+    organisation_2 = 'organisation_2'
     user = world_writer(['hat land', 'tie land'])
-    user.stubs(:organisation).returns(org1)
-    edition = with_locations(limited_publication([org2]), ['shirt land', 'hat land'])
+    user.stubs(:organisation).returns(organisation_1)
+    edition = with_locations(limited_publication([organisation_2]), ['shirt land', 'hat land'])
 
     refute enforcer_for(user, edition).can?(:see)
   end
@@ -48,6 +48,12 @@ class WorldWriterTest < ActiveSupport::TestCase
     user = world_writer(['tie land'])
     edition = with_locations(normal_edition, ['shirt land'])
     refute enforcer_for(user, edition).can?(:see)
+  end
+
+  test 'can see an edition that is not about their location if they are a gds editor' do
+    user = world_writer(['tie land'], 1, true)
+    edition = with_locations(normal_edition, ['shirt land'])
+    assert enforcer_for(user, edition).can?(:see)
   end
 
   test 'cannot do anything to an edition they are not allowed to see' do
@@ -129,23 +135,23 @@ class WorldWriterTest < ActiveSupport::TestCase
   end
 
   test 'can force publish an edition about their location that is limited to another org if they can_force_publish_anything?' do
-    org1 = 'organisation_1'
-    org2 = 'organisation_2'
+    organisation_1 = 'organisation_1'
+    organisation_2 = 'organisation_2'
     user = world_writer(['hat land', 'tie land'])
-    user.stubs(:organisation).returns(org1)
+    user.stubs(:organisation).returns(organisation_1)
     user.stubs(:can_force_publish_anything?).returns(true)
-    edition = with_locations(limited_publication([org2]), ['shirt land', 'hat land'])
+    edition = with_locations(limited_publication([organisation_2]), ['shirt land', 'hat land'])
 
     assert enforcer_for(user, edition).can?(:force_publish)
   end
 
   test 'can force publish a limited access edition outside their location and org if they can_force_publish_anything?' do
-    org1 = 'organisation_1'
-    org2 = 'organisation_2'
+    organisation_1 = 'organisation_1'
+    organisation_2 = 'organisation_2'
     user = world_writer(['hat land', 'tie land'])
-    user.stubs(:organisation).returns(org1)
+    user.stubs(:organisation).returns(organisation_1)
     user.stubs(:can_force_publish_anything?).returns(true)
-    edition = with_locations(limited_publication([org2]), ['shirt land'])
+    edition = with_locations(limited_publication([organisation_2]), ['shirt land'])
 
     assert enforcer_for(user, edition).can?(:force_publish)
   end

@@ -4,18 +4,20 @@ class ApplicationController < ActionController::Base
   include GDS::SSO::ControllerMethods
   include Slimmer::Headers
   include Slimmer::Template
-  include Slimmer::SharedTemplates
+  include LocalisedUrlPathHelper
+  include LegacyUrlHelper
 
   protect_from_forgery
 
-  before_filter :set_slimmer_application_name
-  before_filter :set_audit_trail_whodunnit
-  before_filter :set_authenticated_user_header
+  before_action :set_slimmer_application_name
+  before_action :set_slimmer_show_organisations_filter
+  before_action :set_audit_trail_whodunnit
+  before_action :set_authenticated_user_header
 
   layout 'frontend'
-  after_filter :set_slimmer_template
+  after_action :set_slimmer_template
 
-  private
+private
 
   def set_audit_trail_whodunnit
     Edition::AuditTrail.whodunnit = current_user
@@ -31,6 +33,12 @@ class ApplicationController < ActionController::Base
 
   def set_slimmer_application_name
     set_slimmer_headers(application_name: 'inside_government')
+  end
+
+  # Always open the finder (organisations filter box) on the search results page
+  # to make it more obvious to users that the results can be filtered
+  def set_slimmer_show_organisations_filter
+    set_slimmer_headers(search_parameters: { show_organisations_filter: true }.to_json)
   end
 
   def set_slimmer_organisations_header(organisations)
@@ -54,7 +62,7 @@ class ApplicationController < ActionController::Base
   def set_slimmer_search_parameter_header(organisation)
     organisation = organisation.is_a?(WorldwideOrganisation) ? organisation.sponsoring_organisation : organisation
     if organisation && organisation.has_scoped_search?
-      set_slimmer_headers(search_parameters: {filter_organisations: [organisation.slug]}.to_json)
+      set_slimmer_headers(search_parameters: { filter_organisations: [organisation.slug] }.to_json)
     end
   end
 

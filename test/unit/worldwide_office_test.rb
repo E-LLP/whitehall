@@ -9,17 +9,18 @@ class WorldwideOfficeTest < ActiveSupport::TestCase
 
   test "delegates address-related methods to its contact" do
     contact = create(:contact_with_country,
-                      latitude: "67890",
-                      longitude: "12345",
-                      email: "email@email.com",
-                      contact_form_url: "http://contact.com/form",
-                      title: "Consulate General's Office",
-                      comments: "Totally bananas",
-                      recipient: "Eric",
-                      street_address: "29 Acacier Road",
-                      locality: "Dandytown",
-                      region: "Dandyville",
-                      postal_code: "D12 4CY", contact_numbers: [create(:contact_number)])
+                     latitude: "67890",
+                     longitude: "12345",
+                     email: "email@email.com",
+                     contact_form_url: "http://contact.com/form",
+                     title: "Consulate General's Office",
+                     comments: "Totally bananas",
+                     recipient: "Eric",
+                     street_address: "29 Acacier Road",
+                     locality: "Dandytown",
+                     region: "Dandyville",
+                     postal_code: "D12 4CY", contact_numbers: [create(:contact_number)],
+                     country: create(:world_location, iso2: 'GB'))
     office = create(:worldwide_office, contact: contact)
 
     # attributes
@@ -75,7 +76,7 @@ class WorldwideOfficeTest < ActiveSupport::TestCase
   test 'returns custom access info ahead of a default one it present' do
     office = create(:worldwide_office)
     create(:access_and_opening_times, accessible: office.worldwide_organisation)
-    custom_access_and_opening_times = create(:access_and_opening_times, accessible: office, body: 'custom body')
+    create(:access_and_opening_times, accessible: office, body: 'custom body')
     assert_equal 'custom body', office.access_and_opening_times_body
   end
 
@@ -92,5 +93,4 @@ class WorldwideOfficeTest < ActiveSupport::TestCase
 
     refute list.shown_on_home_page?(office)
   end
-
 end

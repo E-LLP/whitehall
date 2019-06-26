@@ -4,27 +4,38 @@
 # can be found in the Wiki - https://gov-uk.atlassian.net/wiki/display/GOVUK/Statistics.
 #
 # Once the statistics are published, the statistics announcement will redirect and
-# dissapear from search.
+# disappear from search.
 #
 # Statistics Announcements pages are rendered by the `government-frontend` app,
 # the index page is still rendered from Whitehall.
 #
 # Statistics announcements are not versioned/editioned.
-class StatisticsAnnouncement < ActiveRecord::Base
+class StatisticsAnnouncement < ApplicationRecord
   extend FriendlyId
   friendly_id :title
   include PublishesToPublishingApi
+
+  def can_publish_to_publishing_api?
+    super && !publication_has_been_published? && !unpublished?
+  end
 
   belongs_to :creator, class_name: 'User'
   belongs_to :cancelled_by, class_name: 'User'
   belongs_to :publication
 
   has_one  :current_release_date,
-    -> { order('created_at DESC') },
-    class_name: 'StatisticsAnnouncementDate',
-    inverse_of: :statistics_announcement
+           -> { order('created_at DESC') },
+           class_name: 'StatisticsAnnouncementDate',
+           inverse_of: :statistics_announcement
   has_many :statistics_announcement_dates, dependent: :destroy
 
+  # DID YOU MEAN: Policy Area?
+  # "Policy area" is the newer name for "topic"
+  # (https://www.gov.uk/government/topics)
+  # "Topic" is the newer name for "specialist sector"
+  # (https://www.gov.uk/topic)
+  # You can help improve this code by renaming all usages of this field to use
+  # the new terminology.
   has_many :statistics_announcement_topics, inverse_of: :statistics_announcement, dependent: :destroy
   has_many :topics, through: :statistics_announcement_topics
 
@@ -37,22 +48,23 @@ class StatisticsAnnouncement < ActiveRecord::Base
   validates :redirect_url, presence: { message: "must be provided when unpublishing an announcement" }, if: :unpublished?
   validates :redirect_url, uri: true, allow_blank: true
   validates :redirect_url, gov_uk_url: true, allow_blank: true
-  validates :title, :summary, :organisations, :topics, :creator, :current_release_date, presence: true
-  validates :cancellation_reason, presence: {  message: "must be provided when cancelling an announcement" }, if: :cancelled?
+  validates :title, :summary, :organisations, :creator, :current_release_date, presence: true
+  validates :cancellation_reason, presence: { message: "must be provided when cancelling an announcement" }, if: :cancelled?
   validates :publication_type_id,
-              inclusion: {
-                in: PublicationType.statistical.map(&:id),
-                message: 'must be a statistical type'
-              }
+            inclusion: {
+              in: PublicationType.statistical.map(&:id),
+              message: 'must be a statistical type'
+            }
 
   accepts_nested_attributes_for :current_release_date, reject_if: :persisted?
 
-  scope :with_title_containing, -> *keywords {
+  scope :with_title_containing, ->(*keywords) {
     pattern = "(#{keywords.map { |k| Regexp.escape(k) }.join('|')})"
     where("statistics_announcements.title REGEXP :pattern OR statistics_announcements.slug = :slug", pattern: pattern, slug: keywords)
   }
-  scope :in_organisations, Proc.new { |organisation_ids| joins(:statistics_announcement_organisations)
-    .where(statistics_announcement_organisations: { organisation_id: organisation_ids })
+  scope :in_organisations, ->(organisation_ids) {
+    joins(:statistics_announcement_organisations)
+      .where(statistics_announcement_organisations: { organisation_id: organisation_ids })
   }
   scope :published, -> { where(publishing_state: "published") }
 
@@ -66,20 +78,32 @@ class StatisticsAnnouncement < ActiveRecord::Base
               display_type: :display_type,
               slug: :slug,
               organisations: :organisations_slugs,
-              topics: :topic_slugs,
+              policy_areas: :topic_slugs,
+              public_timestamp: :updated_at,
               release_timestamp: :release_date,
               statistics_announcement_state: :state,
               metadata: :search_metadata,
               index_after: [],
               unindex_after: []
 
-  delegate  :release_date, :display_date, :confirmed?,
-              to: :current_release_date, allow_nil: true
+  delegate :release_date,
+           :display_date,
+           :confirmed?,
+           to: :current_release_date, allow_nil: true
 
-  set_callback :published, :after, :notify_search, :update_publish_intent
+  after_touch :publish_redirect_to_publication, if: :publication_has_been_published?
+  set_callback :published, :after, :after_publish
+  after_commit :notify_unpublished, if: :unpublished?
 
-  def notify_search
-    unpublished? ? remove_from_search_index : update_in_search_index
+  def notify_unpublished
+    publish_redirect_to_redirect_url
+    remove_from_search_index
+    update_publish_intent
+  end
+
+  def after_publish
+    update_in_search_index
+    update_publish_intent
   end
 
   def update_publish_intent
@@ -93,12 +117,12 @@ class StatisticsAnnouncement < ActiveRecord::Base
   def self.without_published_publication
     includes(:publication).
       references(:editions).
-      where("publication_id IS NULL || editions.state NOT IN (?)", Edition::POST_PUBLICATION_STATES)
+      where("editions.id IS NULL || editions.state NOT IN (?)", Edition::POST_PUBLICATION_STATES)
   end
 
   def self.with_topics(topic_ids)
     joins(:statistics_announcement_topics).
-    where(statistics_announcement_topics: { topic_id: topic_ids})
+    where(statistics_announcement_topics: { topic_id: topic_ids })
   end
 
   def last_change_note
@@ -108,7 +132,7 @@ class StatisticsAnnouncement < ActiveRecord::Base
   def previous_display_date
     if last_major_change
       major_change_index = statistics_announcement_dates.order(:created_at).index(last_major_change)
-      statistics_announcement_dates.at(major_change_index - 1).try(:display_date)
+      statistics_announcement_dates.to_a.at(major_change_index - 1).try(:display_date)
     end
   end
 
@@ -136,13 +160,14 @@ class StatisticsAnnouncement < ActiveRecord::Base
   end
 
   def search_metadata
-    { confirmed: confirmed?,
+    {
+      confirmed: confirmed?,
       display_date: display_date,
       change_note: last_change_note,
       previous_display_date: previous_display_date,
       cancelled_at: cancelled_at,
       cancellation_reason: cancellation_reason,
-     }
+    }
   end
 
   def build_statistics_announcement_date_change(attributes = {})
@@ -187,10 +212,14 @@ class StatisticsAnnouncement < ActiveRecord::Base
     unpublished? || publication_has_been_published?
   end
 
-
 private
+
   def publication_has_been_published?
     publication && publication.published?
+  end
+
+  def publication_url
+    Whitehall.url_maker.public_document_path(publication)
   end
 
   def last_major_change
@@ -216,5 +245,31 @@ private
         errors.add(:redirect_url, "cannot redirect to itself")
       end
     end
+  end
+
+  def publish_redirect_to_publication
+    Whitehall::PublishingApi.publish_redirect_async(content_id, publication_url)
+  end
+
+  def publish_redirect_to_redirect_url
+    Whitehall::PublishingApi.publish_redirect_async(content_id, redirect_path)
+  end
+
+  def redirect_uri
+    @redirect_uri ||= begin
+                        return if redirect_url.nil?
+
+                        Addressable::URI.parse(redirect_url)
+                      rescue URI::InvalidURIError
+                        nil
+                      end
+  end
+
+  def redirect_path
+    return if redirect_uri.nil?
+
+    path = redirect_uri.path
+    path << "##{redirect_uri.fragment}" if redirect_uri.fragment.present?
+    path
   end
 end

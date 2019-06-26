@@ -1,13 +1,11 @@
 class WorldwideOrganisationsController < PublicFacingController
   include CacheControlHelper
+  include PermissionsChecker
+
   enable_request_formats show: :json
-  before_filter :load_worldwide_organisation, only: :show
+  before_action :load_worldwide_organisation
 
   respond_to :html, :json
-
-  def index
-    @worldwide_organisations = WorldwideOrganisation.ordered_by_name
-  end
 
   def show
     respond_to do |format|
@@ -26,10 +24,23 @@ class WorldwideOrganisationsController < PublicFacingController
     end
   end
 
-  private
+private
+
+  def preview?
+    params[:preview]
+  end
+
+  def current_user_can_preview?
+    preview? && user_signed_in?
+  end
 
   def load_worldwide_organisation
     @worldwide_organisation = WorldwideOrganisation.with_translations(I18n.locale).find(params[:id])
+
+    if current_user_can_preview?
+      expires_now
+      @draft = true
+    end
   end
 
   def primary_role

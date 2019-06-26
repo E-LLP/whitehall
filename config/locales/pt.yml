@@ -5,7 +5,6 @@ pt:
         one: Documento
         other: Documentos
       applies_to_nations: Aplica-se a
-      field_of_operation: Campo de Operação
       from:
       location:
       part_of:
@@ -16,6 +15,9 @@ pt:
       authored_article:
         one: Artigo
         other: Artigos
+      blog_post:
+        one:
+        other:
       case_study:
         one: Estudo de caso
         other: Estudos de caso
@@ -46,9 +48,6 @@ pt:
       draft_text:
         one: Texto preliminar
         other: Textos preliminares
-      fatality_notice:
-        one: Aviso de Falecimento
-        other: Avisos de Falecimento
       foi_release:
         one: Comunicado sobre pedido de acesso a informação
         other: Comunicados sobre pedidos de acesso a informação
@@ -73,6 +72,9 @@ pt:
       international_treaty:
         one:
         other:
+      manual:
+        one:
+        other:
       map:
         one: Mapa
         other: Mapas
@@ -85,9 +87,15 @@ pt:
       news_story:
         one: Notícia
         other: Notícias
+      nhs_content:
+        one:
+        other:
       notice:
         one:
         other:
+      official_statistics:
+        one: Estatística
+        other: Estatísticas
       open_consultation:
         one: Consulta aberta
         other: Consultas abertas
@@ -124,9 +132,6 @@ pt:
       statistical_data_set:
         one: Conjunto de dados estastísticos
         other: Conjuntos de dados estatísticos
-      official_statistics:
-        one: Estatística
-        other: Estatísticas
       statutory_guidance:
         one:
         other:
@@ -136,6 +141,9 @@ pt:
       transparency:
         one: Dado de Transparência
         other: Dados de Transparência
+      world_news_story:
+        one:
+        other:
       written_statement:
         one: Declaração escrita ao Parlamento
         other: Declarações escritas ao Parlamento
@@ -215,6 +223,8 @@ pt:
         unnumbered_hoc_paper:
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         file:
+      edition:
+        nation_inapplicabilities:
       policy_group/policy_group_attachments/attachment/attachment_data:
         file:
       response/consultation_response_attachments/attachment:
@@ -259,6 +269,12 @@ pt:
     opendocument:
       help_html:
     see_more:
+  broken_links:
+    broken:
+      subheading:
+    caution:
+      subheading:
+    title:
   change_notes:
     page_history:
     published_at:
@@ -269,38 +285,34 @@ pt:
     email: E-mail
   corporate_information_page:
     type:
-      about:
-      about_our_services:
-      access_and_opening:
-      complaints_procedure:
-      equality_and_diversity:
-      media_enquiries:
-      membership:
-      our_energy_use:
-      our_governance:
-      personal_information_charter: Guia de Informação Pessoal
-      petitions_and_campaigns:
-      procurement:
-      publication_scheme: Programa de publicação
-      recruitment:
-      research:
-      social_media_use: Uso de mídias sociais
-      staff_update:
-      statistics:
-      terms_of_reference:
-      welsh_language_scheme: 'Programa de língua galesa '
+      link_text:
+        welsh_language_scheme:
+      title:
+        about:
+        about_our_services:
+        access_and_opening:
+        accessible_documents_policy:
+        complaints_procedure:
+        equality_and_diversity:
+        media_enquiries:
+        membership:
+        our_energy_use:
+        our_governance:
+        personal_information_charter: Guia de Informação Pessoal
+        petitions_and_campaigns:
+        procurement:
+        publication_scheme: Programa de publicação
+        recruitment:
+        research:
+        social_media_use: Uso de mídias sociais
+        staff_update:
+        statistics:
+        terms_of_reference:
+        welsh_language_scheme: 'Programa de língua galesa '
   date:
     formats:
       default: "%e %B %Y"
       long_ordinal: "%e %B %Y"
-  detailed_guidance:
-    back_to_contents:
-    contents:
-    more:
-    part_of_published_collection:
-    published_related_detailed_guides:
-    related_mainstream_content:
-    see_more_like_this:
   document_filters:
     description: Você pode usar filtros para ver &nbsp; apenas os resultados que lhe
       &nbsp; interessam
@@ -316,14 +328,14 @@ pt:
     email:
     feed:
     get_updates_to_this_list:
-    latest_activity: "Últimas atividades"
+    latest_activity: Últimas atividades
   i18n:
-    direction: Itr
+    direction: ltr
   language_names:
     pt: Português
   latest_feed:
     no_updates: Ainda não há atualizações
-    title: "Últimas"
+    title: Últimas
   national_statistics:
     heading:
   number:
@@ -337,6 +349,7 @@ pt:
       access_our_info: Veja as nossas informações
       foi_how_to: Como entrar com um pedido de acesso a informação
       foi_releases: Comunicado sobre pedido de acesso a informação
+      jobs:
       jobs_and_contacts: Vagas e contratos
       organisation_chart:
       transparency: Dados de Transparência
@@ -442,6 +455,7 @@ pt:
     headings:
       about_us: Sobre
       contact_us: Contato
+      contents:
       corporate_information: Informação corporativa
       follow_us: Siga-nos
       our_people: Nosso pessoal

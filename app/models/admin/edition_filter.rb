@@ -7,10 +7,14 @@ module Admin
       lookup
     end
 
+    MAX_EXPORT_SIZE = 8000
+
     attr_reader :options
 
     def initialize(source, current_user, options = {})
-      @source, @current_user, @options = source, current_user, options
+      @source = source
+      @current_user = current_user
+      @options = options
     end
 
     def editions(locale = nil)
@@ -38,7 +42,7 @@ module Admin
     end
 
     def default_page_size
-      50
+      Kaminari.config.default_per_page
     end
 
     def hide_type
@@ -46,7 +50,7 @@ module Admin
     end
 
     def show_stats
-      ['published'].include?(options[:state])
+      %w[published].include?(options[:state])
     end
 
     def published_count
@@ -58,8 +62,8 @@ module Admin
     end
 
     def force_published_percentage
-      if published_count > 0
-        (( force_published_count.to_f / published_count.to_f) * 100.0).round(2)
+      if published_count.positive?
+        ((force_published_count.to_f / published_count.to_f) * 100.0).round(2)
       else
         0
       end
@@ -74,24 +78,28 @@ module Admin
     end
 
     def from_date
-      @from_date ||= Chronic.parse(options[:from_date], endian_precedence: :little) if options[:from_date]
+      @from_date ||= Chronic.parse(options[:from_date], endian_precedence: :little, guess: :begin) if options[:from_date]
     end
 
     def to_date
-      @to_date ||= Chronic.parse(options[:to_date], endian_precedence: :little) if options[:to_date]
+      @to_date ||= Chronic.parse(options[:to_date], endian_precedence: :little, guess: :begin) if options[:to_date]
     end
 
     def date_range_string
       if from_date && to_date
         "from #{from_date.to_date.to_s(:uk_short)} to #{to_date.to_date.to_s(:uk_short)}"
       elsif from_date
-        "after #{from_date.to_date.to_s(:uk_short)}"
+        "from #{from_date.to_date.to_s(:uk_short)}"
       elsif to_date
         "before #{to_date.to_date.to_s(:uk_short)}"
       end
     end
 
-    private
+    def exportable?
+      unpaginated_editions.count <= MAX_EXPORT_SIZE
+    end
+
+  private
 
     def unpaginated_editions
       return @unpaginated_editions if @unpaginated_editions
@@ -108,13 +116,17 @@ module Admin
       editions = editions.in_world_location(selected_world_locations) if selected_world_locations.any?
       editions = editions.from_date(from_date) if from_date
       editions = editions.to_date(to_date) if to_date
+      editions = editions.only_broken_links if only_broken_links
+
+      editions = editions.includes(:unpublishing) if include_unpublishing?
+      editions = editions.includes(:link_check_reports) if include_link_check_reports?
+      editions = editions.includes(:last_author) if include_last_author?
 
       @unpaginated_editions = editions
     end
 
     def editions_with_translations(locale = nil)
       editions_without_translations = unpaginated_editions.
-                                        includes(:unpublishing).
                                         order("editions.updated_at DESC")
 
       if locale
@@ -219,6 +231,22 @@ module Admin
         sentence = selected_world_locations.map { |l| WorldLocation.friendly.find(l).name }.to_sentence
         " about #{sentence}"
       end
+    end
+
+    def only_broken_links
+      options[:only_broken_links].present?
+    end
+
+    def include_unpublishing?
+      options.fetch(:include_unpublishing, false)
+    end
+
+    def include_link_check_reports?
+      options.fetch(:include_link_check_reports, false)
+    end
+
+    def include_last_author?
+      options.fetch(:include_last_author, false)
     end
   end
 end

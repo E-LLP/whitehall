@@ -1,7 +1,6 @@
 require 'test_helper'
 
 class EditionForcePublisherTest < ActiveSupport::TestCase
-
   test '#perform! with a valid submitted edition force publishes the edition, setting timestamps' do
     edition   = create(:draft_edition)
     publisher = EditionForcePublisher.new(edition)
@@ -12,6 +11,18 @@ class EditionForcePublisherTest < ActiveSupport::TestCase
     assert_equal Time.zone.now.to_i, edition.major_change_published_at.to_i
     assert_equal Time.zone.now.to_i, edition.first_published_at.to_i
     assert_equal '1.0', edition.published_version
+  end
+
+  test '#perform! deletes any unpublishings for the edition' do
+    unpublishing = create(:unpublishing)
+    edition = unpublishing.edition
+
+    EditionForcePublisher.new(edition).perform!
+
+    edition.reload
+
+    assert edition.published?
+    refute edition.unpublishing.present?
   end
 
   %w(published imported rejected superseded).each do |state|

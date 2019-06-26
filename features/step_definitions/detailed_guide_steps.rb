@@ -1,52 +1,57 @@
-Given /^a published detailed guide "([^"]*)" related to published detailed guides "([^"]*)" and "([^"]*)"$/ do |title, first_related_title, second_related_title|
-  create(:government)
-  first_related = create(:published_detailed_guide, title: first_related_title)
-  second_related = create(:published_detailed_guide, title: second_related_title)
-  guide = create(:published_detailed_guide, title: title, related_documents: [first_related.document, second_related.document], topics: [create(:topic)])
-end
-
-Given /^a published detailed guide "([^"]*)" for the organisation "([^"]*)"$/ do |title, organisation|
+Given(/^a published detailed guide "([^"]*)" for the organisation "([^"]*)"$/) do |title, organisation|
   create(:government)
   organisation = create(:organisation, name: organisation)
   create(:published_detailed_guide, title: title, organisations: [organisation])
 end
 
-When /^I draft a new detailed guide "([^"]*)"$/ do |title|
+When(/^I draft a new detailed guide "([^"]*)"$/) do |title|
   create(:government)
   begin_drafting_document type: 'detailed_guide', title: title, previously_published: false
   click_button "Save"
 end
 
-Given /^I start drafting a new detailed guide$/ do
+When(/^I create a new detailed guide "([^"]*)" associated with "([^"]*)"$/) do |title, policy|
+  policies = publishing_api_has_policies([policy])
+  create(:government)
+
+  begin_drafting_document type: 'detailed_guide', title: title, previously_published: false
+  click_button "Save and continue"
+  click_button "Save and review legacy tagging"
+  select policy, from: "Policies"
+  click_button "Save"
+end
+
+Then(/^I should see the detailed guide "([^"]*)" associated with "([^"]*)"$/) do |title, policy|
+  assert has_css?(".flash.notice", text: "The associations have been saved")
+  assert has_css?(".page-header", text: title)
+
+  click_on 'Edit draft'
+  click_on "Save and continue"
+  click_on "Save and review legacy tagging"
+
+  assert has_css?(".policies option[selected]", text: policy)
+end
+
+Given(/^I start drafting a new detailed guide$/) do
   begin_drafting_document type: 'detailed_guide', title: "Detailed Guide", previously_published: false
 end
 
-When /^I visit the detailed guide "([^"]*)"$/ do |name|
-  guide = DetailedGuide.find_by!(title: name)
-  visit detailed_guide_path(guide.document)
-end
-
-Then /^I can see links to the related detailed guides "([^"]*)" and "([^"]*)"$/ do |guide_1, guide_2|
-  within ".related-detailed-guides" do
-    assert has_css?("a", text: guide_1), "should have link to #{guide_1}"
-    assert has_css?("a", text: guide_2), "should have link to #{guide_2}"
-  end
-end
-
-Then /^I should be able to select another image for the detailed guide$/ do
+Then(/^I should be able to select another image for the detailed guide$/) do
   assert_equal 2, page.all(".images input[type=file]").length
 end
 
-When /^I publish a new edition of the detailed guide "([^"]*)" with a change note "([^"]*)"$/ do |guide_title, change_note|
+When(/^I publish a new edition of the detailed guide "([^"]*)" with a change note "([^"]*)"$/) do |guide_title, change_note|
   guide = DetailedGuide.latest_edition.find_by!(title: guide_title)
+  stub_publishing_api_links_with_taxons(guide.content_id, ["a-taxon-content-id"])
   visit admin_edition_path(guide)
   click_button "Create new edition"
   fill_in "edition_change_note", with: change_note
-  click_button "Save"
+  click_button "Save and continue"
+  click_button "Save topic changes"
   publish(force: true)
 end
 
-Then /^the change notes should appear in the history for the detailed guide "([^"]*)" in reverse chronological order$/ do |title|
+Then(/^the change notes should appear in the history for the detailed guide "([^"]*)" in reverse chronological order$/) do |title|
   detailed_guide = DetailedGuide.find_by!(title: title)
   visit detailed_guide_path(detailed_guide.document)
   document_history = detailed_guide.change_history

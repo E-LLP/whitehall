@@ -2,7 +2,7 @@ require 'test_helper'
 
 class EditionPublisherTest < ActiveSupport::TestCase
   test '#perform! with a valid submitted edition publishes the edition, setting the publishing timestamps and version' do
-    edition   = create(:submitted_edition)
+    edition = create(:submitted_edition)
 
     assert EditionPublisher.new(edition).perform!
     assert edition.published?
@@ -37,7 +37,7 @@ class EditionPublisherTest < ActiveSupport::TestCase
     refute publisher.perform!
     refute edition.published?
 
-    expected_reason = "Scheduled editions cannot be published. This edition is scheduled for publication on #{edition.scheduled_publication.to_s}"
+    expected_reason = "Scheduled editions cannot be published. This edition is scheduled for publication on #{edition.scheduled_publication}"
     assert_equal expected_reason, publisher.failure_reason
   end
 
@@ -75,6 +75,19 @@ class EditionPublisherTest < ActiveSupport::TestCase
     assert published_edition.reload.superseded?, "expected previous edition to be superseded but it's #{published_edition.state}"
   end
 
+  test '#perform! deletes any unpublishings for the edition' do
+    unpublishing = create(:unpublishing)
+    edition = unpublishing.edition
+    edition.submit!
+
+    EditionPublisher.new(edition).perform!
+
+    edition.reload
+
+    assert edition.published?
+    refute edition.unpublishing.present?
+  end
+
   test '#perform! does not choke if previous editions are invalid' do
     published_edition = create(:published_edition)
     edition = published_edition.create_draft(create(:writer))
@@ -89,7 +102,7 @@ class EditionPublisherTest < ActiveSupport::TestCase
 
   test '#perform! notifies on successful publishing' do
     edition  = create(:submitted_edition)
-    options  = { one: 1, two: 2}
+    options  = { one: 1, two: 2 }
     notifier = mock
     notifier.expects(:publish).with('publish', edition, options)
     publisher = EditionPublisher.new(edition, options.merge(notifier: notifier))
@@ -101,7 +114,7 @@ class EditionPublisherTest < ActiveSupport::TestCase
     edition  = build(:imported_edition)
     notifier = mock
     notifier.expects(:publish).never
-    publisher = EditionPublisher.new(edition, {notifier: notifier})
+    publisher = EditionPublisher.new(edition, notifier: notifier)
 
     refute publisher.perform!
   end
@@ -169,5 +182,26 @@ class EditionPublisherTest < ActiveSupport::TestCase
     assert publisher.perform!
     edition.reload
     assert edition.political?
+  end
+
+  test '#perform! is reliable with respect to Publishing API failures' do
+    edition = create(:submitted_edition)
+
+    stub_request(
+      :post,
+      "#{Plek.find('publishing-api')}/v2/content/#{edition.content_id}/publish"
+    ).to_return(
+      status: 504
+    ).then.to_return(
+      status: 200
+    )
+
+    assert_raises GdsApi::HTTPGatewayTimeout do
+      EditionPublisher.new(edition).perform!
+    end
+    refute edition.reload.published?
+
+    EditionPublisher.new(edition).perform!
+    assert edition.reload.published?
   end
 end

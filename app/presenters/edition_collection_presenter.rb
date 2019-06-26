@@ -4,24 +4,30 @@ class EditionCollectionPresenter
     @context = context
   end
 
+  # rubocop:disable Style/MethodMissingSuper
+  # rubocop:disable Style/MissingRespondToMissing
+
   def method_missing(method, *args, &block)
     wrap_result(@array.__send__(method, *args, &block))
   end
+
+  # rubocop:enable Style/MethodMissingSuper
+  # rubocop:enable Style/MissingRespondToMissing
 
   def respond_to?(method)
     @array.respond_to?(method)
   end
 
-  def each(&block)
+  def each
     @array.each { |r| yield wrap_result(r) }
   end
 
-  private
+private
 
   def wrap_result(result)
     if result.is_a?(Enumerable)
       result.map { |r| wrap_result(r) }
-    elsif presenter = presenter_for(result)
+    elsif (presenter = presenter_for(result))
       presenter.new(result, @context)
     else
       result

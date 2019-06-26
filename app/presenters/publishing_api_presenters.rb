@@ -1,52 +1,87 @@
 module PublishingApiPresenters
-  def self.presenter_for(model, options={})
-    presenter_class_for(model).new(model, options)
-  end
+  UndefinedPresenterError = Class.new(StandardError)
 
-private
-  def self.presenter_class_for(model)
-    case model
-    when ::Edition
-      presenter_class_for_edition(model)
-    when ::Unpublishing
-      PublishingApiPresenters::Unpublishing
-    when AboutPage
-      PublishingApiPresenters::TopicalEventAboutPage
-    when PolicyGroup
-      PublishingApiPresenters::WorkingGroup
-    when TakePartPage
-      PublishingApiPresenters::TakePart
-    when Topic
-      PublishingApiPresenters::PolicyAreaPlaceholder
-    when ::Organisation
-      PublishingApiPresenters::Organisation
-    when ::TopicalEvent
-      PublishingApiPresenters::TopicalEvent
-    when ::StatisticsAnnouncement
-      if model.requires_redirect?
-        PublishingApiPresenters::StatisticsAnnouncementRedirect
-      else
-        PublishingApiPresenters::StatisticsAnnouncement
-      end
-    when ::HtmlAttachment
-      PublishingApiPresenters::HtmlAttachment
-    else
-      PublishingApiPresenters::Placeholder
+  class << self
+    def presenter_for(model, options = {})
+      presenter_class_for(model).new(model, options)
     end
-  end
 
-  def self.presenter_class_for_edition(edition)
-    case edition
-    when ::CaseStudy
-      PublishingApiPresenters::CaseStudy
-    when ::DocumentCollection
-      PublishingApiPresenters::DocumentCollectionPlaceholder
-    when ::DetailedGuide
-      PublishingApiPresenters::DetailedGuide
-    when ::Publication
-      PublishingApiPresenters::Publication
-    else
-      PublishingApiPresenters::Edition
+  private
+
+    FALLBACK_EDITION_PRESENTER = PublishingApi::GenericEditionPresenter
+
+    def presenter_class_for(model)
+      case model
+      when ::Edition
+        presenter_class_for_edition(model)
+      when AboutPage
+        PublishingApi::TopicalEventAboutPagePresenter
+      when PolicyGroup
+        PublishingApi::WorkingGroupPresenter
+      when TakePartPage
+        PublishingApi::TakePartPresenter
+      when Topic
+        PublishingApi::PolicyAreaPlaceholderPresenter
+      when ::Organisation
+        PublishingApi::OrganisationPresenter
+      when ::TopicalEvent
+        PublishingApi::TopicalEventPresenter
+      when ::StatisticsAnnouncement
+        PublishingApi::StatisticsAnnouncementPresenter
+      when ::HtmlAttachment
+        PublishingApi::HtmlAttachmentPresenter
+      when ::Person
+        PublishingApi::PersonPresenter
+      when ::Role
+        PublishingApi::RolePresenter
+      when ::RoleAppointment
+        PublishingApi::RoleAppointmentPresenter
+      when ::WorldLocation
+        PublishingApi::WorldLocationPresenter
+      when ::WorldwideOrganisation
+        PublishingApi::WorldwideOrganisationPresenter
+      when ::Contact
+        PublishingApi::ContactPresenter
+      when OperationalField
+        PublishingApi::OperationalFieldPresenter
+      else
+        raise UndefinedPresenterError, "Could not find presenter class for: #{model.inspect}"
+      end
+    end
+
+    def presenter_class_for_edition(edition)
+      case edition
+      when ::CaseStudy
+        PublishingApi::CaseStudyPresenter
+      when Consultation
+        PublishingApi::ConsultationPresenter
+      when CorporateInformationPage
+        if edition.worldwide_organisation.present?
+          FALLBACK_EDITION_PRESENTER
+        else
+          PublishingApi::CorporateInformationPagePresenter
+        end
+      when ::DetailedGuide
+        PublishingApi::DetailedGuidePresenter
+      when ::DocumentCollection
+        PublishingApi::DocumentCollectionPresenter
+      when ::FatalityNotice
+        PublishingApi::FatalityNoticePresenter
+      when ::NewsArticle
+        PublishingApi::NewsArticlePresenter
+      when ::Publication
+        PublishingApi::PublicationPresenter
+      when ::Speech
+        PublishingApi::SpeechPresenter
+      when StatisticalDataSet
+        PublishingApi::StatisticalDataSetPresenter
+      when WorldLocationNewsArticle
+        PublishingApi::WorldLocationNewsArticlePresenter
+      else
+        # The presenter implementation for all of these models is identical and
+        # the structure of the presented payload is the same.
+        FALLBACK_EDITION_PRESENTER
+      end
     end
   end
 end

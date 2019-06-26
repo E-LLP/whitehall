@@ -1,15 +1,19 @@
 class AdminRequest
   def self.matches?(request)
-    !invalid_admin_host?(request.host)
+    # Allow access to all routes in development, and restrict to the
+    # internal or external admin host otherwise.
+    !Rails.env.production? || valid_admin_host?(request.host)
   end
 
-  def self.invalid_admin_host?(host)
-    Rails.env.production? && Whitehall.admin_host != host
+  def self.valid_admin_host?(host)
+    [Whitehall.admin_host, Whitehall.internal_admin_host].include? host
   end
 end
 
 Whitehall::Application.routes.draw do
-  def redirect(path, options = {prefix: Whitehall.router_prefix})
+  VALID_LOCALES_REGEX = Regexp.compile(Locale.non_english.map(&:code).join("|"))
+
+  def redirect(path, options = { prefix: Whitehall.router_prefix })
     super(options[:prefix] + path)
   end
 
@@ -24,20 +28,41 @@ Whitehall::Application.routes.draw do
 
   get '/government/ministers/minister-of-state--11' => redirect('/government/people/kris-hopkins', prefix: '')
 
+  # This API is documented here:
+  # https://github.com/alphagov/whitehall/blob/master/docs/api.md
   namespace 'api' do
-    resources :governments, only: [:index, :show], defaults: { format: :json }
-    resources :organisations, only: [:index, :show], defaults: { format: :json }
-    resources :world_locations, path: 'world-locations', only: [:index, :show], defaults: { format: :json } do
+    resources :governments, only: %i[index show], defaults: { format: :json }
+    resources :organisations, only: %i[index show], defaults: { format: :json }
+    resources :world_locations, path: 'world-locations', only: %i[index show], defaults: { format: :json } do
       resources :worldwide_organisations, path: 'organisations', only: [:index], defaults: { format: :json }
     end
     resources :worldwide_organisations, path: 'worldwide-organisations', only: [:show], defaults: { format: :json }
   end
 
+  # World locations and Worldwide organisations
+  get '/world/organisations/:organisation_id/office' => redirect('/world/organisations/%{organisation_id}', prefix: '')
+  get '/world/organisations/:organisation_id/about' => redirect('/world/organisations/%{organisation_id}', prefix: '')
+  get '/world/organisations/:id(.:locale)', as: "worldwide_organisation", to: "worldwide_organisations#show", constraints: { locale: VALID_LOCALES_REGEX }
+
+  resources :worldwide_organisations, path: 'world/organisations', only: [] do
+    get '/about/:id(.:locale)', as: 'corporate_information_page', to: 'corporate_information_pages#show', constraints: { locale: VALID_LOCALES_REGEX }
+    # Dummy path for the sake of polymorphic_path: will always be directed above.
+    get '/about(.:locale)', as: 'about', to: '_#_', constraints: { locale: VALID_LOCALES_REGEX }
+
+    get '/office/:id(.:locale)', to: "worldwide_offices#show", as: :worldwide_office, constraints: { locale: VALID_LOCALES_REGEX }
+  end
+
+  resources :embassies, path: 'world/embassies', only: [:index]
+
+  get '/world(.:locale)', as: 'world_locations', to: 'world_locations#index', constraints: { locale: VALID_LOCALES_REGEX }
+  get '/world/:id(.:locale)', as: 'world_location', to: 'world_locations#show', constraints: { locale: VALID_LOCALES_REGEX }
+  get '/world/:world_location_id/news(.:locale)', as: 'world_location_news_index', to: 'world_location_news#index', constraints: { locale: VALID_LOCALES_REGEX }
+
   scope Whitehall.router_prefix, shallow_path: Whitehall.router_prefix do
     external_redirect '/organisations/ministry-of-defence-police-and-guarding-agency',
       "http://webarchive.nationalarchives.gov.uk/20121212174735/http://www.mod.uk/DefenceInternet/AboutDefence/WhatWeDo/SecurityandIntelligence/MDPGA/"
 
-    root to: redirect("/", { prefix: '' }), via: :get, as: :main_root
+    root to: redirect("/", prefix: ''), via: :get, as: :main_root
     get "/how-government-works" => "home#how_government_works", as: 'how_government_works'
     scope '/get-involved' do
       root to: 'home#get_involved', as: :get_involved, via: :get
@@ -52,7 +77,7 @@ Whitehall::Application.routes.draw do
 
     # Past foreign secretaries are currently hard-coded, so this
     # resource falls straight through to views.
-    resources :past_foreign_secretaries, path: "/history/past-foreign-secretaries", only: [:index, :show]
+    resources :past_foreign_secretaries, path: "/history/past-foreign-secretaries", only: %i[index show]
     # Past chancellors is also hard-coded
     get "history/past-chancellors" => 'historic_appointments#past_chancellors'
 
@@ -62,49 +87,55 @@ Whitehall::Application.routes.draw do
     # TODO: make these dynamic, they're hard-coded above.
     get "/history/:role" => "historic_appointments#index", constraints: { role: /(past-prime-ministers)|(past-chancellors)|(past-foreign-secretaries)/ }, as: 'historic_appointments'
     get "/history/:role/:person_id" => "historic_appointments#show", constraints: { role: /(past-prime-ministers)|(past-chancellors)|(past-foreign-secretaries)/ }, as: 'historic_appointment'
-    resources :histories, path: "history", only: [:index, :show]
+    resources :histories, path: "history", only: %i[index show]
 
-    resource :email_signups, path: 'email-signup', only: [:create, :new]
+    resource :email_signups, path: 'email-signup', only: %i[create new]
     get "/email-signup", to: redirect('/')
 
-    get '/feed' => 'home#feed', defaults: { format: :atom }, constraints: { format: :atom }, as: :atom_feed
     get '/tour' => redirect("/tour", prefix: "")
 
-    resources :announcements, only: [:index], path: 'announcements', localised: true
-    resources :news_articles, path: 'news', only: [:show], localised: true
+    get '/announcements(.:locale)', as: 'announcements', to: 'announcements#index', constraints: { locale: VALID_LOCALES_REGEX }
+    get '/news/:id(.:locale)', as: 'news_article', to: 'news_articles#show', constraints: { locale: VALID_LOCALES_REGEX }
     resources :fatality_notices, path: 'fatalities', only: [:show]
     get "/news" => redirect("/announcements"), as: 'news_articles'
     get "/fatalities" => redirect("/announcements"), as: 'fatality_notices'
 
     get "/latest" => 'latest#index', as: 'latest'
 
-    resources :publications, only: [:index, :show], localised: true
-    get "/publications/:publication_id/:id" => 'html_attachments#show', as: 'publication_html_attachment'
+    get '/publications(.:locale)', as: 'publications', to: 'publications#index', constraints: { locale: VALID_LOCALES_REGEX }
+    get '/publications/:id(.:locale)', as: 'publication', to: '_#_', constraints: { locale: VALID_LOCALES_REGEX }
+    get "/publications/:publication_id/:id" => '_#_', as: 'publication_html_attachment'
 
-    resources :case_studies, path: 'case-studies', only: [:show, :index], localised: true
-    resources :speeches, only: [:show], localised: true
-    resources :statistical_data_sets, path: 'statistical-data-sets', only: [:index, :show]
+    # TODO: Remove when paths can be generated without a routes entry
+    get '/case-studies/:id(.:locale)', as: 'case_study', to: 'case_studies#show', constraints: { locale: VALID_LOCALES_REGEX }
+    get '/speeches/:id(.:locale)', as: 'speech', to: 'speeches#show', constraints: { locale: VALID_LOCALES_REGEX }
+    resources :statistical_data_sets, path: 'statistical-data-sets', only: [:show]
+
     get "/speeches" => redirect("/announcements")
 
     # Controller removed for stats announce show. Whitehall frontend no longer serves these
     # pages however the route is needed to generate path and url
     # helper methods.
     # TODO: Remove `:show` when stats announcement paths can be otherwise generated
-    resources :statistics_announcements, path: 'statistics/announcements', only: [:index, :show]
-    resources :statistics, only: [:index, :show], localised: true
-    resources :world_location_news_articles, path: 'world-location-news', only: [:index, :show], localised: true
+    resources :statistics_announcements, path: 'statistics/announcements', only: %i[index show]
+    get '/statistics(.:locale)', as: 'statistics', to: 'statistics#index', constraints: { locale: VALID_LOCALES_REGEX }
+    get '/statistics/:id(.:locale)', as: 'statistic', to: '_#_', constraints: { locale: VALID_LOCALES_REGEX }
+    get '/world-location-news(.:locale)', as: 'world_location_news_articles', to: 'world_location_news_articles#index', constraints: { locale: VALID_LOCALES_REGEX }
+    get '/world-location-news/:id(.:locale)', as: 'world_location_news_article', to: 'world_location_news_articles#show', constraints: { locale: VALID_LOCALES_REGEX }
 
-    resources :consultations, only: [:index, :show] do
+    resources :consultations, only: %i[index show] do
       collection do
         get :open
         get :closed
         get :upcoming
       end
     end
-    get "/consultations/:consultation_id/:id" => 'html_attachments#show', as: 'consultation_html_attachment'
+    get "/consultations/:consultation_id/:id" => "_#_", as: "consultation_html_attachment"
+    get "/consultations/:consultation_id/outcome/:id" => "_#_", as: "consultation_outcome_html_attachment"
+    get "/consultations/:consultation_id/public-feedback/:id" => "_#_", as: "consultation_public_feedback_html_attachment"
 
-    resources :topics, path: "topics", only: [:index, :show]
-    resources :topical_events, path: "topical-events", only: [:index, :show] do
+    resources :topics, path: "topics", only: [:show]
+    resources :topical_events, path: "topical-events", only: [:show] do
       # Controller removed. Whitehall frontend no longer serves these
       # pages however the route is needed to generate path and url
       # helper methods.
@@ -112,57 +143,53 @@ Whitehall::Application.routes.draw do
       resource :about_pages, path: "about", only: [:show]
     end
 
+    # TODO: Remove when paths can be generated without a routes entry
     resources :document_collections, only: [:show], path: 'collections'
     get '/collections' => redirect("/publications")
-    resources :organisations, only: [:index], localised: false
-    resources :organisations, only: [:show], localised: true do
-      get '/series/:slug' => redirect("/collections/%{slug}")
-      get '/series' => redirect("/publications")
 
-      member do
-        get :consultations
-        get :chiefs_of_staff, path: 'chiefs-of-staff'
-      end
-      resources :corporate_information_pages, only: [:show, :index], path: 'about', localised: true
-      resources :groups, only: [:show]
+    get '/organisations/:id(.:locale)', as: 'organisation', to: 'organisations#show', constraints: { locale: VALID_LOCALES_REGEX }
+    resources :organisations, only: [:index]
+
+    resources :organisations, only: [] do
+      # No need to forward the locale as collections aren't localised.
+      get '/series/:slug(.:locale)' => redirect("/collections/%{slug}"), constraints: { locale: VALID_LOCALES_REGEX }
+      get '/series(.:locale)' => redirect("/publications"), constraints: { locale: VALID_LOCALES_REGEX }
+      get '/about(.:locale)', as: 'corporate_information_pages', to: 'corporate_information_pages#index', constraints: { locale: VALID_LOCALES_REGEX }
+      get '/about/:id(.:locale)', as: 'corporate_information_page', to: 'corporate_information_pages#show', constraints: { locale: VALID_LOCALES_REGEX }
     end
     get "/organisations/:organisation_id/groups" => redirect("/organisations/%{organisation_id}")
-    get "/organisations/:organisation_id/services-information" => 'services_and_information#show',
-      as: :services_and_information
+    get "/organisations/:organisation_id/groups/:id" => redirect("/organisations/%{organisation_id}")
+    get "/organisations/:organisation_id/consultations" => redirect("/organisations/%{organisation_id}")
+    get "/organisations/:organisation_id/chiefs-of-staff" => redirect("/organisations/%{organisation_id}")
     get "/organisations/:organisation_slug/email-signup" => 'email_signup_information#show',
       as: :organisation_email_signup_information
 
-    resources :ministerial_roles, path: 'ministers', only: [:index, :show], localised: true
-    resources :people, only: [:index, :show], localised: true
+    get '/ministers(.:locale)', as: 'ministerial_roles', to: 'ministerial_roles#index', constraints: { locale: VALID_LOCALES_REGEX }
+    get '/ministers/:id(.:locale)', as: 'ministerial_role', to: 'ministerial_roles#show', constraints: { locale: VALID_LOCALES_REGEX }
+    get '/people/:id(.:locale)', as: 'person', to: 'people#show', constraints: { locale: VALID_LOCALES_REGEX }
 
     # TODO: Remove `:show` when policy group paths can be otherwise generated
-    resources :policy_groups, path: 'groups', only: [:index, :show]
-    resources :operational_fields, path: 'fields-of-operation', only: [:index, :show]
-    get 'world/organisations/:organisation_id/office' => redirect('/world/organisations/%{organisation_id}')
-    get 'world/organisations/:organisation_id/about' => redirect('/world/organisations/%{organisation_id}')
-    resources :worldwide_organisations, path: 'world/organisations', only: [:show, :index], localised: true do
-      resources :corporate_information_pages, only: [:show], path: 'about', localised: true
-      # Dummy path for the sake of polymorphic_path: will always be directed above.
-      get :about
-      resources :worldwide_offices, path: 'office', only: [:show]
-    end
+    resources :policy_groups, path: 'groups', only: [:show]
+    resources :operational_fields, path: 'fields-of-operation', only: %i[index show]
 
-    resources :embassies, path: 'world/embassies', only: [:index]
-
-    resources :world_locations, path: 'world', only: [:index, :show], localised: true
+    # Redirect everything under /government/world to /world
+    # It may look like we're redirecting back to the same page but the
+    # source is prefixed with /government.
+    get '/world' => redirect('/world', prefix: '')
+    get '/world/*page.:format' => redirect('/world/%{page}.%{format}', prefix: '')
+    get '/world/*page' => redirect('/world/%{page}', prefix: '')
 
     constraints(AdminRequest) do
       namespace :admin do
         root to: 'dashboard#index', via: :get
 
-        namespace :api do
-          post 'reindex-specialist-sector-editions/*slug', to: 'search#reindex_specialist_sector_editions', as: 'reindex_specialist_sector_editions'
-        end
-
         get 'find-in-admin-bookmarklet' => 'find_in_admin_bookmarklet#index', as: :find_in_admin_bookmarklet_instructions_index
         get 'find-in-admin-bookmarklet/:browser' => 'find_in_admin_bookmarklet#show', as: :find_in_admin_bookmarklet_instructions
+        get 'by-content-id/:content_id' => 'documents#by_content_id'
+        get '/:content_id/needs' => 'needs#edit', as: :edit_needs
+        patch '/:content_id/needs' => 'needs#update', as: :update_needs
 
-        resources :users, only: [:index, :show, :edit, :update]
+        resources :users, only: %i[index show edit update]
 
         resources :authors, only: [:show]
         resource :document_searches, only: [:show]
@@ -184,7 +211,7 @@ Whitehall::Application.routes.draw do
             resources :translations, controller: 'corporate_information_pages_translations'
           end
           resources :contacts do
-            resources :translations, controller: 'contact_translations', only: [:create, :edit, :update, :destroy]
+            resources :translations, controller: 'contact_translations', only: %i[create edit update destroy]
             member do
               post :remove_from_home_page
               post :add_to_home_page
@@ -197,14 +224,11 @@ Whitehall::Application.routes.draw do
             resources :promotional_feature_items, as: :items, path: 'items', except: [:index]
           end
           member do
-            get :features, localised: true
+            get '/features(.:locale)', as: 'features', to: 'organisations#features', constraints: { locale: VALID_LOCALES_REGEX }
             get :people
           end
           resources :financial_reports, except: [:show]
           resources :offsite_links
-          resources :featured_policies do
-            post :reorder, on: :collection
-          end
         end
         resources :corporate_information_pages, only: [] do
           resources :attachments, except: [:show] do
@@ -217,12 +241,12 @@ Whitehall::Application.routes.draw do
           end
         end
         resources :operational_fields, except: [:show]
-        resources :edition_organisations, only: [:edit, :update]
+        resources :edition_organisations, only: %i[edit update]
         resources :topics, path: "topics" do
           resources :classification_featurings, path: "featurings" do
             put :order, on: :collection
           end
-        resources :offsite_links
+          resources :offsite_links
         end
         resources :topical_events, path: "topical-events" do
           resource :about_pages, path: 'about'
@@ -237,7 +261,7 @@ Whitehall::Application.routes.draw do
             put :set_main_office
             get :access_info
           end
-          resource :access_and_opening_time, path: 'access_info', except: [:index, :show, :new]
+          resource :access_and_opening_time, path: 'access_info', except: %i[index show new]
           resources :translations, controller: 'worldwide_organisations_translations'
           resources :worldwide_offices, path: 'offices', except: [:show] do
             member do
@@ -245,8 +269,8 @@ Whitehall::Application.routes.draw do
               post :add_to_home_page
             end
             post :reorder_for_home_page, on: :collection
-            resource :access_and_opening_time, path: 'access_info', except: [:index, :show, :new]
-            resources :translations, controller: 'worldwide_office_translations', only: [:create, :edit, :update, :destroy]
+            resource :access_and_opening_time, path: 'access_info', except: %i[index show new]
+            resources :translations, controller: 'worldwide_office_translations', only: %i[create edit update destroy]
           end
           resources :corporate_information_pages do
             resources :translations, controller: 'corporate_information_pages_translations'
@@ -255,6 +279,10 @@ Whitehall::Application.routes.draw do
         end
 
         resources :editions, only: [:index] do
+          resource :tags, only: %i[edit update], controller: :edition_tags
+          resource :legacy_associations, only: %i[edit update], controller: :edition_legacy_associations
+          resource :world_tags, only: %i[edit update], controller: :edition_world_tags
+
           collection do
             post :export
             get :confirm_export
@@ -276,19 +304,19 @@ Whitehall::Application.routes.draw do
             post :force_schedule, to: 'edition_workflow#force_schedule'
             post :unschedule, to: 'edition_workflow#unschedule'
             post :convert_to_draft, to: 'edition_workflow#convert_to_draft'
-            get :audit_trail, to: 'edition_audit_trail#index'
+            get  :audit_trail, to: 'edition_audit_trail#index'
           end
-          resources :links_reports
-          resource :unpublishing, controller: 'edition_unpublishing', only: [:edit, :update]
-          resources :translations, controller: "edition_translations", except: [:index, :show]
-          resources :editorial_remarks, only: [:new, :create], shallow: true
-          resources :fact_check_requests, only: [:show, :create, :edit, :update], shallow: true
+          resources :link_check_reports
+          resource :unpublishing, controller: 'edition_unpublishing', only: %i[edit update]
+          resources :translations, controller: "edition_translations", except: %i[index show]
+          resources :editorial_remarks, only: %i[new create], shallow: true
+          resources :fact_check_requests, only: %i[show create edit update], shallow: true
           resource :document_sources, path: "document-sources", except: [:show]
           resources :attachments, except: [:show] do
             put :order, on: :collection
-            put :update_many, on: :collection, constraints: {format: "json"}
+            put :update_many, on: :collection, constraints: { format: "json" }
           end
-          resources :bulk_uploads, except: [:show, :edit, :update] do
+          resources :bulk_uploads, except: %i[show edit update] do
             post :upload_zip, on: :collection
             get :set_titles, on: :member
           end
@@ -302,8 +330,9 @@ Whitehall::Application.routes.draw do
             get :cancel_reason
             post :publish_cancellation
           end
+          resource :tags, only: %i[edit update], controller: :statistics_announcement_tags
           resources :statistics_announcement_date_changes, as: 'changes', path: 'changes'
-          resource :statistics_announcement_unpublishings, as: 'unpublish', path: 'unpublish', only: [:new, :create]
+          resource :statistics_announcement_unpublishings, as: 'unpublish', path: 'unpublish', only: %i[new create]
         end
 
         resources :suggestions, only: [:index]
@@ -313,11 +342,11 @@ Whitehall::Application.routes.draw do
         get "/policies/:policy_id/topics" => "policies#topics"
 
         resources :news_articles, path: 'news', except: [:index]
-        resources :world_location_news_articles, path: 'world-location-news', except: [:index]
+        resources :world_location_news_articles, path: 'world-location-news', except: %i[index new create]
         resources :fatality_notices, path: 'fatalities', except: [:index]
         resources :consultations, except: [:index] do
-          resource :outcome, controller: 'responses', type: 'ConsultationOutcome', except: [:new, :destroy]
-          resource :public_feedback, controller: 'responses', type: 'ConsultationPublicFeedback', except: [:new, :destroy]
+          resource :outcome, controller: 'responses', type: 'ConsultationOutcome', except: %i[new destroy]
+          resource :public_feedback, controller: 'responses', type: 'ConsultationPublicFeedback', except: %i[new destroy]
         end
         resources :responses, only: :none do
           resources :attachments do
@@ -332,23 +361,22 @@ Whitehall::Application.routes.draw do
           resources :translations, controller: 'person_translations'
           resources :historical_accounts
         end
-        resource :cabinet_ministers, only: [:show, :update]
+        resource :cabinet_ministers, only: %i[show update]
         resources :roles, except: [:show] do
-          resources :role_appointments, only: [:new, :create, :edit, :update, :destroy], shallow: true
+          resources :role_appointments, only: %i[new create edit update destroy], shallow: true
           resources :translations, controller: 'role_translations'
         end
-        resources :world_locations, only: [:index, :edit, :update, :show] do
+        resources :world_locations, only: %i[index edit update show] do
           member do
-            get :features, localised: true
+            get '/features(.:locale)', as: 'features', to: 'world_locations#features', constraints: { locale: VALID_LOCALES_REGEX }
           end
           resources :translations, controller: 'world_location_translations'
           resources :offsite_links
         end
         resources :feature_lists, only: [:show] do
-
           post :reorder, on: :member
 
-          resources :features, only: [:new, :create] do
+          resources :features, only: %i[new create] do
             post :unfeature, on: :member
           end
         end
@@ -374,28 +402,47 @@ Whitehall::Application.routes.draw do
         end
 
         resources :sitewide_settings
+        post "/link-checker-api-callback" => "link_checker_api#callback"
       end
     end
 
     get '/policy-topics' => redirect("/topics")
 
-    get 'site/sha' => 'site#sha'
-
     get '/placeholder' => 'placeholder#show', as: :placeholder
   end
 
-  resources :organisations, only: [:index, :show], path: 'courts-tribunals', localised: true,
-    as: :courts, courts_only: true
+  get '/courts-tribunals(.:locale)', as: 'courts', to: 'organisations#index', courts_only: true, constraints: { locale: VALID_LOCALES_REGEX }
+  get '/courts-tribunals/:id(.:locale)', as: 'court', to: 'organisations#show', courts_only: true, constraints: { locale: VALID_LOCALES_REGEX }
 
-  get 'healthcheck' => 'healthcheck#check'
+  get "/healthcheck", to: GovukHealthcheck.rack_response(
+    GovukHealthcheck::SidekiqRedis,
+    GovukHealthcheck::ActiveRecord,
+    Healthcheck::ScheduledPublishing,
+  )
+
   get 'healthcheck/overdue' => 'healthcheck#overdue'
 
-  get '/guidance/:id' => 'detailed_guides#show', constraints: {id: /[A-z0-9\-]+/}, as: 'detailed_guide', localised: true
+  # TODO: Remove when paths for new content can be generated without a route helper
+  get '/guidance/:id(.:locale)', as: 'detailed_guide', to: 'detailed_guides#show', constraints: { id: /[A-z0-9\-]+/, locale: VALID_LOCALES_REGEX }
 
-  get '/government/uploads/system/uploads/consultation_response_form/*path.:extension' => LongLifeRedirect.new('/government/uploads/system/uploads/consultation_response_form_data/')
-  get '/government/uploads/system/uploads/attachment_data/file/:id/*file.:extension' => "attachments#show"
-  get '/government/uploads/system/uploads/attachment_data/file/:id/*file.:extension/preview' => "attachments#preview", as: :preview_attachment
-  get '/government/uploads/*path.:extension' => "public_uploads#show"
+  get '/government/uploads/system/uploads/attachment_data/file/:id/*file.:extension/preview' => "csv_preview#show", as: :csv_preview
+  get '/government/uploads/*path' => "asset_manager_redirect#show", as: :asset_manager_redirect, format: true
 
-  mount TestTrack::Engine => "test" if Rails.env.test?
+  if Rails.env.development?
+    class DisableSlimmer
+      def initialize(app)
+        @app = app
+      end
+
+      def call(*args)
+        status, headers, body = @app.call(*args)
+        headers[Slimmer::Headers::SKIP_HEADER] = "true"
+
+        [status, headers, body]
+      end
+    end
+
+    require 'sidekiq/web'
+    mount DisableSlimmer.new(Sidekiq::Web), at: '/sidekiq'
+  end
 end

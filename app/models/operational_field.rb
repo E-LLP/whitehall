@@ -1,4 +1,5 @@
-class OperationalField < ActiveRecord::Base
+class OperationalField < ApplicationRecord
+  include PublishesToPublishingApi
   include Searchable
 
   validates :name, presence: true, uniqueness: true

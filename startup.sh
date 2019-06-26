@@ -9,9 +9,9 @@ if [ -z "$SHOW_PRODUCTION_IMAGES" ]; then
 else
   echo "Showing production images"
 fi
-# Serve static shared assets from preview so static doesn't need to be running
-: ${STATIC_DEV:="https://assets-origin.preview.alphagov.co.uk"}
+# Serve static shared assets from integration so static doesn't need to be running
+: ${STATIC_DEV:="https://assets-origin.integration.publishing.service.gov.uk"}
 export STATIC_DEV
 echo
 bundle install
-bundle exec rails s thin -p 3020
+bundle exec rails s -p 3020

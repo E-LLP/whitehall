@@ -49,6 +49,10 @@ module Edition::LimitedAccess
     end
   end
 
+  def access_limited_object
+    self
+  end
+
   def access_limited?
     read_attribute(:access_limited)
   end
@@ -61,5 +65,9 @@ module Edition::LimitedAccess
     if new_record? && access_limited.nil?
       self.access_limited = self.access_limited_by_default?
     end
+  end
+
+  def accessible_to?(user)
+    user.present? && self.class.accessible_to(user).where(id: id).any?
   end
 end

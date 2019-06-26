@@ -25,20 +25,21 @@ end
 
 
 Given(/^there are statistics announcements by my organisation that are unlinked to a publication$/) do
-  @past_announcement    = create(:statistics_announcement,
-                            organisation_ids: [@user.organisation.id],
-                            current_release_date: create(:statistics_announcement_date, release_date: 1.day.ago))
+  @past_announcement = create(:statistics_announcement,
+                              organisation_ids: [@user.organisation.id],
+                              current_release_date: create(:statistics_announcement_date, release_date: 1.day.ago))
 
-  @tomorrow_announcement  = create(:statistics_announcement,
-                              organisation_ids: [@user.organisation.id],
-                              current_release_date: create(:statistics_announcement_date, release_date: 1.day.from_now))
+  @tomorrow_announcement = create(:statistics_announcement,
+                                  organisation_ids: [@user.organisation.id],
+                                  current_release_date: create(:statistics_announcement_date, release_date: 1.day.from_now))
+
   @next_week_announcement = create(:statistics_announcement,
-                              organisation_ids: [@user.organisation.id],
-                              current_release_date: create(:statistics_announcement_date, release_date: 1.week.from_now))
+                                   organisation_ids: [@user.organisation.id],
+                                   current_release_date: create(:statistics_announcement_date, release_date: 1.week.from_now))
 
   @next_year_announcement = create(:statistics_announcement,
-                              organisation_ids: [@user.organisation.id],
-                              current_release_date: create(:statistics_announcement_date, release_date: 1.year.from_now))
+                                   organisation_ids: [@user.organisation.id],
+                                   current_release_date: create(:statistics_announcement_date, release_date: 1.year.from_now))
 end
 
 When(/^I view the statistics announcements index page$/) do
@@ -95,7 +96,6 @@ When(/^I announce an upcoming statistics publication called "(.*?)"$/) do |annou
   fill_in :statistics_announcement_summary, with: "Summary of publication"
   select_date 1.year.from_now.to_s, from: "Release date"
   select organisation.name, from: :statistics_announcement_organisation_ids
-  select topic.name, from: :statistics_announcement_topic_ids
 
   click_on 'Publish announcement'
 end

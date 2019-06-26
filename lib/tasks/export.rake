@@ -7,7 +7,7 @@ namespace :export do
   end
 
   desc "Export mappings (for eg the Transition app to consume)"
-  task :mappings => :environment do
+  task mappings: :environment do
     # Read off the MySQL slave - we want performance here and
     # non-contention as this job runs for up to 45 minutes.
     if Rails.env.production?
@@ -27,7 +27,7 @@ namespace :export do
   end
 
   desc "Export list of documents"
-  task :document_list => :environment do
+  task document_list: :environment do
     path = "tmp/document_list-#{Time.now.to_i}.csv"
     puts "generating csv in #{path}"
     CSV.open(path, "w") do |csv|
@@ -63,19 +63,17 @@ namespace :export do
   end
 
   desc "Export list of published editions for orgs export:published_editions ORGS=org-slug"
-  task :published_editions, [:orgs] => :environment do |t, args|
-
-    if ENV['ORGS']
-      orgs = Organisation.where(slug: ENV['ORGS'].split(',')).all
-    else
-      orgs = Organisation.all
-    end
+  task :published_editions, [:orgs] => :environment do |_t, _args|
+    orgs = if ENV['ORGS']
+             Organisation.where(slug: ENV['ORGS'].split(',')).all
+           else
+             Organisation.all
+           end
     puts "Processing #{orgs.map(&:display_name)}"
     path = "tmp/published_editions-#{Time.now.to_i}.csv"
     puts "generating csv in #{path}"
 
     CSV.open(path, "w") do |csv|
-
       csv << [
         "Org",
         "URL",
@@ -111,7 +109,7 @@ namespace :export do
   end
 
   desc "Exports mappings between organisations and analytics keys"
-  task :organisation_analytics => :environment do
+  task organisation_analytics: :environment do
     puts 'Mappings orgs to analytics keys...'
     path = 'tmp/organisation-analytics.csv'
     puts "Generating CSV in #{path}"
@@ -136,7 +134,7 @@ namespace :export do
   end
 
   desc "Exports HTML attachments for a particular publication as JSON"
-  task :html_attachments, [:slug] => :environment do |t, args|
+  task :html_attachments, [:slug] => :environment do |_t, args|
     edition = Document.find_by(slug: args[:slug]).published_edition
 
     result = edition.html_attachments.map do |a|
@@ -149,5 +147,28 @@ namespace :export do
       }
     end
     puts result.to_json
+  end
+
+  desc "Export news documents to JSON format e.g. export:news_documents ORGS=org-slug FROM=2018-07-01"
+  task news_documents: :environment do
+    org_slugs = ENV.fetch("ORGS", "").split(',')
+
+    scope = Document
+      .eager_load(:editions)
+      .joins(:latest_edition)
+      .joins("INNER JOIN edition_organisations ON editions.id = edition_organisations.edition_id")
+      .joins("INNER JOIN organisations ON edition_organisations.organisation_id = organisations.id")
+      .where("document_type": "NewsArticle")
+
+    scope = scope.where("organisations.slug": org_slugs) if org_slugs.any?
+    scope = scope.where("editions.updated_at >= ?", ENV["FROM"]) if ENV["FROM"]
+    total = scope.count
+
+    scope.find_each.with_index do |document, index|
+      puts "#{index + 1}/#{total} exported", STDERR if ((index + 1) % 100).zero?
+      puts ExportNewsDocument.new(document).call.to_json
+    rescue Errno::EPIPE
+      break # Can't do much about this, so just break
+    end
   end
 end

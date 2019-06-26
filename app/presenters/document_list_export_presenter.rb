@@ -27,7 +27,11 @@ class DocumentListExportPresenter
       'Policies',
       'Specialist sectors',
       'Collections',
-      'Affected by history-mode',
+      'Can have history-mode',
+      'History-mode applied',
+      'Primary language',
+      'Translations available',
+      'Summary',
     ]
   end
 
@@ -50,6 +54,10 @@ class DocumentListExportPresenter
       specialist_sectors,
       collections,
       edition.political?,
+      edition.historic?,
+      primary_language,
+      translations_available,
+      edition.summary,
     ]
   end
 
@@ -99,6 +107,8 @@ class DocumentListExportPresenter
   def state
     if edition.force_published?
       "force published"
+    elsif edition.unpublishing
+      "unpublished"
     else
       edition.state
     end
@@ -116,6 +126,7 @@ class DocumentListExportPresenter
 
   def attachment_types
     return unless edition.respond_to? :attachments
+
     edition.attachments.map do |att|
       case att
       when FileAttachment
@@ -136,7 +147,7 @@ class DocumentListExportPresenter
     data.map do |elem|
       case elem
       when Array
-        elem.join(', ')
+        elem.join(' | ')
       when Time
         # YYYY-MM-DD hh:mm:ss, which seems to be best understood by spreadsheets.
         elem.to_formatted_s(:db)
@@ -150,4 +161,20 @@ class DocumentListExportPresenter
     end
   end
 
+  def primary_language
+    edition.primary_language_name
+  end
+
+  def translations_available
+    # we don't use available_in_multiple_languages? here because it
+    # returns true for editions with one english version and only one
+    # other language version; which is not exactly what we want here
+    return 'none' unless edition.translated_locales.count > 1
+
+    edition.
+      translated_locales.
+      reject { |locale_code| locale_code.to_s == edition.primary_locale.to_s }.
+      sort_by(&:to_s).
+      map { |locale_code| Locale.new(locale_code).english_language_name }
+  end
 end

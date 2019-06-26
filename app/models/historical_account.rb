@@ -1,4 +1,4 @@
-class HistoricalAccount < ActiveRecord::Base
+class HistoricalAccount < ApplicationRecord
   belongs_to :person, inverse_of: :historical_accounts
   has_many   :historical_account_roles
   has_many   :roles, through: :historical_account_roles
@@ -38,10 +38,10 @@ class HistoricalAccount < ActiveRecord::Base
     roles.first
   end
 
-  private
+private
 
   def roles_support_historical_accounts
-    unless roles.all? { |role| role.supports_historical_accounts? }
+    unless roles.all?(&:supports_historical_accounts?)
       errors.add(:base, 'The selected role(s) do not all support historical accounts')
     end
   end

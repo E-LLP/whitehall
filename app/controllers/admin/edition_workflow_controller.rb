@@ -1,13 +1,13 @@
 class Admin::EditionWorkflowController < Admin::BaseController
   include PublicDocumentRoutesHelper
 
-  before_filter :find_edition
-  before_filter :enforce_permissions!
-  before_filter :limit_edition_access!
-  before_filter :lock_edition
-  before_filter :set_change_note
-  before_filter :set_minor_change_flag
-  before_filter :ensure_reason_given_for_force_publishing, only: :force_publish
+  before_action :find_edition
+  before_action :enforce_permissions!
+  before_action :limit_edition_access!
+  before_action :lock_edition
+  before_action :set_change_note
+  before_action :set_minor_change_flag
+  before_action :ensure_reason_given_for_force_publishing, only: :force_publish
 
   rescue_from ActiveRecord::StaleObjectError do
     redirect_to admin_edition_path(@edition), alert: "This document has been edited since you viewed it; you are now viewing the latest version"
@@ -15,13 +15,12 @@ class Admin::EditionWorkflowController < Admin::BaseController
 
   rescue_from ActiveRecord::RecordInvalid do
     redirect_to admin_edition_path(@edition),
-      alert: "Unable to #{action_name_as_human_interaction(params[:action])} because it is invalid (#{@edition.errors.full_messages.to_sentence}). " +
-             "Please edit it and try again."
+                alert: "Unable to #{action_name_as_human_interaction(params[:action])} because it is invalid (#{@edition.errors.full_messages.to_sentence}). Please edit it and try again."
   end
 
   rescue_from Transitions::InvalidTransition do
     redirect_to admin_edition_path(@edition),
-      alert: "Unable to #{action_name_as_human_interaction(params[:action])} because it is not ready yet. Please try again."
+                alert: "Unable to #{action_name_as_human_interaction(params[:action])} because it is not ready yet. Please try again."
   end
 
   def enforce_permissions!
@@ -48,7 +47,7 @@ class Admin::EditionWorkflowController < Admin::BaseController
   def submit
     @edition.submit!
     redirect_to admin_edition_path(@edition),
-      notice: "Your document has been submitted for review by a second pair of eyes"
+                notice: "Your document has been submitted for review by a second pair of eyes"
   end
 
   def reject
@@ -57,23 +56,30 @@ class Admin::EditionWorkflowController < Admin::BaseController
       Notifications.edition_rejected(user, @edition, admin_edition_url(@edition)).deliver_now
     end
     redirect_to new_admin_edition_editorial_remark_path(@edition),
-      notice: "Document rejected; please explain why in an editorial remark"
+                notice: "Document rejected; please explain why in an editorial remark"
   end
 
   def publish
     edition_publisher = Whitehall.edition_services.publisher(@edition)
     if edition_publisher.perform!
       redirect_to admin_editions_path(session_filters || { state: :published }),
-        notice: "The document #{@edition.title} has been published"
+                  notice: "The document #{@edition.title} has been published"
     else
       redirect_to admin_edition_path(@edition), alert: edition_publisher.failure_reason
     end
   end
 
   def confirm_force_publish
+    unless @edition.valid?(:publish)
+      redirect_to admin_edition_path(@edition), alert: @edition.errors[:base].join('. ')
+    end
   end
 
   def force_publish
+    unless @edition.valid?(:publish)
+      return redirect_to admin_edition_path(@edition), alert: @edition.errors[:base].join('. ')
+    end
+
     edition_publisher = Whitehall.edition_services.force_publisher(@edition, user: current_user, remark: force_publish_reason)
     if edition_publisher.perform!
       redirect_to admin_editions_path(state: :published), notice: "The document #{@edition.title} has been published"
@@ -87,10 +93,10 @@ class Admin::EditionWorkflowController < Admin::BaseController
   end
 
   def unpublish
-    @service_object = withdrawer_or_unpublisher_for(@edition)
+    @service_object = withdrawer_or_unpublisher_for_edition
 
     if @service_object.perform!
-     redirect_to admin_edition_path(@edition), notice: unpublish_success_notice
+      redirect_to admin_edition_path(@edition), notice: unpublish_success_notice
     else
       @unpublishing = @edition.unpublishing
       flash.now[:alert] = @service_object.failure_reason
@@ -98,8 +104,7 @@ class Admin::EditionWorkflowController < Admin::BaseController
     end
   end
 
-  def confirm_unwithdraw
-  end
+  def confirm_unwithdraw; end
 
   def unwithdraw
     edition_unwithdrawer = Whitehall.edition_services.unwithdrawer(@edition, user: current_user)
@@ -143,7 +148,7 @@ class Admin::EditionWorkflowController < Admin::BaseController
   def approve_retrospectively
     if @edition.approve_retrospectively
       redirect_to admin_edition_path(@edition),
-        notice: "Thanks for reviewing; this document is no longer marked as force-published"
+                  notice: "Thanks for reviewing; this document is no longer marked as force-published"
     else
       redirect_to admin_edition_path(@edition), alert: @edition.errors.full_messages.to_sentence
     end
@@ -152,10 +157,10 @@ class Admin::EditionWorkflowController < Admin::BaseController
   def convert_to_draft
     @edition.convert_to_draft!
     redirect_to admin_editions_path(session_filters.merge(state: :imported)),
-      notice: "The imported document #{@edition.title} has been converted into a draft"
+                notice: "The imported document #{@edition.title} has been converted into a draft"
   end
 
-  private
+private
 
   def force_publish_reason
     "Force published: #{params[:reason]}"
@@ -167,7 +172,7 @@ class Admin::EditionWorkflowController < Admin::BaseController
     end
   end
 
-  def withdrawer_or_unpublisher_for(edition)
+  def withdrawer_or_unpublisher_for_edition
     if withdrawing?
       Whitehall.edition_services.withdrawer(@edition, user: current_user, remark: "Withdrawn", unpublishing: unpublishing_params)
     else
@@ -205,7 +210,7 @@ class Admin::EditionWorkflowController < Admin::BaseController
     if params[:lock_version]
       @edition.lock_version = params[:lock_version]
     else
-      render text: 'All workflow actions require a lock version', status: 422
+      render plain: 'All workflow actions require a lock version', status: 422
     end
   end
 

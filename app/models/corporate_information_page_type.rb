@@ -4,7 +4,7 @@ class CorporateInformationPageType
   attr_accessor :id, :title_template, :slug, :menu_heading
 
   def self.find(slug)
-    all.detect { |type| type.slug == slug } or raise ActiveRecord::RecordNotFound
+    all.detect { |type| type.slug == slug } || raise(ActiveRecord::RecordNotFound)
   end
 
   def key
@@ -16,9 +16,13 @@ class CorporateInformationPageType
   end
 
   def title(organisation)
-    organisation_name = (organisation.respond_to?(:acronym) && organisation.acronym || "#{organisation.name}")
-    translation_key = slug.gsub('-', '_')
-    I18n.t("corporate_information_page.type.#{translation_key}", organisation_name: organisation_name)
+    organisation_name = if organisation.respond_to?(:acronym) && organisation.acronym.present?
+                          organisation.acronym
+                        else
+                          organisation.name
+                        end
+    translation_key = slug.tr('-', '_')
+    I18n.t("corporate_information_page.type.title.#{translation_key}", organisation_name: organisation_name)
   end
 
   def self.by_menu_heading(menu_heading)
@@ -26,7 +30,7 @@ class CorporateInformationPageType
   end
 
   def display_type_key
-    slug.gsub("-", "_")
+    slug.tr("-", "_")
   end
 
   PersonalInformationCharter = create(
@@ -88,5 +92,8 @@ class CorporateInformationPageType
   )
   AboutUs = create(
     id: 20, slug: 'about', menu_heading: :other
+  )
+  AccessibleDocumentsPolicy = create(
+    id: 21, slug: 'accessible-documents-policy', menu_heading: :our_information
   )
 end

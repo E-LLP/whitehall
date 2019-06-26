@@ -2,12 +2,17 @@ class CorporateInformationPage < Edition
   include ::Attachable
   include Searchable
 
+  after_save :republish_organisation_to_publishing_api
+  after_destroy :republish_organisation_to_publishing_api
+  after_save :reindex_organisation_in_search_index, if: :about_page?
+
   has_one :edition_organisation, foreign_key: :edition_id, dependent: :destroy
   has_one :organisation, -> { includes(:translations) }, through: :edition_organisation, autosave: false
   has_one :edition_worldwide_organisation, foreign_key: :edition_id, inverse_of: :edition, dependent: :destroy
   has_one :worldwide_organisation, through: :edition_worldwide_organisation, autosave: false
 
   delegate :slug, :display_type_key, to: :corporate_information_page_type
+  validate :unique_organisation_and_page_type, on: :create, if: :organisation
 
   add_trait do
     def process_associations_before_save(new_edition)
@@ -23,6 +28,14 @@ class CorporateInformationPage < Edition
   validates :corporate_information_page_type_id, presence: true
   validate :only_one_organisation_or_worldwide_organisation
 
+  def republish_organisation_to_publishing_api
+    Whitehall::PublishingApi.republish_async(owning_organisation) if owning_organisation.is_a?(Organisation)
+  end
+
+  def reindex_organisation_in_search_index
+    owning_organisation.update_in_search_index
+  end
+
   def body_required?
     !about_page?
   end
@@ -37,7 +50,7 @@ class CorporateInformationPage < Edition
 
   def self.search_only
     # Ensure only CIPs associated with a live Organisation are indexed in search.
-    super.joins(:organisation).where(organisations: {govuk_status: "live"})
+    super.joins(:organisation).where(organisations: { govuk_status: "live" })
   end
 
   def title_required?
@@ -75,13 +88,13 @@ class CorporateInformationPage < Edition
   end
 
   def self.for_slug(slug)
-    if type = CorporateInformationPageType.find(slug)
+    if (type = CorporateInformationPageType.find(slug))
       find_by(corporate_information_page_type_id: type.id)
     end
   end
 
   def self.for_slug!(slug)
-    if type = CorporateInformationPageType.find(slug)
+    if (type = CorporateInformationPageType.find(slug))
       find_by!(corporate_information_page_type_id: type.id)
     end
   end
@@ -98,7 +111,7 @@ class CorporateInformationPage < Edition
     [owning_organisation.name, title].join(" \u2013 ")
   end
 
-  def title(locale = :en)
+  def title(_locale = :en)
     corporate_information_page_type.title(owning_organisation)
   end
 
@@ -115,9 +128,35 @@ class CorporateInformationPage < Edition
     corporate_information_page_type.try(:slug) == 'about'
   end
 
-  private
+  def rendering_app
+    if worldwide_organisation.present?
+      Whitehall::RenderingApp::WHITEHALL_FRONTEND
+    else
+      Whitehall::RenderingApp::GOVERNMENT_FRONTEND
+    end
+  end
+
+  def previously_published
+    false
+  end
+
+private
 
   def string_for_slug
     nil
+  end
+
+  def unique_organisation_and_page_type
+    duplicate_scope = CorporateInformationPage
+      .joins(:edition_organisation)
+      .where("edition_organisations.organisation_id = ?", organisation.id)
+      .where(corporate_information_page_type_id: corporate_information_page_type_id)
+      .where("state not like 'superseded'")
+    if document_id
+      duplicate_scope = duplicate_scope.where("document_id <> ?", document_id)
+    end
+    if duplicate_scope.exists?
+      errors.add(:base, "Another '#{display_type_key.humanize}' page was already published for this organisation")
+    end
   end
 end

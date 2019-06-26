@@ -5,7 +5,6 @@ bn:
         one:
         other:
       applies_to_nations:
-      field_of_operation:
       from:
       location:
       part_of:
@@ -14,6 +13,9 @@ bn:
         one:
         other:
       authored_article:
+        one:
+        other:
+      blog_post:
         one:
         other:
       case_study:
@@ -46,9 +48,6 @@ bn:
       draft_text:
         one:
         other:
-      fatality_notice:
-        one:
-        other:
       foi_release:
         one:
         other:
@@ -73,6 +72,9 @@ bn:
       international_treaty:
         one:
         other:
+      manual:
+        one:
+        other:
       map:
         one:
         other:
@@ -85,7 +87,13 @@ bn:
       news_story:
         one:
         other:
+      nhs_content:
+        one:
+        other:
       notice:
+        one:
+        other:
+      official_statistics:
         one:
         other:
       open_consultation:
@@ -124,9 +132,6 @@ bn:
       statistical_data_set:
         one:
         other:
-      official_statistics:
-        one:
-        other:
       statutory_guidance:
         one:
         other:
@@ -134,6 +139,9 @@ bn:
         one:
         other:
       transparency:
+        one:
+        other:
+      world_news_story:
         one:
         other:
       written_statement:
@@ -215,6 +223,8 @@ bn:
         unnumbered_hoc_paper:
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         file:
+      edition:
+        nation_inapplicabilities:
       policy_group/policy_group_attachments/attachment/attachment_data:
         file:
       response/consultation_response_attachments/attachment:
@@ -257,6 +267,12 @@ bn:
     opendocument:
       help_html:
     see_more:
+  broken_links:
+    broken:
+      subheading:
+    caution:
+      subheading:
+    title:
   change_notes:
     page_history:
     published_at:
@@ -267,38 +283,34 @@ bn:
     email:
   corporate_information_page:
     type:
-      about:
-      about_our_services:
-      access_and_opening:
-      complaints_procedure:
-      equality_and_diversity:
-      media_enquiries:
-      membership:
-      our_energy_use:
-      our_governance:
-      personal_information_charter:
-      petitions_and_campaigns:
-      procurement:
-      publication_scheme:
-      recruitment:
-      research:
-      social_media_use:
-      staff_update:
-      statistics:
-      terms_of_reference:
-      welsh_language_scheme:
+      link_text:
+        welsh_language_scheme:
+      title:
+        about:
+        about_our_services:
+        access_and_opening:
+        accessible_documents_policy:
+        complaints_procedure:
+        equality_and_diversity:
+        media_enquiries:
+        membership:
+        our_energy_use:
+        our_governance:
+        personal_information_charter:
+        petitions_and_campaigns:
+        procurement:
+        publication_scheme:
+        recruitment:
+        research:
+        social_media_use:
+        staff_update:
+        statistics:
+        terms_of_reference:
+        welsh_language_scheme:
   date:
     formats:
       default:
       long_ordinal: "%e %B %Y"
-  detailed_guidance:
-    back_to_contents:
-    contents:
-    more:
-    part_of_published_collection:
-    published_related_detailed_guides:
-    related_mainstream_content:
-    see_more_like_this:
   document_filters:
     description:
     no_results:
@@ -317,7 +329,7 @@ bn:
   i18n:
     direction: ltr
   language_names:
-    bn: "বাংলা"
+    bn: বাংলা
   latest_feed:
     no_updates:
     title:
@@ -334,6 +346,7 @@ bn:
       access_our_info:
       foi_how_to:
       foi_releases:
+      jobs:
       jobs_and_contacts:
       organisation_chart:
       transparency:
@@ -436,6 +449,7 @@ bn:
     headings:
       about_us:
       contact_us:
+      contents:
       corporate_information:
       follow_us:
       our_people:

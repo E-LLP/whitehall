@@ -10,8 +10,8 @@ class Edition::WorkflowTest < ActiveSupport::TestCase
       end.pre_publication?
     end
 
-    assert_equal [:imported, :draft, :submitted, :rejected, :scheduled], pre
-    assert_equal [:published, :superseded , :deleted, :withdrawn], post
+    assert_equal %i[imported draft submitted rejected scheduled], pre
+    assert_equal %i[published superseded deleted withdrawn], post
   end
 
   test "rejecting a submitted edition transitions it into the rejected state" do
@@ -20,7 +20,7 @@ class Edition::WorkflowTest < ActiveSupport::TestCase
     assert submitted_edition.rejected?
   end
 
-  [:draft, :scheduled, :published, :superseded, :deleted, :withdrawn].each do |state|
+  %i[draft scheduled published superseded deleted withdrawn].each do |state|
     test "should prevent a #{state} edition being rejected" do
       edition = create("#{state}_edition")
       edition.reject! rescue nil
@@ -28,7 +28,7 @@ class Edition::WorkflowTest < ActiveSupport::TestCase
     end
   end
 
-  [:draft, :rejected].each do |state|
+  %i[draft rejected].each do |state|
     test "submitting a #{state} edition transitions it into the submitted state" do
       edition = create("#{state}_edition")
       edition.submit!
@@ -36,7 +36,7 @@ class Edition::WorkflowTest < ActiveSupport::TestCase
     end
   end
 
-  [:scheduled, :published, :superseded, :deleted, :withdrawn].each do |state|
+  %i[scheduled published superseded deleted withdrawn].each do |state|
     test "should prevent a #{state} edition being submitted" do
       edition = create("#{state}_edition")
       edition.submit! rescue nil
@@ -44,7 +44,7 @@ class Edition::WorkflowTest < ActiveSupport::TestCase
     end
   end
 
-  [:draft, :submitted, :scheduled, :rejected, :deleted, :withdrawn].each do |state|
+  %i[draft submitted scheduled rejected deleted withdrawn].each do |state|
     test "should prevent a #{state} edition being superseded" do
       edition = create("#{state}_edition")
       edition.supersede! rescue nil
@@ -57,7 +57,7 @@ class Edition::WorkflowTest < ActiveSupport::TestCase
     assert_nil Edition.find_by(id: edition.id)
   end
 
-  [:draft, :submitted, :rejected].each do |state|
+  %i[draft submitted rejected].each do |state|
     test "should be editable when #{state}" do
       edition = create("#{state}_edition")
       edition.title = "new-title"
@@ -66,7 +66,7 @@ class Edition::WorkflowTest < ActiveSupport::TestCase
     end
   end
 
-  [:scheduled, :published, :superseded, :deleted].each do |state|
+  %i[scheduled published superseded deleted].each do |state|
     test "should not be editable when #{state}" do
       edition = create("#{state}_edition")
       edition.title = "new-title"
@@ -165,7 +165,6 @@ class Edition::WorkflowTest < ActiveSupport::TestCase
     dependent_article = create(:published_news_article, major_change_published_at: Time.zone.now,
       body: "Read our [official statement](/government/admin/speeches/#{dependable_speech.id})")
     dependent_article.depended_upon_editions << dependable_speech
-    stub_panopticon_registration(dependable_speech)
 
     dependable_speech.major_change_published_at = Time.zone.now
     assert Whitehall.edition_services.publisher(dependable_speech).perform!
@@ -174,4 +173,8 @@ class Edition::WorkflowTest < ActiveSupport::TestCase
     assert_empty dependable_speech.dependent_editions.reload
   end
 
+  test "#has_workflow? returns true" do
+    edition = create(:publication)
+    assert edition.has_workflow?
+  end
 end

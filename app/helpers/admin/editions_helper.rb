@@ -1,19 +1,19 @@
 module Admin::EditionsHelper
-
   def edition_type(edition)
-    if (edition.is_a?(Speech) && edition.speech_type.written_article?)
-      type = edition.speech_type.singular_name
-    else
-      type = edition.type.underscore.humanize
-    end
+    type = if edition.is_a?(Speech) && edition.speech_type.written_article?
+             edition.speech_type.singular_name
+           else
+             edition.type.underscore.humanize
+           end
 
     [type, edition.display_type].compact.uniq.join(": ")
   end
 
   def nested_attribute_destroy_checkbox_options(form, html_args = {})
-    checked_value, unchecked_value = '0', '1'
+    checked_value = '0'
+    unchecked_value = '1'
     checked = form.object[:_destroy].present? ? (form.object[:_destroy] == checked_value) : form.object.persisted?
-    [html_args.merge({ checked: checked }), checked_value, unchecked_value]
+    [html_args.merge(checked: checked), checked_value, unchecked_value]
   end
 
   def admin_documents_header_link
@@ -41,35 +41,35 @@ module Admin::EditionsHelper
     organisations = Organisation.with_translations(:en).order(:name).excluding_govuk_status_closed || []
     closed_organisations = Organisation.with_translations(:en).closed || []
     if current_user.organisation
-        organisations = [current_user.organisation] + (organisations - [current_user.organisation])
+      organisations = [current_user.organisation] + (organisations - [current_user.organisation])
     end
 
     options_for_select([["All organisations", ""]], selected_organisation) +
-    grouped_options_for_select(
-      [
-        ["Live organisations", organisations.map { |o| [o.select_name, o.id] }],
-        ["Closed organisations", closed_organisations.map { |o| [o.select_name, o.id] }]
-      ],
-      selected_organisation
-    )
+      grouped_options_for_select(
+        [
+          ["Live organisations", organisations.map { |o| [o.select_name, o.id] }],
+          ["Closed organisations", closed_organisations.map { |o| [o.select_name, o.id] }]
+        ],
+        selected_organisation
+      )
   end
 
   def admin_author_filter_options(current_user)
     other_users = User.enabled.to_a - [current_user]
-    [["All authors", ""], ["Me", current_user.id]] + other_users.map { |u| [u.name, u.id] }
+    [["All authors", ""], ["Me (#{current_user.name})", current_user.id]] + other_users.map { |u| [u.name, u.id] }
   end
 
   def admin_state_filter_options
     [
       ["All states", 'active'],
       ["Imported (pre-draft)", 'imported'],
-      ["Draft", 'draft'],
-      ["Submitted", 'submitted'],
-      ["Rejected", 'rejected'],
-      ["Scheduled", 'scheduled'],
-      ["Published", 'published'],
+      %w[Draft draft],
+      %w[Submitted submitted],
+      %w[Rejected rejected],
+      %w[Scheduled scheduled],
+      %w[Published published],
       ["Force published (not reviewed)", 'force_published'],
-      ['Withdrawn', 'withdrawn']
+      %w[Withdrawn withdrawn]
     ]
   end
 
@@ -98,12 +98,13 @@ module Admin::EditionsHelper
       })
     end
 
-    imported_type = SpeechType.find_by_name('Imported - Awaiting Type')
+    # copy default values from Transcript SpeechType for '' select option
+    default_type = SpeechType.find_by_name('Transcript')
     label_data.merge('' => {
-        ownerGroup: I18n.t("document.speech.#{imported_type.owner_key_group}"),
-        publishedExternallyLabel: t_delivered_on(imported_type),
-        locationRelevant: imported_type.location_relevant
-      })
+      ownerGroup: I18n.t("document.speech.#{default_type.owner_key_group}"),
+      publishedExternallyLabel: t_delivered_on(default_type),
+      locationRelevant: default_type.location_relevant
+    })
   end
 
   # Because of the unusual way lead organisations and supporting organisations
@@ -113,25 +114,21 @@ module Admin::EditionsHelper
   # Edition::Organisations mixin module to see why this is required.
   def lead_organisation_id_at_index(edition, index)
     edition.edition_organisations.
-            select { |eo| eo.lead? }.
-            sort_by { |eo| eo.lead_ordering }[index].try(:organisation_id)
+            select(&:lead?).
+            sort_by(&:lead_ordering)[index].try(:organisation_id)
   end
 
   # As above for the lead_organisation_id_at_index helper, this helper is
   # required to identify the selected supporting organisation at a given index
   # in the list supporting organisations for the edition.
   def supporting_organisation_id_at_index(edition, index)
-    edition.edition_organisations.reject { |eo| eo.lead? }[index].try(:organisation_id)
+    edition.edition_organisations.reject(&:lead?)[index].try(:organisation_id)
   end
 
-  def standard_edition_form(edition, &blk)
+  def standard_edition_form(edition)
     initialise_script "GOVUK.adminEditionsForm", selector: '.js-edition-form', right_to_left_locales: Locale.right_to_left.collect(&:to_param)
 
-    form_classes = ["edition-form js-edition-form"]
-    form_classes << 'js-supports-non-english' if edition.locale_can_be_changed?
-
-    form_for form_url_for_edition(edition), as: :edition, html: { class: form_classes } do |form|
-      concat render('locale_fields', form: form, edition: edition)
+    form_for form_url_for_edition(edition), as: :edition, html: { class: edition_form_classes(edition) } do |form|
       concat edition_information(@information) if @information
       concat form.errors
       concat render("standard_fields", form: form, edition: edition)
@@ -140,6 +137,12 @@ module Admin::EditionsHelper
       concat render("scheduled_publication_fields", form: form, edition: edition)
       concat standard_edition_publishing_controls(form, edition)
     end
+  end
+
+  def edition_form_classes(edition)
+    form_classes = ["edition-form js-edition-form"]
+    form_classes << 'js-supports-non-english' if edition.locale_can_be_changed?
+    form_classes
   end
 
   def form_url_for_edition(edition)
@@ -157,23 +160,21 @@ module Admin::EditionsHelper
       else
         url_for([:edit, :admin, edition.owning_organisation, edition])
       end
+    elsif edition.new_record?
+      url_for([:new, :admin, edition.class.model_name.param_key])
     else
-      if edition.new_record?
-        url_for([:new, :admin, edition.class.model_name.param_key])
-      else
-        url_for([:edit, :admin, edition])
-      end
+      url_for([:edit, :admin, edition])
     end
   end
 
   def default_edition_tabs(edition)
     { 'Document' => tab_url_for_edition(edition) }.tap do |tabs|
       if edition.allows_attachments? && edition.persisted?
-        text = if edition.attachments.count > 0
-          "Attachments <span class='badge'>#{edition.attachments.count}</span>".html_safe
-        else
-          "Attachments"
-        end
+        text = if edition.attachments.count.positive?
+                 "Attachments <span class='badge'>#{edition.attachments.count}</span>".html_safe
+               else
+                 "Attachments"
+               end
         tabs[text] = admin_edition_attachments_path(edition)
       end
 
@@ -217,29 +218,24 @@ module Admin::EditionsHelper
         concat render(partial: "change_notes",
                       locals: { form: form, edition: edition })
       end
+
       concat form.save_or_continue_or_cancel
     end
   end
 
   def warn_about_lack_of_contacts_in_body?(edition)
     if edition.is_a?(NewsArticle) && edition.news_article_type == NewsArticleType::PressRelease
-      (govspeak_embedded_contacts(edition.body).size < 1)
+      govspeak_embedded_contacts(edition.body).empty?
     else
       false
     end
   end
 
-  def attachment_virus_status(attachment)
-    if attachment.could_contain_viruses?
-      case attachment.virus_status
-      when :clean
-        nil
-      when :pending
-        content_tag(:p, "Virus scanning", class: "virus-scanning")
-      else
-        content_tag(:p, "Virus found", class: "virus")
-      end
-    end
+  def attachment_uploading_status(attachment)
+    return unless attachment.attachment_data
+
+    content_tag(:p, "Uploading", class: "asset-manager-uploading") unless
+      attachment.attachment_data.uploaded_to_asset_manager?
   end
 
   def attachment_metadata_tag(attachment)
@@ -277,32 +273,42 @@ module Admin::EditionsHelper
     edition.unpublishing.unpublishing_reason_id == UnpublishingReason::Withdrawn.id ? 'withdrawal' : 'unpublishing'
   end
 
-  def specialist_sector_options_for_select(sectors)
-    sectors.map do |sector|
-      topics = sector.topics.map do |topic|
-        if topic.draft?
-          topic_title = "#{topic.title} (draft)"
-        else
-          topic_title = topic.title
-        end
-
-        ["#{sector.title}: #{topic_title}", topic.slug]
-      end
-
-      [sector.title, topics]
-    end
+  def specialist_sector_options_for_select
+    @specialist_sector_options_for_select ||= LinkableTopics.new.topics
   end
 
-  def specialist_sector_fields
-    capture do
-      yield(SpecialistSector.grouped_sector_topics)
-    end
-  rescue SpecialistSector::DataUnavailable
-    Rails.logger.warn("WARNING: Could not retrieve specialist sectors")
-    nil
+  def specialist_sector_names(sector_content_ids)
+    raw_specialist_sectors.select { |pair| sector_content_ids.include? pair.last }.map(&:first)
+  end
+
+  def raw_specialist_sectors
+    @raw_specialist_sectors ||= LinkableTopics.new.raw_topics
+  end
+
+  def specialist_sector_name(sector_content_id)
+    raw_specialist_sectors.select { |pair| pair.last == sector_content_id }.first.try(:first)
   end
 
   def show_similar_slugs_warning?(edition)
     !edition.document.published? && edition.document.similar_slug_exists?
+  end
+
+  def edition_is_a_novel?(edition)
+    edition.body.split.size > 99999
+  end
+
+  def edition_has_links?(edition)
+    LinkCheckerApiService.has_links?(edition, convert_admin_links: false)
+  end
+
+  def show_link_check_report?(edition)
+    # There is an edition that is over 200000 words long.
+    # This causes timeouts when LinkCheckerApiService tries to extract links from the body.
+    # This is an exceptional case, but it stops publishers editing their editions.
+    # Short circuit the call to LinkCheckerApiService by testing for an edition being
+    # over 99999 words long. The number was chosen because Wikipedia suggests 100000 words is
+    # the lower length of a novel (https://en.wikipedia.org/wiki/Word_count#In_fiction).
+    # Returning true from the first half of the "or" means the second half doesn't get computed.
+    edition_is_a_novel?(edition) || edition_has_links?(edition)
   end
 end

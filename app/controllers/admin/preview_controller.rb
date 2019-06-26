@@ -1,6 +1,6 @@
 class Admin::PreviewController < Admin::BaseController
-  before_filter :find_attachments
-  before_filter :limit_attachment_access!
+  before_action :find_attachments
+  before_action :limit_attachment_access!
 
   def preview
     if Govspeak::HtmlValidator.new(params[:body]).valid?
@@ -8,15 +8,22 @@ class Admin::PreviewController < Admin::BaseController
       @alternative_format_contact_email = alternative_format_contact_email
       render layout: false
     else
-      render text: "Content contains possible XSS exploits", status: :forbidden
+      render plain: "Content contains possible XSS exploits", status: :forbidden
     end
   end
 
 private
 
   def alternative_format_contact_email
-    Organisation.friendly.find(params[:alternative_format_provider_id]).alternative_format_contact_email
-  rescue ActiveRecord::RecordNotFound
+    return unless alternative_format_provider_id.present?
+
+    if (organisation = Organisation.friendly.find(alternative_format_provider_id))
+      organisation.alternative_format_contact_email
+    end
+  end
+
+  def alternative_format_provider_id
+    params[:alternative_format_provider_id]
   end
 
   def find_attachments

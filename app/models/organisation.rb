@@ -1,26 +1,30 @@
-class Organisation < ActiveRecord::Base
+class Organisation < ApplicationRecord
   include PublishesToPublishingApi
   include Searchable
+  include MinisterialRole::MinisterialRoleReindexingConcern
+  include Organisation::OrganisationSearchIndexConcern
   include Organisation::OrganisationTypeConcern
-  include HasCorporateInformationPages
 
-  DEFAULT_JOBS_URL = 'https://www.civilservicejobs.service.gov.uk/csr'
+  DEFAULT_JOBS_URL = 'https://www.civilservicejobs.service.gov.uk/csr'.freeze
 
   belongs_to :default_news_image, class_name: 'DefaultNewsOrganisationImageData', foreign_key: :default_news_organisation_image_data_id
 
   has_many :child_organisational_relationships,
-            foreign_key: :parent_organisation_id,
-            class_name: "OrganisationalRelationship"
+           foreign_key: :parent_organisation_id,
+           class_name: "OrganisationalRelationship"
   has_many :parent_organisational_relationships,
-            foreign_key: :child_organisation_id,
-            class_name: "OrganisationalRelationship",
-            dependent: :destroy
+           foreign_key: :child_organisation_id,
+           class_name: "OrganisationalRelationship",
+           dependent: :destroy
   has_many :child_organisations,
-            through: :child_organisational_relationships
+           through: :child_organisational_relationships
   has_many :parent_organisations,
-            through: :parent_organisational_relationships
+           through: :parent_organisational_relationships
 
   has_many :edition_organisations, dependent: :destroy, inverse_of: :organisation
+  # This include is dependant on the above has_many
+  include HasCorporateInformationPages
+
   has_many :editions, through: :edition_organisations
 
   has_many :statistics_announcement_organisations, inverse_of: :organisation, dependent: :destroy
@@ -28,45 +32,44 @@ class Organisation < ActiveRecord::Base
 
   has_many :organisation_roles, inverse_of: :organisation
   has_many :roles, through: :organisation_roles
-  has_many :groups
   has_many :ministerial_roles,
-            -> { where("roles.whip_organisation_id IS null") },
-            class_name: 'MinisterialRole',
-            through: :organisation_roles,
-            source: :role
+           -> { where("roles.whip_organisation_id IS null") },
+           class_name: 'MinisterialRole',
+           through: :organisation_roles,
+           source: :role
   has_many :ministerial_whip_roles,
-            -> { where("roles.whip_organisation_id IS NOT null") },
-            class_name: 'MinisterialRole',
-            through: :organisation_roles,
-            source: :role
+           -> { where("roles.whip_organisation_id IS NOT null") },
+           class_name: 'MinisterialRole',
+           through: :organisation_roles,
+           source: :role
   has_many :management_roles,
-            -> { where("type = 'BoardMemberRole' OR type = 'ChiefScientificAdvisorRole'") },
-            through: :organisation_roles,
-            source: :role
+           -> { where("type = 'BoardMemberRole' OR type = 'ChiefScientificAdvisorRole'") },
+           through: :organisation_roles,
+           source: :role
   has_many :military_roles,
-            class_name: 'MilitaryRole',
-            through: :organisation_roles,
-            source: :role
+           class_name: 'MilitaryRole',
+           through: :organisation_roles,
+           source: :role
   has_many :traffic_commissioner_roles,
-            class_name: 'TrafficCommissionerRole',
-            through: :organisation_roles,
-            source: :role
+           class_name: 'TrafficCommissionerRole',
+           through: :organisation_roles,
+           source: :role
   has_many :chief_professional_officer_roles,
-            class_name: 'ChiefProfessionalOfficerRole',
-            through: :organisation_roles,
-            source: :role
+           class_name: 'ChiefProfessionalOfficerRole',
+           through: :organisation_roles,
+           source: :role
   has_many :special_representative_roles,
-            class_name: 'SpecialRepresentativeRole',
-            through: :organisation_roles,
-            source: :role
+           class_name: 'SpecialRepresentativeRole',
+           through: :organisation_roles,
+           source: :role
   has_many :ministerial_role_appointments,
-            class_name: 'RoleAppointment',
-            through: :ministerial_roles,
-            source: :role_appointments
+           class_name: 'RoleAppointment',
+           through: :ministerial_roles,
+           source: :role_appointments
   has_many :ministerial_whip_role_appointments,
-            class_name: 'RoleAppointment',
-            through: :ministerial_whip_roles,
-            source: :role_appointments
+           class_name: 'RoleAppointment',
+           through: :ministerial_whip_roles,
+           source: :role_appointments
   has_many :judge_roles,
            class_name: 'JudgeRole',
            through: :organisation_roles,
@@ -77,10 +80,21 @@ class Organisation < ActiveRecord::Base
   has_many :organisation_classifications,
            -> { order('organisation_classifications.ordering') },
            dependent: :destroy
+  has_many :classifications, through: :organisation_classifications
+
+  # DID YOU MEAN: Policy Area?
+  # "Policy area" is the newer name for "topic"
+  # (https://www.gov.uk/government/topics)
+  # "Topic" is the newer name for "specialist sector"
+  # (https://www.gov.uk/topic)
+  # You can help improve this code by renaming all usages of this field to use
+  # the new terminology.
   has_many :topics,
            -> { order('organisation_classifications.ordering') },
            through: :organisation_classifications
-  has_many :classifications, through: :organisation_classifications
+  has_many :topical_events,
+           -> { order('organisation_classifications.ordering') },
+           through: :organisation_classifications
 
   has_many :users, foreign_key: :organisation_slug, primary_key: :slug, dependent: :nullify
 
@@ -99,8 +113,6 @@ class Organisation < ActiveRecord::Base
   has_and_belongs_to_many :superseded_organisations, class_name: "Organisation", foreign_key: :superseding_organisation_id, join_table: :organisation_supersedings, association_foreign_key: :superseded_organisation_id
 
   has_many :offsite_links, as: :parent
-
-  has_many :featured_policies
 
   # I'm trying to use a domain centric design rather than a persistence
   # centric design, so I do not want to expose a has_many :home_page_lists
@@ -124,27 +136,27 @@ class Organisation < ActiveRecord::Base
   has_many :promotional_features
 
   has_many :featured_links, -> { order(:created_at) }, as: :linkable, dependent: :destroy
-  accepts_nested_attributes_for :featured_links, reject_if: -> attributes { attributes['url'].blank? }, allow_destroy: true
-  validates :homepage_type, inclusion: {in: %w{news service}}
+  accepts_nested_attributes_for :featured_links, reject_if: ->(attributes) { attributes['url'].blank? }, allow_destroy: true
+  validates :homepage_type, inclusion: { in: %w{news service} }
 
   accepts_nested_attributes_for :default_news_image, reject_if: :all_blank
   accepts_nested_attributes_for :organisation_roles
   accepts_nested_attributes_for :edition_organisations
-  accepts_nested_attributes_for :organisation_classifications, reject_if: -> attributes { attributes['classification_id'].blank? }, allow_destroy: true
+  accepts_nested_attributes_for :organisation_classifications, reject_if: ->(attributes) { attributes['classification_id'].blank? }, allow_destroy: true
   accepts_nested_attributes_for :offsite_links
-  accepts_nested_attributes_for :featured_policies
 
   validates :slug, presence: true, uniqueness: true
   validates_with SafeHtmlValidator
   validates :name, presence: true, uniqueness: true
   validates :logo_formatted_name, presence: true
   validates :url, :organisation_chart_url, :custom_jobs_url, uri: true, allow_blank: true
-  validates :alternative_format_contact_email, email_format: {allow_blank: true}
+  validates :alternative_format_contact_email, email_format: { allow_blank: true }
   validates :alternative_format_contact_email, presence: {
     if: :requires_alternative_format?,
-    message: "can't be blank as there are editions which use this organisation as the alternative format provider"}
-  validates :govuk_status, inclusion: {in: %w{live joining exempt transitioning closed}}
-  validates :govuk_closed_status, inclusion: {in: %w{no_longer_exists replaced split merged changed_name left_gov devolved}}, presence: true, if: :closed?
+    message: "can't be blank as there are editions which use this organisation as the alternative format provider",
+  }
+  validates :govuk_status, inclusion: { in: %w{live joining exempt transitioning closed} }
+  validates :govuk_closed_status, inclusion: { in: %w{no_longer_exists replaced split merged changed_name left_gov devolved} }, presence: true, if: :closed?
   validates :organisation_logo_type_id, presence: true
   validates :logo, presence: true, if: :custom_logo_selected?
 
@@ -168,16 +180,56 @@ class Organisation < ActiveRecord::Base
              link: :search_link,
              content: :indexable_content,
              description: :description_for_search,
-             organisations: :search_organisations,
+             organisations: :search_parent_organisations,
+             parent_organisations: :search_parent_organisations,
+             child_organisations: :search_child_organisations,
+             superseded_organisations: :search_superseded_organisations,
+             superseding_organisations: :search_superseding_organisations,
              boost_phrases: :acronym,
              slug: :slug,
-             organisation_state: :searchable_govuk_status
+             organisation_closed_state: :govuk_closed_status,
+             organisation_state: :searchable_govuk_status,
+             organisation_type: :organisation_type_key,
+             organisation_crest: :organisation_crest,
+             organisation_brand: :organisation_brand,
+             logo_formatted_title: :logo_formatted_name,
+             logo_url: :logo_url,
+             analytics_identifier: :analytics_identifier,
+             closed_at: :closed_at,
+             public_timestamp: :updated_at
 
   extend FriendlyId
   friendly_id
 
-  before_destroy { |r| r.destroyable? }
+  before_destroy { |r| throw :abort unless r.destroyable? }
   after_save :ensure_analytics_identifier
+  after_save :update_organisations_index_page
+  after_destroy :update_organisations_index_page
+
+  after_save do
+    # If the organisation has an about us page and the chart URL changes we need
+    # to republish the about us page as it contains the chart URL.
+    if saved_change_to_organisation_chart_url? && about_us.present?
+      PublishingApiDocumentRepublishingWorker
+        .perform_async(about_us.document_id)
+    end
+
+    # If the default news organisation image changes we need to republish all
+    # news articles belonging to the organisation
+    if saved_change_to_default_news_organisation_image_data_id?
+      documents = NewsArticle
+        .in_organisation(self)
+        .includes(:images)
+        .where(images: { id: nil })
+        .map(&:document)
+
+      documents.each { |d| Whitehall::PublishingApi.republish_document_async(d) }
+    end
+  end
+
+  def update_organisations_index_page
+    UpdateOrganisationsIndexPageWorker.perform_async
+  end
 
   def custom_logo_selected?
     organisation_logo_type_id == OrganisationLogoType::CustomLogo.id
@@ -209,8 +261,10 @@ class Organisation < ActiveRecord::Base
 
   scope :excluding_govuk_status_closed, -> { where("govuk_status != 'closed'") }
   scope :closed, -> { where(govuk_status: "closed") }
-  scope :with_statistics_announcements, -> { joins(:statistics_announcement_organisations)
-                                              .group('statistics_announcement_organisations.organisation_id') }
+  scope :with_statistics_announcements, -> {
+    joins(:statistics_announcement_organisations)
+      .group('statistics_announcement_organisations.organisation_id')
+  }
 
   def self.grouped_by_type(locale = I18n.locale)
     Rails.cache.fetch("filter_options/organisations/#{locale}", expires_in: 30.minutes) do
@@ -241,6 +295,10 @@ class Organisation < ActiveRecord::Base
     self.organisation_logo_type_id = organisation_logo_type && organisation_logo_type.id
   end
 
+  def organisation_crest
+    organisation_logo_type.try(:class_name)
+  end
+
   def organisation_brand_colour
     OrganisationBrandColour.find_by_id(organisation_brand_colour_id)
   end
@@ -249,12 +307,16 @@ class Organisation < ActiveRecord::Base
     self.organisation_brand_colour_id = organisation_brand_colour && organisation_brand_colour.id
   end
 
+  def organisation_brand
+    organisation_brand_colour.try(:class_name)
+  end
+
   def self.alphabetical(locale = I18n.locale)
     with_translations(locale).order('organisation_translations.name ASC')
   end
 
   def self.ordered_by_name_ignoring_prefix
-    all.sort_by { |o| o.name_without_prefix }
+    all.sort_by(&:name_without_prefix)
   end
 
   def self.with_published_editions
@@ -282,6 +344,10 @@ class Organisation < ActiveRecord::Base
     else
       govuk_status
     end
+  end
+
+  def logo_url
+    logo.try(:url)
   end
 
   def live?
@@ -341,7 +407,7 @@ class Organisation < ActiveRecord::Base
   end
 
   def display_name
-    [acronym, name].detect { |s| s.present? }
+    [acronym, name].detect(&:present?)
   end
 
   def select_name
@@ -374,12 +440,28 @@ class Organisation < ActiveRecord::Base
     end
   end
 
-  def search_link
+  def base_path
     Whitehall.url_maker.organisation_path(self)
   end
 
-  def search_organisations
+  def search_link
+    base_path
+  end
+
+  def search_parent_organisations
     parent_organisations.map(&:slug)
+  end
+
+  def search_child_organisations
+    child_organisations.map(&:slug)
+  end
+
+  def search_superseded_organisations
+    superseded_organisations.map(&:slug)
+  end
+
+  def search_superseding_organisations
+    superseding_organisations.map(&:slug)
   end
 
   def published_speeches
@@ -431,7 +513,7 @@ class Organisation < ActiveRecord::Base
   end
 
   def requires_alternative_format?
-    (!closed?) && provides_alternative_formats?
+    !closed? && provides_alternative_formats?
   end
 
   def has_published_publications_of_type?(publication_type)
@@ -474,8 +556,6 @@ class Organisation < ActiveRecord::Base
     featured_links.limit(visible_featured_links_count)
   end
 
-  private
-
   def organisations_with_services_and_information_link
     %w{
       charity-commission
@@ -484,6 +564,7 @@ class Organisation < ActiveRecord::Base
       driver-and-vehicle-standards-agency
       environment-agency
       high-speed-two-limited
+      highways-england
       hm-revenue-customs
       marine-management-organisation
       maritime-and-coastguard-agency
@@ -492,6 +573,8 @@ class Organisation < ActiveRecord::Base
       planning-inspectorate
     }
   end
+
+private
 
   def organisations_with_scoped_search
     [

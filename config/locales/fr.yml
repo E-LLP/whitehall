@@ -5,7 +5,6 @@ fr:
         one: Document
         other: Documents
       applies_to_nations: s'appliquant à
-      field_of_operation: Domaine d'activité
       from:
       location:
       part_of:
@@ -16,6 +15,9 @@ fr:
       authored_article:
         one: Article signé
         other: Articles signés
+      blog_post:
+        one:
+        other:
       case_study:
         one: Etude de cas
         other: Etudes de cas
@@ -46,9 +48,6 @@ fr:
       draft_text:
         one: Projet de texte
         other: Projets de textes
-      fatality_notice:
-        one: Avis de décès
-        other: Avis de décès
       foi_release:
         one: Communiqué Freedom of Information
         other: Communiqués Freedom of Information
@@ -73,6 +72,9 @@ fr:
       international_treaty:
         one:
         other:
+      manual:
+        one:
+        other:
       map:
         one: Carte
         other: Cartes
@@ -85,9 +87,15 @@ fr:
       news_story:
         one: Actualités
         other: Actualités
+      nhs_content:
+        one:
+        other:
       notice:
         one:
         other:
+      official_statistics:
+        one: Statistiques
+        other: Statistiques
       open_consultation:
         one: Consultation ouverte
         other: Consultations ouvertes
@@ -124,9 +132,6 @@ fr:
       statistical_data_set:
         one: Ensemble de données statistiques
         other: Ensembles de données statistiques
-      official_statistics:
-        one: Statistiques
-        other: Statistiques
       statutory_guidance:
         one:
         other:
@@ -136,6 +141,9 @@ fr:
       transparency:
         one: Transparence des données
         other: Transparence des données
+      world_news_story:
+        one:
+        other:
       written_statement:
         one: Communiqué
         other: Communiqués
@@ -215,6 +223,8 @@ fr:
         unnumbered_hoc_paper:
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         file:
+      edition:
+        nation_inapplicabilities:
       policy_group/policy_group_attachments/attachment/attachment_data:
         file:
       response/consultation_response_attachments/attachment:
@@ -260,6 +270,12 @@ fr:
     opendocument:
       help_html:
     see_more:
+  broken_links:
+    broken:
+      subheading:
+    caution:
+      subheading:
+    title:
   change_notes:
     page_history: Historique de page
     published_at:
@@ -270,38 +286,34 @@ fr:
     email: Email
   corporate_information_page:
     type:
-      about:
-      about_our_services:
-      access_and_opening:
-      complaints_procedure:
-      equality_and_diversity:
-      media_enquiries:
-      membership:
-      our_energy_use:
-      our_governance:
-      personal_information_charter: Charte de données personnelles
-      petitions_and_campaigns:
-      procurement:
-      publication_scheme: Régime de publication
-      recruitment:
-      research:
-      social_media_use: 'Utilisation réseaux sociaux '
-      staff_update:
-      statistics:
-      terms_of_reference:
-      welsh_language_scheme: Système de la langue galloise
+      link_text:
+        welsh_language_scheme:
+      title:
+        about:
+        about_our_services:
+        access_and_opening:
+        accessible_documents_policy:
+        complaints_procedure: Procédure de recours
+        equality_and_diversity:
+        media_enquiries:
+        membership:
+        our_energy_use:
+        our_governance:
+        personal_information_charter: Charte de données personnelles
+        petitions_and_campaigns:
+        procurement:
+        publication_scheme: Régime de publication
+        recruitment: Travailler pour %{organisation_name}
+        research:
+        social_media_use: 'Utilisation réseaux sociaux '
+        staff_update:
+        statistics:
+        terms_of_reference:
+        welsh_language_scheme: Système de la langue galloise
   date:
     formats:
       default: "%d %B %Y"
       long_ordinal: "%B %d, %Y"
-  detailed_guidance:
-    back_to_contents:
-    contents:
-    more:
-    part_of_published_collection:
-    published_related_detailed_guides:
-    related_mainstream_content:
-    see_more_like_this:
   document_filters:
     description: Vous pouvez utiliser les filtres pour afficher uniquement les résultats
       qui correspondent à vos intérêts
@@ -338,6 +350,7 @@ fr:
       access_our_info: Accéder à nos informations
       foi_how_to: Comment faire une demande dans le cadre de Freedom of Information
       foi_releases: Communiqués Freedom of Information
+      jobs:
       jobs_and_contacts: Emploi et contrats
       organisation_chart:
       transparency: Données de transparence
@@ -443,6 +456,7 @@ fr:
     headings:
       about_us: L'ambassade
       contact_us: Contactez-nous
+      contents: Contenu
       corporate_information: Informations générales
       follow_us: Suivez-nous
       our_people: Nos responsables

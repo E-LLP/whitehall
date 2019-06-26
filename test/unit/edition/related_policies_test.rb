@@ -52,6 +52,8 @@ class Edition::RelatedPoliciesTest < ActiveSupport::TestCase
   end
 
   test 'ignores non-existant parent policies' do
+    edition = create(:news_article)
+
     WebMock.reset!
 
     publishing_api_does_not_have_item(policy_area_1.fetch("content_id"))
@@ -64,7 +66,6 @@ class Edition::RelatedPoliciesTest < ActiveSupport::TestCase
       "links" => policy_1["links"],
     )
 
-    edition = create(:news_article)
     assert_equal [], edition.search_index[:policies]
 
     edition.policy_content_ids = [policy_1.fetch("content_id")]
@@ -95,12 +96,13 @@ class Edition::RelatedPoliciesTest < ActiveSupport::TestCase
     assert_equal policy.title, edition.policies[0].title
   end
 
-  [:news_article,
-   :document_collection,
-   :consultation,
-   :publication,
-   :detailed_guide,
-   :speech,
+  %i[
+    consultation
+    detailed_guide
+    document_collection
+    news_article
+    publication
+    speech
   ].each do |document_with_policies|
     test "can add a policy by content id to a #{document_with_policies}" do
       edition = create(document_with_policies, policy_content_ids: [policy_area_1.fetch("content_id")])

@@ -10,9 +10,9 @@ class EditionPublisher < EditionService
 
     reasons = []
     reasons << "This edition is invalid: #{edition.errors.full_messages.to_sentence}" unless edition.valid?
-    reasons << "This edition contains bad links" if govspeak_link_errors.any?
+    reasons << "This edition contains links which violate linking guidelines" if govspeak_link_errors.any?
     reasons << "An edition that is #{edition.current_state} cannot be #{past_participle}" unless can_transition?
-    reasons << "Scheduled editions cannot be published. This edition is scheduled for publication on #{edition.scheduled_publication.to_s}" if scheduled_for_publication?
+    reasons << "Scheduled editions cannot be published. This edition is scheduled for publication on #{edition.scheduled_publication}" if scheduled_for_publication?
 
     @failure_reasons = reasons
   end
@@ -38,15 +38,26 @@ private
   def fire_transition!
     super
     supersede_previous_editions!
+    delete_unpublishing!
+  end
+
+  def previous_editions
+    Edition
+      .unscoped
+      .where(document_id: edition.document_id)
+      .where.not(id: edition.id)
+      .published
   end
 
   def supersede_previous_editions!
-    edition.document.editions.published.each do |e|
-      if e != edition
-        e.supersede
-        e.save(validate: false)
-      end
+    previous_editions.each do |edition|
+      edition.supersede
+      edition.save(validate: false)
     end
+  end
+
+  def delete_unpublishing!
+    edition.unpublishing.destroy if edition.unpublishing.present?
   end
 
   def scheduled_for_publication?

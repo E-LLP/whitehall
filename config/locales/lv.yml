@@ -5,7 +5,6 @@ lv:
         one: Dokuments
         other: Dokumenti
       applies_to_nations: Attiecas uz
-      field_of_operation: Darbības lauks
       from:
       location:
       part_of:
@@ -16,6 +15,9 @@ lv:
       authored_article:
         one: Autora raksts
         other: Autora raksti
+      blog_post:
+        one:
+        other:
       case_study:
         one: Piemērs
         other: Piemēri
@@ -46,9 +48,6 @@ lv:
       draft_text:
         one: Teksta uzmetums
         other: Teksta uzmetumi
-      fatality_notice:
-        one: Nāves paziņojums
-        other: Nāves paziņojumi
       foi_release:
         one: Informācijas atklātības datu publicēšana
         other: Informācijas atklātības datu publicēšana
@@ -73,6 +72,9 @@ lv:
       international_treaty:
         one:
         other:
+      manual:
+        one:
+        other:
       map:
         one: Karte
         other: Kartes
@@ -85,9 +87,15 @@ lv:
       news_story:
         one: Ziņa
         other: Ziņas
+      nhs_content:
+        one:
+        other:
       notice:
         one:
         other:
+      official_statistics:
+        one: Statistika
+        other: Statistika
       open_consultation:
         one: Atklāta konsultācija
         other: Atklātas konsultācijas
@@ -124,9 +132,6 @@ lv:
       statistical_data_set:
         one: Statistiskas datu kopums
         other: Statistikas datu kopumi
-      official_statistics:
-        one: Statistika
-        other: Statistika
       statutory_guidance:
         one:
         other:
@@ -136,6 +141,9 @@ lv:
       transparency:
         one: Atklātības dati
         other: Atklātības dati
+      world_news_story:
+        one:
+        other:
       written_statement:
         one: Rakstisks ziņojums parlamentam
         other: Rakstiski ziņojumi parlamentam
@@ -193,7 +201,7 @@ lv:
       mission: Misija
       organisations: Organizācijas
       publications: Publikācijas
-      quick_links: "Ātrās saites"
+      quick_links: Ātrās saites
       related_policies: Saistītās politikas jomas
       statistics: Statistikas dati
   activerecord:
@@ -215,6 +223,8 @@ lv:
         unnumbered_hoc_paper:
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         file:
+      edition:
+        nation_inapplicabilities:
       policy_group/policy_group_attachments/attachment/attachment_data:
         file:
       response/consultation_response_attachments/attachment:
@@ -259,6 +269,12 @@ lv:
     opendocument:
       help_html:
     see_more:
+  broken_links:
+    broken:
+      subheading:
+    caution:
+      subheading:
+    title:
   change_notes:
     page_history:
     published_at:
@@ -269,38 +285,34 @@ lv:
     email: E-pasts
   corporate_information_page:
     type:
-      about:
-      about_our_services:
-      access_and_opening:
-      complaints_procedure:
-      equality_and_diversity:
-      media_enquiries:
-      membership:
-      our_energy_use:
-      our_governance:
-      personal_information_charter: Personas datu harta
-      petitions_and_campaigns:
-      procurement:
-      publication_scheme: Publikāciju shēma
-      recruitment:
-      research:
-      social_media_use: Sociālie mēdiji
-      staff_update:
-      statistics:
-      terms_of_reference:
-      welsh_language_scheme: Velsiešu valodas shēma
+      link_text:
+        welsh_language_scheme:
+      title:
+        about:
+        about_our_services:
+        access_and_opening:
+        accessible_documents_policy:
+        complaints_procedure:
+        equality_and_diversity:
+        media_enquiries:
+        membership:
+        our_energy_use:
+        our_governance:
+        personal_information_charter: Personas datu harta
+        petitions_and_campaigns:
+        procurement:
+        publication_scheme: Publikāciju shēma
+        recruitment:
+        research:
+        social_media_use: Sociālie mēdiji
+        staff_update:
+        statistics:
+        terms_of_reference:
+        welsh_language_scheme: Velsiešu valodas shēma
   date:
     formats:
       default: "%d %B %Y"
       long_ordinal: "%e %B %Y"
-  detailed_guidance:
-    back_to_contents:
-    contents:
-    more:
-    part_of_published_collection:
-    published_related_detailed_guides:
-    related_mainstream_content:
-    see_more_like_this:
   document_filters:
     description: Izmantojiet filtrus Jums interesējošo rezultātu atlasei&nbsp;
     no_results:
@@ -336,6 +348,7 @@ lv:
       access_our_info: Piekļūt informācijai
       foi_how_to: Kā iesniegt informācijas pieprasījumu (FOI)
       foi_releases: Informācijas atklātības (FOI) paziņojumi
+      jobs:
       jobs_and_contacts: Darbs un līgumi
       organisation_chart:
       transparency: Atklātība
@@ -359,7 +372,7 @@ lv:
       our_services: Mūsu pakalpojumi
       our_statistics: Statistika
       our_topics: Mēs strādājam ar šiem jautājumiem
-      special_representatives: "Īpašie pārstāvji"
+      special_representatives: Īpašie pārstāvji
       traffic_commissioners: Satiksmes komisāri
       what_we_do: Par mums
       who_we_are:
@@ -430,8 +443,8 @@ lv:
   worldwide_organisation:
     corporate_information:
       about_our_services_html:
-      personal_information_charter_html: "Šeit %{link} izskaidrots, kā tiks apstrādāta
-        Jūsu sniegtā personīgā informācija"
+      personal_information_charter_html: Šeit %{link} izskaidrots, kā tiks apstrādāta
+        Jūsu sniegtā personīgā informācija
       publication_scheme_html: Iepazīsties ar informāciju, kāda parasti tiek publicēta
         mūsu %{link}
       social_media_use_html: Iepazīsties ar mūsu nostāju par %{link}.
@@ -441,6 +454,7 @@ lv:
     headings:
       about_us: Par mums
       contact_us: Sazinies ar mums
+      contents:
       corporate_information: Korporatīvā informācija
       follow_us: Seko mums
       our_people: Darbinieki

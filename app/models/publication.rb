@@ -16,7 +16,7 @@ class Publication < Publicationesque
   include Edition::CanApplyToLocalGovernmentThroughRelatedPolicies
   include Edition::TopicalEvents
 
-  validates :first_published_at, presence: true, if: -> e { e.trying_to_convert_to_draft == true }
+  validates :first_published_at, presence: true, if: ->(e) { e.trying_to_convert_to_draft == true }
   validates :publication_type_id, presence: true
   validate :only_publications_allowed_invalid_data_can_be_awaiting_type
   validate :attachment_required_before_moving_out_of_draft
@@ -27,7 +27,7 @@ class Publication < Publicationesque
 
   after_save :touch_statistics_announcement
   def touch_statistics_announcement
-    unless draft?
+    if published?
       statistics_announcement.touch unless statistics_announcement.nil?
     end
   end
@@ -50,6 +50,10 @@ class Publication < Publicationesque
 
   def self.statistics
     where(publication_type_id: PublicationType.statistical.map(&:id))
+  end
+
+  def rendering_app
+    Whitehall::RenderingApp::GOVERNMENT_FRONTEND
   end
 
   def allows_inline_attachments?
@@ -115,8 +119,6 @@ class Publication < Publicationesque
     # us, so returning nil is ok even though it would break the SQL insert
     if self.publication_type.present?
       self.publication_type.access_limited_by_default?
-    else
-      nil
     end
   end
 
@@ -129,11 +131,11 @@ class Publication < Publicationesque
   end
 
   def search_index
-    super.merge({
+    super.merge(
       has_official_document: has_official_document?,
       has_command_paper: has_command_paper?,
       has_act_paper: has_act_paper?
-    })
+    )
   end
 
   def allows_html_attachments?
@@ -146,7 +148,7 @@ class Publication < Publicationesque
     end
   end
 
-  private
+private
 
   def attachment_required_before_moving_out_of_draft
     if %w(submitted scheduled published).include?(state) && !has_attachments?

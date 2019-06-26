@@ -1,8 +1,8 @@
 class Admin::BulkUploadsController < Admin::BaseController
-  before_filter :find_edition
-  before_filter :limit_edition_access!
-  before_filter :enforce_permissions!
-  before_filter :prevent_modification_of_unmodifiable_edition
+  before_action :find_edition
+  before_action :limit_edition_access!
+  before_action :enforce_permissions!
+  before_action :prevent_modification_of_unmodifiable_edition
 
   def new
     @zip_file = BulkUpload::ZipFile.new
@@ -23,6 +23,9 @@ class Admin::BulkUploadsController < Admin::BaseController
   def create
     @bulk_upload = BulkUpload.new(@edition)
     @bulk_upload.attachments_attributes = create_params[:attachments_attributes]
+    @bulk_upload.attachments.each do |attachment|
+      attachment.attachment_data.attachable = @edition
+    end
     if @bulk_upload.save_attachments
       redirect_to admin_edition_attachments_path(@edition)
     else
@@ -30,7 +33,7 @@ class Admin::BulkUploadsController < Admin::BaseController
     end
   end
 
-  private
+private
 
   def find_edition
     @edition = Edition.find(params[:edition_id])
@@ -42,11 +45,13 @@ class Admin::BulkUploadsController < Admin::BaseController
 
   def create_params
     params.require(:bulk_upload).permit(attachments_attributes: [
-      {attachment_data_attributes: [:file_cache, :to_replace_id]},
+      { attachment_data_attributes: %i[file_cache to_replace_id] },
       :id,
       :title,
       :locale,
       :isbn,
+      :web_isbn,
+      :print_meta_data_contact_address,
       :unique_reference,
       :command_paper_number,
       :unnumbered_command_paper,

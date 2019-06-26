@@ -1,7 +1,7 @@
 class StatisticsController < DocumentsController
-  enable_request_formats index: [:json, :atom]
-  before_filter :inject_statistics_publication_filter_option_param, only: :index
-  before_filter :expire_cache_when_next_publication_published
+  enable_request_formats index: %i[json atom]
+  before_action :inject_statistics_publication_filter_option_param, only: :index
+  before_action :expire_cache_when_next_publication_published
 
   def index
     @filter = build_document_filter
@@ -9,7 +9,14 @@ class StatisticsController < DocumentsController
 
     respond_to do |format|
       format.html do
-        @filter = DocumentFilterPresenter.new(@filter, view_context, PublicationesquePresenter)
+        @content_item = Whitehall
+          .content_store
+          .content_item("/government/statistics")
+          .to_hash
+
+        @filter = StatisticsFilterJsonPresenter.new(
+          @filter, view_context, PublicationesquePresenter
+        )
       end
       format.json do
         render json: StatisticsFilterJsonPresenter.new(@filter, view_context, PublicationesquePresenter)
@@ -34,9 +41,4 @@ private
   def expire_cache_when_next_publication_published
     expire_on_next_scheduled_publication(Publicationesque.scheduled.order("scheduled_publication asc"))
   end
-
-  def document_class
-    Publication
-  end
-
 end

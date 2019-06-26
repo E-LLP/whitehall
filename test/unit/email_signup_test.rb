@@ -1,37 +1,47 @@
 require 'test_helper'
+require 'gds_api/test_helpers/email_alert_api'
 
 class EmailSignupTest < ActiveSupport::TestCase
-  test "#save ensures that a relevant topic exists in GovDelivery using the feed and the signup description" do
-    email_signup = EmailSignup.new(feed: feed_url)
+  include GdsApi::TestHelpers::EmailAlertApi
 
-    Whitehall.govuk_delivery_client.expects(:topic).with(feed_url, email_signup.description)
+  test "#save ensures that a relevant topic exists in email-alert-api using the feed and the signup description" do
+    email_signup = EmailSignup.new(feed: feed_url)
+    response = { "gov_delivery_id" => "TOPIC-123", "subscription_url" => "http://example.com" }
+
+    email_alert_api_does_not_have_subscriber_list("email_document_supertype" => "publications")
+    email_alert_api_creates_subscriber_list(response).with do |request|
+      assert_equal "Publications", JSON.parse(request.body)["title"]
+    end
 
     assert email_signup.save
+
+    assert_equal "TOPIC-123", email_signup.topic_id
+    assert_equal "http://example.com", email_signup.signup_url
   end
 
-  test "#save does not create a GovDelivery topic if the feed is missing" do
-    Whitehall.govuk_delivery_client.expects(:topic).never
+  test "#save doesn't create an email-alert-api topic if one already exists" do
+    email_signup = EmailSignup.new(feed: feed_url)
+    email_alert_api_has_subscriber_list("email_document_supertype" => "publications")
 
+    assert email_signup.save
+    assert_not_requested(email_alert_api_creates_subscriber_list({}))
+  end
+
+  test "#save does not create an email-alert-api topic if the feed is missing" do
     refute EmailSignup.new.save
+    assert_not_requested(stub_any_email_alert_api_call)
   end
 
-  test "#save does not create a GovDelivery topic if the feed is invalid" do
-    Whitehall.govuk_delivery_client.expects(:topic).never
-
+  test "#save does not create an email-alert-api topic if the feed is invalid" do
     refute EmailSignup.new(feed: 'http://fake/feed').save
-  end
-
-  test "#govdelivery_url delegates to the govuk_delivery_client" do
-    Whitehall.govuk_delivery_client.expects(:signup_url).with(feed_url)
-
-    EmailSignup.new(feed: feed_url).govdelivery_url
+    assert_not_requested(stub_any_email_alert_api_call)
   end
 
   test "#description provides a human-readable description of the filters being applied" do
     feed_url = feed_url("publications.atom?official_document_status=command_and_act_papers")
 
-    assert_equal "publications which are command or act papers",
-                 EmailSignup.new(feed: feed_url).description
+    expected = "Publications which are command or act papers"
+    assert_equal expected, EmailSignup.new(feed: feed_url).description
   end
 
   def feed_url(feed_path = "publications.atom")

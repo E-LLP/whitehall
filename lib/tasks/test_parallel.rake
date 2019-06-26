@@ -4,15 +4,16 @@
 # faster than parallel_test and has better logging output.
 namespace :test do
   desc "Run the entire test suite using parallel test runners"
-  task :in_parallel => :environment do
+  task in_parallel: :environment do
     ENV['CUCUMBER_FORMAT'] = 'progress'
     ENV['RAILS_ENV'] = 'test'
 
-    setup_tasks = ['parallel:drop', 'parallel:create', 'parallel:load_schema']
     test_tasks = ['test_queue', 'shared_mustache:compile', 'parallel:features', 'test:javascript']
     cleanup_tasks = ['test:cleanup']
 
-    setup_tasks.each { |task| Rake::Task[task].invoke }
+    ParallelTests::Tasks.run_in_parallel(
+      "rake db:reset RAILS_ENV=test DISABLE_DATABASE_ENVIRONMENT_CHECK=1"
+    )
     ParallelTests::Tasks.check_for_pending_migrations
 
     test_tasks.each { |task| Rake::Task[task].invoke }

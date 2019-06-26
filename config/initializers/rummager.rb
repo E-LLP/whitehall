@@ -1,19 +1,22 @@
-require 'gds_api/rummager'
+require 'gds_api/search'
 
-Whitehall.government_search_client = GdsApi::Rummager.new(
-  Plek.find('search') + Whitehall.government_search_index_path
+Whitehall.government_search_client = GdsApi::Search.new(
+  Plek.find('search') + Whitehall::SearchIndex.government_search_index_path,
+  bearer_token: ENV['RUMMAGER_BEARER_TOKEN'] || 'example'
 )
 
-Whitehall.unified_search_client = GdsApi::Rummager.new(
-  Plek.find('search')
+Whitehall.search_client = GdsApi::Search.new(
+  Plek.find('search'),
+  bearer_token: ENV['RUMMAGER_BEARER_TOKEN'] || 'example'
 )
 
 def statistics_announcement_search_client
   if Rails.env.test?
     DevelopmentModeStubs::FakeRummagerApiForStatisticsAnnouncements
   else
-    GdsApi::Rummager.new(
-      Plek.find('search') + Whitehall.government_search_index_path
+    GdsApi::Search.new(
+      Plek.find('search') + Whitehall::SearchIndex.government_search_index_path,
+      bearer_token: ENV['RUMMAGER_BEARER_TOKEN'] || 'example'
     )
   end
 end

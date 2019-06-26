@@ -6,7 +6,7 @@ class PublicationType
   include ActiveRecordLikeInterface
 
   FORMAT_ADVICE = {
-    1 => "<p>Publications that relate to the setting and delivery of government policy. Includes white papers, strategies, operational plans, action plans, implementation plans (excludes consultations, research and impact assessments, or internal procedural “policies”).</p>",
+    1 => "<p>A policy paper explains the government's position on something. It doesn’t include instructions on how to carry out a task, only the policy itself and how it’ll be implemented.</p><p>Read the <a href=\"https://www.gov.uk/guidance/content-design/content-types#policy-paper\" target=\"_blank\">policy papers guidance</a> in full.</p>",
     2 => "<p>Cost-benefit analyses and other assessments of the impact of proposed initiatives, or changes to regulations or legislation.</p>",
     3 => "<p>Non-statutory guidance publications. Includes: manuals, handbooks and other documents that offer advice.</p><p>Do <em>not</em> use for: statutory guidance (use the “statutory guidance” publication type) or guidance about completing a form (attach to same publication as the form itself).</p>",
     4 => "<p>Pro-forma or form documents that need to be completed by the user. Can include guidance on how to fill in forms (ie no need to create a separate “guidance” publication for form instructions).</p>",
@@ -16,7 +16,7 @@ class PublicationType
     8 => "<p>Ministerial or departmental responses (eg to campaign letters), announcements, or statements;regularly issued circulars or bulletins (eg fire service circulars), official correspondence to professionals (eg “Dear chief planning officer” letters);letters to individuals or organisations that are published to share with a wider audience than their original recipient;online versions of e-bulletins or newsletters.</p><p>Do <em>not</em> use for: minutes, agendas or other meeting papers. Attach them to relevant “policy detail”, “team” or “our governance” pages instead.</p>",
     10 => "<p>Information made available about departmental operations with the intent of making government more transparent.Includes organisation charts, staff survey results, departmental spending, salaries, contracts, meetings with ministers, etc.</p><p>Do <em>not</em> use for: FOI responses.</p>",
     12 => "<p>Responses to Freedom of Information requests. Ensure the title describes specifically what the request is about.</p>",
-    13 =>"<p>Leaflets, posters, fact sheets and marketing collateral.</p>",
+    13 => "<p>Leaflets, posters, fact sheets and marketing collateral.</p>",
     14 => "<p>Reviews, inquiries and other reports commissioned from or conducted by independent (ie non-governmental) bodies for consideration by the government.</p>",
     15 => "<p>Official Statistics that have been produced in accordance with the Code of Practice for Official Statistics, which is indicated using the National Statistics quality mark.</p>",
     17 => "<p>Drawn maps and geographical data.</p>",
@@ -29,14 +29,15 @@ class PublicationType
     1000 => "<p>DO NOT USE. This is a holding category for content that has been imported automatically.</p>",
   }.to_json.freeze
 
-  attr_accessor :id, :singular_name, :plural_name, :prevalence, :access_limited_by_default, :key, :additional_search_format_types, :detailed_format
+  attr_accessor :id, :singular_name, :plural_name, :prevalence, :access_limited_by_default, :key, :detailed_format
+  attr_writer :additional_search_format_types
 
   def self.access_limitable
     all.select(&:access_limited_by_default?)
   end
 
   def self.by_prevalence
-    all.group_by { |type| type.prevalence }
+    all.group_by(&:prevalence)
   end
 
   def self.ordered_by_prevalence
@@ -111,7 +112,7 @@ class PublicationType
   Decision               = create(id: 21, key: "decision", singular_name: "Decision", plural_name: "Decisions", prevalence: :less_common)
 
   # Use is discouraged
-  Correspondence         = create(id: 8 , key: "correspondence", singular_name: "Correspondence", plural_name: "Correspondence", prevalence: :discouraged)
+  Correspondence         = create(id: 8, key: "correspondence", singular_name: "Correspondence", plural_name: "Correspondence", prevalence: :discouraged)
   PromotionalMaterial    = create(id: 13, key: "promotional", singular_name: "Promotional material", plural_name: "Promotional material", prevalence: :discouraged)
   Regulation             = create(id: 22, key: "regulation", singular_name: "Regulation", plural_name: "Regulations", prevalence: :discouraged)
 

@@ -1,14 +1,9 @@
-require File.expand_path('../boot', __FILE__)
+require_relative 'boot'
 
-require "rails"
-require 'active_record'
+require 'rails/all'
 
-require "active_record/railtie"
-require "action_controller/railtie"
-require "action_mailer/railtie"
-require "rails/test_unit/railtie"
-require "sprockets/railtie"
-
+# Require the gems listed in Gemfile, including any gems
+# you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
 module Whitehall
@@ -20,30 +15,9 @@ module Whitehall
     # -- all .rb files in that directory are automatically loaded.
 
     # Custom directories with classes and modules you want to be autoloadable.
-    config.autoload_paths += %W(
-      #{config.root}/app/presenters
-      #{config.root}/app/services
-      #{config.root}/app/uploaders
-      #{config.root}/app/validators
-      #{config.root}/app/workers
+    config.eager_load_paths += %W(
       #{config.root}/lib
-      #{config.root}/app/concerns
     )
-
-    # Only load the plugins named here, in the order given (default is alphabetical).
-    # :all can be used as a placeholder for all plugins not explicitly named.
-    # config.plugins = [ :exception_notification, :ssl_requirement, :all ]
-
-    config.active_record.observers = [
-      :ministerial_role_search_index_observer,
-      :corporate_information_page_search_index_observer
-    ]
-
-    # Opt in to new transaction callback error handling behaviour to get rid of
-    # deprecation warnings.
-    #
-    # See http://guides.rubyonrails.org/upgrading_ruby_on_rails.html#error-handling-in-transaction-callbacks
-    config.active_record.raise_in_transactional_callbacks = true
 
     # Set Time.zone default to the specified zone and make Active Record auto-convert to this zone.
     # Run "rake -D time" for a list of tasks for finding time zone names. Default is UTC.
@@ -61,16 +35,12 @@ module Whitehall
     # Configure the default encoding used in templates for Ruby 1.9.
     config.encoding = "utf-8"
 
-    # Enable the asset pipeline
-    config.assets.initialize_on_precompile = true
+    # Using a sass css compressor causes a scss file to be processed twice (once
+    # to build, once to compress) which breaks the usage of "unquote" to use
+    # CSS that has same function names as SCSS such as max
+    config.assets.css_compressor = nil
 
-    config.action_dispatch.x_sendfile_header = 'X-Accel-Redirect' # for nginx
-
-    # Version of your assets, change this if you want to expire all your assets
-    config.assets.version = '1.0'
-
-    config.assets.prefix = Whitehall.router_prefix + config.assets.prefix
-    config.slimmer.wrapper_id = "whitehall-wrapper"
+    config.slimmer.wrapper_id = "whitehall-wrapper-slimmer"
 
     config.action_dispatch.ignore_accept_header = true
 
@@ -83,5 +53,7 @@ module Whitehall
       generate.assets false
       generate.test_framework :test_unit, fixture: false
     end
+
+    config.paths["log"] = ENV["LOG_PATH"] if ENV["LOG_PATH"]
   end
 end

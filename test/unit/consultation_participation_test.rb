@@ -56,16 +56,20 @@ class ConsultationParticipationTest < ActiveSupport::TestCase
   end
 
   test "should allow deletion of response form via nested attributes" do
+    AssetManagerDeleteAssetWorker.stubs(:perform_async)
+
     form = create(:consultation_response_form)
     participation = create(:consultation_participation, consultation_response_form: form)
 
-    participation.update_attributes(consultation_response_form_attributes: {id: form.id, "_destroy" => "1"})
+    participation.update_attributes(consultation_response_form_attributes: { id: form.id, "_destroy" => "1" })
 
     participation.reload
     refute participation.consultation_response_form.present?
   end
 
   test "destroys attached form when no editions are associated" do
+    AssetManagerDeleteAssetWorker.stubs(:perform_async)
+
     participation = create(:consultation_participation)
     form = create(:consultation_response_form, consultation_participation: participation)
 
@@ -79,11 +83,11 @@ class ConsultationParticipationTest < ActiveSupport::TestCase
   test "does not destroy attached file when if more participations are associated" do
     participation = create(:consultation_participation)
     form = create(:consultation_response_form, consultation_participation: participation)
-    other_participation = create(:consultation_participation, consultation_response_form: form)
+    _other_participation = create(:consultation_participation, consultation_response_form: form)
 
     participation.destroy
 
-    assert_nothing_raised(ActiveRecord::RecordNotFound) do
+    assert_nothing_raised do
       form.reload
     end
   end

@@ -5,7 +5,6 @@ et:
         one: Dokument
         other: Dokumendid
       applies_to_nations: Seondub
-      field_of_operation: Tegevusvaldkond
       from: Kellelt
       location: Asukoht
       part_of: Osa
@@ -16,6 +15,9 @@ et:
       authored_article:
         one: Avaldatud artikkel
         other: 'Avaldatud artiklid '
+      blog_post:
+        one:
+        other:
       case_study:
         one: Juhtumiuuring
         other: Juhtumiuuringud
@@ -46,9 +48,6 @@ et:
       draft_text:
         one: Eelnõu
         other: Eelnõud
-      fatality_notice:
-        one: Surmateade
-        other: Surmateated
       foi_release:
         one: FOI teavitus
         other: FOI teavitused
@@ -73,6 +72,9 @@ et:
       international_treaty:
         one: Rahvusvaheline leping
         other: Rahvusvahelised lepingud
+      manual:
+        one: Rahvusvaheline leping
+        other: Rahvusvahelised lepingud
       map:
         one: Kaart
         other: Kaardid
@@ -85,9 +87,15 @@ et:
       news_story:
         one: Uudis
         other: Uudised
+      nhs_content:
+        one:
+        other:
       notice:
         one: Teade
         other: Teated
+      official_statistics:
+        one: 'Statistika '
+        other: Statistika
       open_consultation:
         one: Avatud konsultatsioon
         other: Avatud konsultatsioonid
@@ -124,9 +132,6 @@ et:
       statistical_data_set:
         one: Statistiline andmekogu
         other: Statistilised andmekogud
-      official_statistics:
-        one: 'Statistika '
-        other: Statistika
       statutory_guidance:
         one: Seadusejärgne juhis
         other: Seadusejärgne juhis
@@ -136,6 +141,9 @@ et:
       transparency:
         one: Läbipaistvusteave
         other: Läbipaistvusteave
+      world_news_story:
+        one:
+        other:
       written_statement:
         one: Kirjalik avaldus parlamendile
         other: Kirjalikud avaldused parlamendile
@@ -168,8 +176,8 @@ et:
     read_more: Temast lähemalt
   roles:
     heading:
-      one: "Ülesanne"
-      other: "Ülesanded"
+      one: Ülesanne
+      other: Ülesanded
     headings:
       current_holder: Praegu sellel ametikohal
       previous_holders: Eelmised ametikoha täitjad
@@ -215,6 +223,8 @@ et:
         unnumbered_hoc_paper: Nummerdamata Parlamendi alamkoja dokument
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         file: Manus
+      edition:
+        nation_inapplicabilities:
       policy_group/policy_group_attachments/attachment/attachment_data:
         file: Manus
       response/consultation_response_attachments/attachment:
@@ -261,6 +271,12 @@ et:
       help_html: See fail on <a rel="external" href="https://en.wikipedia.org/wiki/OpenDocument_software">OpenDocument</a>
         formaadis
     see_more: 'Loe lähemalt: %{document_type}'
+  broken_links:
+    broken:
+      subheading:
+    caution:
+      subheading:
+    title:
   change_notes:
     page_history: Ajalugu
     published_at: Esmane publikatsioon
@@ -271,38 +287,34 @@ et:
     email: E-post
   corporate_information_page:
     type:
-      about: Meist
-      about_our_services: Meie teenustest
-      access_and_opening: Kontori asukoht ja tööaeg
-      complaints_procedure: Kaebuste esitamise kord
-      equality_and_diversity: Võrdõiguslikkus ja diversiteet
-      media_enquiries: Meediapäringud
-      membership: Liikmelisus
-      our_energy_use: Meie energiatarbimus
-      our_governance: Meie juhatus
-      personal_information_charter: Isikuandmete harta
-      petitions_and_campaigns: Petitsioonid ja kampaaniad
-      procurement: Hanked %{organisation_name}
-      publication_scheme: Avaldamise kord
-      recruitment: Töötamine %{organisation_name}
-      research: Uuringud %{organisation_name}
-      social_media_use: Sotsiaalmeedia kasutus
-      staff_update: Meeskonna uudised ja info
-      statistics: Statistika %{organisation_name}
-      terms_of_reference: Ametivolitused
-      welsh_language_scheme: Uelsi keele kasutusest
+      link_text:
+        welsh_language_scheme:
+      title:
+        about: Meist
+        about_our_services: Meie teenustest
+        access_and_opening: Kontori asukoht ja tööaeg
+        accessible_documents_policy:
+        complaints_procedure: Kaebuste esitamise kord
+        equality_and_diversity: Võrdõiguslikkus ja diversiteet
+        media_enquiries: Meediapäringud
+        membership: Liikmelisus
+        our_energy_use: Meie energiatarbimus
+        our_governance: Meie juhatus
+        personal_information_charter: Isikuandmete harta
+        petitions_and_campaigns: Petitsioonid ja kampaaniad
+        procurement: Hanked %{organisation_name}
+        publication_scheme: Avaldamise kord
+        recruitment: Töötamine %{organisation_name}
+        research: Uuringud %{organisation_name}
+        social_media_use: Sotsiaalmeedia kasutus
+        staff_update: Meeskonna uudised ja info
+        statistics: Statistika %{organisation_name}
+        terms_of_reference: Ametivolitused
+        welsh_language_scheme: Uelsi keele kasutusest
   date:
     formats:
       default:
       long_ordinal:
-  detailed_guidance:
-    back_to_contents: Tagasi sisukorda
-    contents: Sisukord
-    more: Rohkem sarnaseid valikuid
-    part_of_published_collection: See on osa sarjast
-    published_related_detailed_guides: Seotud detailne juhend
-    related_mainstream_content: 'Liiga detailne?<br/>Vt. neid kokkuvõtlikke juhendeid? '
-    see_more_like_this: Vaata veel sarnaseid
   document_filters:
     description: Te võite kasutada filtreid, et kuvada ainult otsingu tulemusi, mis
       Teie huvile vastavad
@@ -342,11 +354,15 @@ et:
       access_our_info: Ligipääs meie teabele
       foi_how_to: Kuidas teha FOI päringut
       foi_releases: FOI päringud
+      jobs:
       jobs_and_contacts: Töötajad ja kontaktid
       organisation_chart: Meie organisatsioon
       transparency: Läbipaistvusteave
-    foi_exemption_html: |
-      See organisatsioon ei kuulu Teabevabaduse seaduse (FOI) alla. Et vaadata, missugused organisatsioonid kuuluvad, vaadake: <a href="%{foi_url}">the legislation</a>.
+    foi_exemption_html: 'See organisatsioon ei kuulu Teabevabaduse seaduse (FOI) alla.
+      Et vaadata, missugused organisatsioonid kuuluvad, vaadake: <a href="%{foi_url}">the
+      legislation</a>.
+
+'
     headings:
       chief_professional_officers: Meie juhtivad ametnikud
       contact: 'Võtke ühendust: %{name}'
@@ -382,7 +398,7 @@ et:
   publications:
     heading: Publikatsioonid
     headings:
-      detail: "Üksikasjad"
+      detail: Üksikasjad
   read_more: 'Lugege lähemalt '
   see_all:
     announcement: Vaadake kõiki meie teadaandeid
@@ -450,6 +466,7 @@ et:
     headings:
       about_us: Meist
       contact_us: Võtke ühendust
+      contents:
       corporate_information: Korporatiivne teave
       follow_us: Jälgige meid
       our_people: Meie inimesed

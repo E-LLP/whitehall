@@ -1,7 +1,7 @@
-class WorldwideOrganisation < ActiveRecord::Base
-  include HasCorporateInformationPages
-
-  PRIMARY_ROLES = [AmbassadorRole, HighCommissionerRole, GovernorRole]
+class WorldwideOrganisation < ApplicationRecord
+  PRIMARY_ROLES = [AmbassadorRole, HighCommissionerRole, GovernorRole].freeze
+  SECONDARY_ROLES = [DeputyHeadOfMissionRole].freeze
+  OFFICE_ROLES = [WorldwideOfficeStaffRole].freeze
 
   has_many :worldwide_organisation_world_locations, dependent: :destroy
   has_many :world_locations, through: :worldwide_organisation_world_locations
@@ -14,12 +14,14 @@ class WorldwideOrganisation < ActiveRecord::Base
   has_many :roles, through: :worldwide_organisation_roles
   has_many :people, through: :roles
   has_many :edition_worldwide_organisations, dependent: :destroy, inverse_of: :worldwide_organisation
-  has_one  :access_and_opening_times, as: :accessible, dependent: :destroy
+  # This include is dependant on the above has_many
+  include HasCorporateInformationPages
+  has_one :access_and_opening_times, as: :accessible, dependent: :destroy
   belongs_to :default_news_image, class_name: 'DefaultNewsOrganisationImageData', foreign_key: :default_news_organisation_image_data_id
 
   accepts_nested_attributes_for :default_news_image, reject_if: :all_blank
 
-  scope :ordered_by_name, ->() { with_translations(I18n.default_locale).order(translation_class.arel_table[:name]) }
+  scope :ordered_by_name, -> { with_translations(I18n.default_locale).order(translation_class.arel_table[:name]) }
 
   include AnalyticsIdentifierPopulator
   self.analytics_prefix = 'WO'
@@ -36,6 +38,20 @@ class WorldwideOrganisation < ActiveRecord::Base
 
   extend FriendlyId
   friendly_id
+
+  after_save do
+    # If the default news organisation image changes we need to republish all
+    # news articles belonging to the worldwide organisation
+    if saved_change_to_default_news_organisation_image_data_id?
+      documents = NewsArticle
+        .in_worldwide_organisation(self)
+        .includes(:images)
+        .where(images: { id: nil })
+        .map(&:document)
+
+      documents.each { |d| Whitehall::PublishingApi.republish_document_async(d) }
+    end
+  end
 
   # I'm trying to use a domain centric design rather than a persistence
   # centric design, so I do not want to expose a has_many :home_page_lists
@@ -59,6 +75,7 @@ class WorldwideOrganisation < ActiveRecord::Base
 
   include Searchable
   searchable title: :name,
+             description: :summary,
              link: :search_link,
              content: :summary,
              format: 'worldwide_organisation'
@@ -88,15 +105,14 @@ class WorldwideOrganisation < ActiveRecord::Base
   end
 
   def primary_role
-    roles.where(type: PRIMARY_ROLES.map(&:name)).first
+    roles.occupied.where(type: PRIMARY_ROLES.map(&:name)).first
   end
 
   def secondary_role
-    roles.where(type: DeputyHeadOfMissionRole.name).first
+    roles.occupied.where(type: SECONDARY_ROLES.map(&:name)).first
   end
 
   def office_staff_roles
-    roles.where(type: WorldwideOfficeStaffRole.name)
+    roles.occupied.where(type: OFFICE_ROLES.map(&:name))
   end
-
 end

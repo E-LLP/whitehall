@@ -18,6 +18,8 @@ vi:
         unnumbered_hoc_paper:
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         file:
+      edition:
+        nation_inapplicabilities:
       policy_group/policy_group_attachments/attachment/attachment_data:
         file:
       response/consultation_response_attachments/attachment:
@@ -53,15 +55,21 @@ vi:
       heading: 'File này không phù hợp với công nghệ hỗ trợ của người dùng '
       request_a_different_format: Yêu cầu một định dạng khác
     headings:
-      order_a_copy: "Đặt một bản sao"
-      order_a_copy_full: "Đặt một bản sao của ấn phẩm truyền thông"
-      published: "Đã đăng"
-      reference: "đối với"
+      order_a_copy: Đặt một bản sao
+      order_a_copy_full: Đặt một bản sao của ấn phẩm truyền thông
+      published: Đã đăng
+      reference: đối với
       unnumbered_command_paper:
       unnumbered_hoc_paper:
     opendocument:
       help_html:
     see_more:
+  broken_links:
+    broken:
+      subheading:
+    caution:
+      subheading:
+    title:
   change_notes:
     page_history:
     published_at:
@@ -72,38 +80,34 @@ vi:
     email: Email
   corporate_information_page:
     type:
-      about:
-      about_our_services:
-      access_and_opening:
-      complaints_procedure:
-      equality_and_diversity:
-      media_enquiries:
-      membership:
-      our_energy_use:
-      our_governance:
-      personal_information_charter: Bảng thông tin cá nhân
-      petitions_and_campaigns:
-      procurement:
-      publication_scheme: Cơ chế Xuất bản
-      recruitment:
-      research:
-      social_media_use: Sử dụng mạng xã hội
-      staff_update:
-      statistics:
-      terms_of_reference:
-      welsh_language_scheme: cơ chế ngôn ngữ của xứ Wales
+      link_text:
+        welsh_language_scheme:
+      title:
+        about:
+        about_our_services:
+        access_and_opening:
+        accessible_documents_policy:
+        complaints_procedure:
+        equality_and_diversity:
+        media_enquiries:
+        membership:
+        our_energy_use:
+        our_governance:
+        personal_information_charter: Bảng thông tin cá nhân
+        petitions_and_campaigns:
+        procurement:
+        publication_scheme: Cơ chế Xuất bản
+        recruitment:
+        research:
+        social_media_use: Sử dụng mạng xã hội
+        staff_update:
+        statistics:
+        terms_of_reference:
+        welsh_language_scheme: cơ chế ngôn ngữ của xứ Wales
   date:
     formats:
       default: "%d %B %Y"
       long_ordinal: "%d %B %Y"
-  detailed_guidance:
-    back_to_contents:
-    contents:
-    more:
-    part_of_published_collection:
-    published_related_detailed_guides:
-    related_mainstream_content:
-    see_more_like_this:
   document:
     contents:
     footer_meta:
@@ -112,21 +116,20 @@ vi:
       published:
       updated:
     headings:
-      applies_to_nations: "Áp dụngng cho"
+      applies_to_nations: Áp dụngng cho
       attachments:
         one: Tài liệu
         other: Tài liệu
-      field_of_operation: Lĩnh vực hoạt động
       from:
       location:
       part_of:
-    published: "Đã xuất bản"
-    read: "Đọc bài có  %{title}"
+    published: Đã xuất bản
+    read: Đọc bài có  %{title}
     speech:
       author_title:
         minister: Thứ trưởng
         speaker: Tác giả
-      delivered_on: "Đưa ra:"
+      delivered_on: 'Đưa ra:'
       delivery_title:
         minister: Thứ trưởng
         speaker: Người phát biểu
@@ -138,6 +141,9 @@ vi:
       authored_article:
         one: bài viết do tác giả
         other: Các bài viết do tác giả
+      blog_post:
+        one:
+        other:
       case_study:
         one: Trường hợp cụ thể
         other: Các Trường hợp cụ thể
@@ -168,9 +174,6 @@ vi:
       draft_text:
         one: Nội dung dự thảo
         other: Các nội dung dự thảo
-      fatality_notice:
-        one: Tin buồn
-        other: Tin buồn
       foi_release:
         one: Thông cáo FOI
         other: Thông cáo FOI
@@ -184,8 +187,8 @@ vi:
         one: hướng dẫn
         other: hướng dẫn
       impact_assessment:
-        one: "Đánh giá tác động"
-        other: "Đánh giá tác động"
+        one: Đánh giá tác động
+        other: Đánh giá tác động
       imported:
         one: Loại tài liệu đính kèm
         other: Loại tài liệu đính kèm
@@ -193,6 +196,9 @@ vi:
         one: Báo cáo độc lập
         other: Các báo cáo độc lập
       international_treaty:
+        one:
+        other:
+      manual:
         one:
         other:
       map:
@@ -207,9 +213,15 @@ vi:
       news_story:
         one: Câu chuyện tin tức
         other: Câu chuyện tin tức
+      nhs_content:
+        one:
+        other:
       notice:
         one:
         other:
+      official_statistics:
+        one: Thống kê
+        other: Thống kê
       open_consultation:
         one: Tham vấn mở rộng
         other: Tham vấn mở rộng
@@ -246,9 +258,6 @@ vi:
       statistical_data_set:
         one: Bộ dữ liệu thống kê
         other: Bộ dữ liệu thống kê
-      official_statistics:
-        one: Thống kê
-        other: Thống kê
       statutory_guidance:
         one:
         other:
@@ -258,6 +267,9 @@ vi:
       transparency:
         one: Dữ liệu kịch bản
         other: Dữ liệu kịch bản
+      world_news_story:
+        one:
+        other:
       written_statement:
         one: Tuyên bố bằng văn bản tới quốc hội
         other: Các Tuyên bố bằng văn bản tới quốc hội
@@ -299,6 +311,7 @@ vi:
       access_our_info: Truy cập thông tin của chúng tôi
       foi_how_to: Cách tạo một yêu cầu FOI
       foi_releases: Tuyên bố FOI
+      jobs:
       jobs_and_contacts: Việc làm và hợp đồng
       organisation_chart:
       transparency: Minh bạch dữ liệu
@@ -322,9 +335,9 @@ vi:
       our_services: Các dịch vụ của chúng tôi
       our_statistics: Thống kê
       our_topics: Những lĩnh vực chúng tôi hoạt động
-      special_representatives: "Đại diện đặc biệt"
+      special_representatives: Đại diện đặc biệt
       traffic_commissioners: Các ủy viên giao thông
-      what_we_do: "Điều chúng tôi làm"
+      what_we_do: Điều chúng tôi làm
       who_we_are:
     making_foi_requests:
       step1_html:
@@ -345,7 +358,7 @@ vi:
     heading: Tài liệu truyền thông
     headings:
       detail: Chi tiết
-  read_more: "Đọc thêm"
+  read_more: Đọc thêm
   roles:
     heading:
       one:
@@ -414,7 +427,7 @@ vi:
   world_location:
     headings:
       announcements: Các thông báo của chúng tôi
-      country: "Đất nước"
+      country: Đất nước
       documents: Tài liệu
       mission: Nhiệm vụ của chúng tôi
       organisations: Các tổ chức
@@ -427,7 +440,7 @@ vi:
         one: Phái đoàn quốc tế
         other: Các phái đoàn quốc tế
       world_location:
-        one: "Địa điểm trên thế giới"
+        one: Địa điểm trên thế giới
         other: Các địa điểm trên thế giới
   worldwide_organisation:
     corporate_information:
@@ -436,16 +449,17 @@ vi:
         tôi xử lý thông tin cá nhân của bạn"
       publication_scheme_html: Xem các loại thông tin mà chúng tôi cập nhật thường
         xuyên tại %{link}
-      social_media_use_html: "Đọc chính sách của chúng tôi tại %{link}"
+      social_media_use_html: Đọc chính sách của chúng tôi tại %{link}
       welsh_language_scheme_html: Tìm hiểu các cam kết của chúng tôi trong việc công
         bố thông tin tại %{link}
     find_out_more: Xem hồ sơ đầy đủ và tất cả các chi tiết liên hệ
     headings:
       about_us: Về chúng tôi
       contact_us: Liên hệ với chúng tôi
+      contents:
       corporate_information: Thông tin tổng hợp
       follow_us: Kết nối với chúng tôi
       our_people: Nhân viên Bộ Ngoại giao Anh
       our_services: Dịch vụ của chúng tôi
-    location: "Địa điểm"
+    location: Địa điểm
     part_of: Phần của

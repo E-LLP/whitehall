@@ -19,15 +19,14 @@ module ControllerTestHelpers
         edition = create(edition_type)
         login_as :writer
         actions.each do |action|
-          get action, id: edition.id
+          get action, params: { id: edition.id }
           assert_response 403
         end
       end
     end
-
   end
 
-  def govspeak_transformation_fixture(transformation, &block)
+  def govspeak_transformation_fixture(transformation)
     methods_to_stub = {
       GovspeakHelper => "bare_govspeak_to_html",
       Admin::AdminGovspeakHelper => "bare_govspeak_to_admin_html"
@@ -47,5 +46,4 @@ module ControllerTestHelpers
       end
     end
   end
-
 end

@@ -1,7 +1,6 @@
 require 'test_helper'
 
 class Admin::ContactsControllerTest < ActionController::TestCase
-
   setup do
     login_as :departmental_editor
   end
@@ -11,11 +10,13 @@ class Admin::ContactsControllerTest < ActionController::TestCase
   test "POST on :create creates contact" do
     organisation = create(:organisation)
     post :create,
-      contact: {
-        title: "Main office",
-        contact_type_id: ContactType::General.id
-      },
-      organisation_id: organisation.id
+         params: {
+                   contact: {
+                 title: "Main office",
+                 contact_type_id: ContactType::General.id
+               },
+               organisation_id: organisation.id
+       }
 
     assert_redirected_to admin_organisation_contacts_url(organisation)
     assert contact = organisation.contacts.last
@@ -27,30 +28,38 @@ class Admin::ContactsControllerTest < ActionController::TestCase
     organisation = create(:organisation)
 
     post :create,
-      contact: {
-        title: "Head office",
-        contact_numbers_attributes: {
-          "0" => {label: "Main phone", number: "1234"}
-        },
-        contact_type_id: ContactType::General.id
-      },
-      organisation_id: organisation.id
+         params: {
+                   contact: {
+                 title: "Head office",
+                 contact_numbers_attributes: {
+                   "0" => { label: "Main phone", number: "1234" }
+                 },
+                 contact_type_id: ContactType::General.id
+               },
+               organisation_id: organisation.id
+       }
+
+    contact = organisation.contacts.last
+    actual_numbers = contact
+                       .contact_numbers
+                       .map { |cn| "#{cn.label}: #{cn.number}" }
 
     assert_redirected_to admin_organisation_contacts_url(organisation)
-    assert contact = organisation.contacts.last
     assert_equal %{"#{contact.title}" created successfully}, flash[:notice]
-    assert_equal ["Main phone: 1234"], contact.contact_numbers.map { |cn| "#{cn.label}: #{cn.number}" }
+    assert_equal ["Main phone: 1234"], actual_numbers
   end
 
   test "POST on :create creates contact on the home page of the organisation if told to" do
     organisation = create(:organisation)
     post :create,
-      contact: {
-        title: "Main office",
-        show_on_home_page: '1',
-        contact_type_id: ContactType::General.id
-      },
-      organisation_id: organisation.id
+         params: {
+                   contact: {
+                 title: "Main office",
+                 show_on_home_page: '1',
+                 contact_type_id: ContactType::General.id
+               },
+               organisation_id: organisation.id
+       }
 
     assert_redirected_to admin_organisation_contacts_url(organisation)
     assert contact = organisation.contacts.last
@@ -62,12 +71,14 @@ class Admin::ContactsControllerTest < ActionController::TestCase
   test "POST on :create creates contact without adding to the home page of the organisation if told not to" do
     organisation = create(:organisation)
     post :create,
-      contact: {
-        title: "Main office",
-        show_on_home_page: '0',
-        contact_type_id: ContactType::General.id
-      },
-      organisation_id: organisation.id
+         params: {
+                   contact: {
+                 title: "Main office",
+                 show_on_home_page: '0',
+                 contact_type_id: ContactType::General.id
+               },
+               organisation_id: organisation.id
+       }
 
     assert_redirected_to admin_organisation_contacts_url(organisation)
     assert contact = organisation.contacts.last
@@ -79,11 +90,13 @@ class Admin::ContactsControllerTest < ActionController::TestCase
   test "POST on :create creates contact without adding to the home page of the organisation if no suggestion made" do
     organisation = create(:organisation)
     post :create,
-      contact: {
-        title: "Main office",
-        contact_type_id: ContactType::General.id
-      },
-      organisation_id: organisation.id
+         params: {
+                   contact: {
+                 title: "Main office",
+                 contact_type_id: ContactType::General.id
+               },
+               organisation_id: organisation.id
+       }
 
     assert_redirected_to admin_organisation_contacts_url(organisation)
     assert contact = organisation.contacts.last
@@ -96,7 +109,7 @@ class Admin::ContactsControllerTest < ActionController::TestCase
     organisation = create(:organisation)
     contact = organisation.contacts.create(title: "Main office", contact_type: ContactType::General)
 
-    put :update, contact: {title: "Head office"}, organisation_id: organisation, id: contact
+    put :update, params: { contact: { title: "Head office" }, organisation_id: organisation, id: contact }
 
     assert_redirected_to admin_organisation_contacts_url(organisation)
     assert_equal %{"#{contact.reload.title}" updated successfully}, flash[:notice]
@@ -109,17 +122,25 @@ class Admin::ContactsControllerTest < ActionController::TestCase
     contact_number = contact.contact_numbers.create(label: "Main phone", number: "1234")
 
     put :update,
-      contact: {
-        title: "Head office",
-        contact_numbers_attributes: {
-          "0" => {id: contact_number.id, label: "Main phone", number: "5678"}
-        }
-      },
-      organisation_id: organisation, id: contact
+        params: {
+                  contact: {
+                title: "Head office",
+                contact_numbers_attributes: {
+                  "0" => { id: contact_number.id, label: "Main phone", number: "5678" }
+                }
+              },
+              organisation_id: organisation,
+              id: contact
+      }
+
+    actual_numbers = contact
+                       .reload
+                       .contact_numbers
+                       .map { |cn| "#{cn.label}: #{cn.number}" }
 
     assert_redirected_to admin_organisation_contacts_url(organisation)
     assert_equal %{"#{contact.reload.title}" updated successfully}, flash[:notice]
-    assert_equal ["Main phone: 5678"], contact.reload.contact_numbers.map { |cn| "#{cn.label}: #{cn.number}" }
+    assert_equal ["Main phone: 5678"], actual_numbers
   end
 
   test "PUT on :update adds contact to the home page of the organisation if told to" do
@@ -127,11 +148,14 @@ class Admin::ContactsControllerTest < ActionController::TestCase
     contact = organisation.contacts.create(title: "Main office", contact_type: ContactType::General)
 
     put :update,
-      contact: {
-        title: "Head office",
-        show_on_home_page: '1',
-      },
-      organisation_id: organisation, id: contact
+        params: {
+                  contact: {
+                title: "Head office",
+                show_on_home_page: '1',
+              },
+              organisation_id: organisation,
+              id: contact
+      }
 
     contact.reload
     assert_redirected_to admin_organisation_contacts_url(organisation)
@@ -146,11 +170,14 @@ class Admin::ContactsControllerTest < ActionController::TestCase
     organisation.add_contact_to_home_page!(contact)
 
     put :update,
-      contact: {
-        title: "Head office",
-        show_on_home_page: '0',
-      },
-      organisation_id: organisation, id: contact
+        params: {
+                  contact: {
+                title: "Head office",
+                show_on_home_page: '0',
+              },
+              organisation_id: organisation,
+              id: contact
+      }
 
     contact.reload
     assert_redirected_to admin_organisation_contacts_url(organisation)
@@ -165,10 +192,13 @@ class Admin::ContactsControllerTest < ActionController::TestCase
     organisation.add_contact_to_home_page!(contact)
 
     put :update,
-      contact: {
-        title: "Head office",
-      },
-      organisation_id: organisation, id: contact
+        params: {
+                  contact: {
+                title: "Head office",
+              },
+              organisation_id: organisation,
+              id: contact
+      }
 
     contact.reload
     assert_redirected_to admin_organisation_contacts_url(organisation)
@@ -181,7 +211,7 @@ class Admin::ContactsControllerTest < ActionController::TestCase
     organisation = create(:organisation)
     contact = organisation.contacts.create(title: "Main office", contact_type: ContactType::General)
 
-    delete :destroy, organisation_id: organisation, id: contact
+    delete :destroy, params: { organisation_id: organisation, id: contact }
 
     assert_redirected_to admin_organisation_contacts_url(organisation)
     assert_equal %{"#{contact.title}" deleted successfully}, flash[:notice]
@@ -193,7 +223,7 @@ class Admin::ContactsControllerTest < ActionController::TestCase
     contact = organisation.contacts.create(title: "Main office", contact_type: ContactType::General)
     organisation.add_contact_to_home_page!(contact)
 
-    post :remove_from_home_page, organisation_id: organisation, id: contact
+    post :remove_from_home_page, params: { organisation_id: organisation, id: contact }
 
     assert_redirected_to admin_organisation_contacts_url(organisation)
     assert_equal %{"#{contact.title}" removed from home page successfully}, flash[:notice]
@@ -204,7 +234,7 @@ class Admin::ContactsControllerTest < ActionController::TestCase
     organisation = create(:organisation)
     contact = organisation.contacts.create(title: "Main office", contact_type: ContactType::General)
 
-    post :add_to_home_page, organisation_id: organisation, id: contact
+    post :add_to_home_page, params: { organisation_id: organisation, id: contact }
 
     assert_redirected_to admin_organisation_contacts_url(organisation)
     assert_equal %{"#{contact.title}" added to home page successfully}, flash[:notice]
@@ -220,11 +250,13 @@ class Admin::ContactsControllerTest < ActionController::TestCase
     organisation.add_contact_to_home_page!(contact_2)
     organisation.add_contact_to_home_page!(contact_3)
 
-    post :reorder_for_home_page, organisation_id: organisation,
-      ordering: {
-        contact_1.id.to_s => '3',
-        contact_2.id.to_s => '1',
-        contact_3.id.to_s => '2'
+    post :reorder_for_home_page, params: {
+        organisation_id: organisation,
+        ordering: {
+          contact_1.id.to_s => '3',
+          contact_2.id.to_s => '1',
+          contact_3.id.to_s => '2'
+        }
       }
 
     assert_redirected_to admin_organisation_contacts_url(organisation)
@@ -237,10 +269,12 @@ class Admin::ContactsControllerTest < ActionController::TestCase
     contact = organisation.contacts.create(title: "Head office", contact_type: ContactType::General)
     organisation.add_contact_to_home_page!(contact)
 
-    post :reorder_for_home_page, organisation_id: organisation,
-      ordering: {
-        contact.id.to_s => '2',
-        '1000000' => '1'
+    post :reorder_for_home_page, params: {
+        organisation_id: organisation,
+        ordering: {
+          contact.id.to_s => '2',
+          '1000000' => '1'
+        }
       }
 
     assert_redirected_to admin_organisation_contacts_url(organisation)

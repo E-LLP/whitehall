@@ -5,7 +5,6 @@ so:
         one: Dokumenti
         other: Dokumentiyo
       applies_to_nations: Waxa lagu saleeyaa
-      field_of_operation: Nooca hawlgalka
       from:
       location:
       part_of:
@@ -16,6 +15,9 @@ so:
       authored_article:
         one: Maqaal la qorey
         other: Maqaallo la qorey
+      blog_post:
+        one:
+        other:
       case_study:
         one: Daraasad xaalad gaar ah
         other: Daraasado xaalado gaar ah
@@ -46,9 +48,6 @@ so:
       draft_text:
         one: Qoraal qabyo ah
         other: Qoraallo qabyo ah
-      fatality_notice:
-        one: Ogeysiis geeri
-        other: Ogeysiisyo geeri
       foi_release:
         one: Soo saarista FOI
         other: Soo saarista FOI-yo
@@ -73,6 +72,9 @@ so:
       international_treaty:
         one:
         other:
+      manual:
+        one:
+        other:
       map:
         one: Khariidad
         other: Khariidado
@@ -85,9 +87,15 @@ so:
       news_story:
         one: Sheeko wareed
         other: Sheekooyin wareed
+      nhs_content:
+        one:
+        other:
       notice:
         one:
         other:
+      official_statistics:
+        one: Istaatistik
+        other: Istaatistik
       open_consultation:
         one: Wada-tashi furan
         other: Wada-tashiyo furan
@@ -124,9 +132,6 @@ so:
       statistical_data_set:
         one: Xirmo xog istaatistik ah
         other: Xirmooyin xog istaatistik ah
-      official_statistics:
-        one: Istaatistik
-        other: Istaatistik
       statutory_guidance:
         one:
         other:
@@ -136,6 +141,9 @@ so:
       transparency:
         one: Xog daahfurnaan
         other: Xog daahfurnaan
+      world_news_story:
+        one:
+        other:
       written_statement:
         one: Hadal qoran oo loo gudbiyo baarlamaanka
         other: Hadallo qoran oo loo gudbiyo baarlamaanka
@@ -215,6 +223,8 @@ so:
         unnumbered_hoc_paper:
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         file:
+      edition:
+        nation_inapplicabilities:
       policy_group/policy_group_attachments/attachment/attachment_data:
         file:
       response/consultation_response_attachments/attachment:
@@ -261,6 +271,12 @@ so:
     opendocument:
       help_html:
     see_more:
+  broken_links:
+    broken:
+      subheading:
+    caution:
+      subheading:
+    title:
   change_notes:
     page_history:
     published_at:
@@ -271,38 +287,34 @@ so:
     email: E-mail
   corporate_information_page:
     type:
-      about:
-      about_our_services:
-      access_and_opening:
-      complaints_procedure:
-      equality_and_diversity:
-      media_enquiries:
-      membership:
-      our_energy_use:
-      our_governance:
-      personal_information_charter: Axdiga macluumaadka shakhsiga ah
-      petitions_and_campaigns:
-      procurement:
-      publication_scheme: Nidaam daabacaad
-      recruitment:
-      research:
-      social_media_use: Adeegsi war-baahinta bulshada
-      staff_update:
-      statistics:
-      terms_of_reference:
-      welsh_language_scheme: Nidaamka luqadda Welsh-ka
+      link_text:
+        welsh_language_scheme:
+      title:
+        about:
+        about_our_services:
+        access_and_opening:
+        accessible_documents_policy:
+        complaints_procedure:
+        equality_and_diversity:
+        media_enquiries:
+        membership:
+        our_energy_use:
+        our_governance:
+        personal_information_charter: Axdiga macluumaadka shakhsiga ah
+        petitions_and_campaigns:
+        procurement:
+        publication_scheme: Nidaam daabacaad
+        recruitment:
+        research:
+        social_media_use: Adeegsi war-baahinta bulshada
+        staff_update:
+        statistics:
+        terms_of_reference:
+        welsh_language_scheme: Nidaamka luqadda Welsh-ka
   date:
     formats:
       default: "%d %B %Y"
       long_ordinal: "%e %B %Y"
-  detailed_guidance:
-    back_to_contents:
-    contents:
-    more:
-    part_of_published_collection:
-    published_related_detailed_guides:
-    related_mainstream_content:
-    see_more_like_this:
   document_filters:
     description: Filtarradan shaandheynta ayaad adeegsan kartaa si aad u aragto keliya
       natiijooyinka waafaqsan waxa aad daneyneyso
@@ -320,7 +332,7 @@ so:
     get_updates_to_this_list:
     latest_activity: Waxqabadkii ugu dambeeyey
   i18n:
-    direction: litir
+    direction: ltr
   language_names:
     so: Soomaaliga
   latest_feed:
@@ -339,6 +351,7 @@ so:
       access_our_info: Halkaan ka gal macluumaadkeenna
       foi_how_to: Sida loo sameeyo codsiga FOI
       foi_releases: FOI la sii daayey
+      jobs:
       jobs_and_contacts: Shaqaayin iyo qandaraasyo
       organisation_chart:
       transparency: Xog daahfurnaan
@@ -445,6 +458,7 @@ so:
     headings:
       about_us: Nagu saabsan
       contact_us: Nala soo xiriir
+      contents:
       corporate_information: Macluumaad hay'adeed
       follow_us: Nala jaanqaad
       our_people: Dadkeenna

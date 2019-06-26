@@ -1,5 +1,4 @@
-class TakePartPage < ActiveRecord::Base
-
+class TakePartPage < ApplicationRecord
   validates_with SafeHtmlValidator
   validates :title, :summary, presence: true, length: { maximum: 255 }
   validates :body, presence: true, length: { maximum: (16.megabytes - 1) }
@@ -40,6 +39,7 @@ class TakePartPage < ActiveRecord::Base
 
   def self.reorder!(ids_in_new_ordering)
     return if ids_in_new_ordering.empty?
+
     ids_in_new_ordering = ids_in_new_ordering.map(&:to_s)
     TakePartPage.transaction do
       TakePartPage.where(id: ids_in_new_ordering).each do |page|
@@ -49,7 +49,7 @@ class TakePartPage < ActiveRecord::Base
     end
   end
 
-  protected
+protected
 
   def image_changed?
     changes["carrierwave_image"].present?

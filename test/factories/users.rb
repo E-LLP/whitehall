@@ -1,4 +1,4 @@
-FactoryGirl.define do
+FactoryBot.define do
   sequence :name do |n|
     "user-#{n}"
   end
@@ -19,10 +19,10 @@ FactoryGirl.define do
   end
 
   factory :disabled_user, parent: :user do
-    disabled true
+    disabled { true }
   end
 
-  factory :writer, parent: :user, aliases: [:author, :creator, :fact_check_requestor] do
+  factory :writer, parent: :user, aliases: %i[author creator fact_check_requestor] do
   end
 
   factory :departmental_editor, parent: :user do
@@ -34,14 +34,16 @@ FactoryGirl.define do
   end
 
   factory :scheduled_publishing_robot, parent: :user do
-    uid nil
-    name "Scheduled Publishing Robot"
+    uid { nil }
+    name { "Scheduled Publishing Robot" }
     permissions { [User::Permissions::SIGNIN, User::Permissions::PUBLISH_SCHEDULED_EDITIONS] }
   end
 
   factory :gds_admin, parent: :user do
-    permissions { [User::Permissions::SIGNIN, User::Permissions::GDS_EDITOR,
-                   User::Permissions::GDS_ADMIN] }
+    permissions {
+      [User::Permissions::SIGNIN, User::Permissions::GDS_EDITOR,
+       User::Permissions::GDS_ADMIN]
+    }
   end
 
   factory :gds_editor, parent: :user do
@@ -61,13 +63,15 @@ FactoryGirl.define do
   end
 
   factory :gds_team_user, parent: :user do
-    name "GDS Inside Government Team"
-    email 'govuk-whitehall@digital.cabinet-office.gov.uk'
-    permissions { [
-                    User::Permissions::SIGNIN,
-                    User::Permissions::DEPARTMENTAL_EDITOR,
-                    User::Permissions::GDS_EDITOR,
-                    User::Permissions::FORCE_PUBLISH_ANYTHING,
-                  ] }
+    name { "GDS Inside Government Team" }
+    email { 'govuk-whitehall@digital.cabinet-office.gov.uk' }
+    permissions {
+      [
+        User::Permissions::SIGNIN,
+        User::Permissions::DEPARTMENTAL_EDITOR,
+        User::Permissions::GDS_EDITOR,
+        User::Permissions::FORCE_PUBLISH_ANYTHING,
+      ]
+    }
   end
 end

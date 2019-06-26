@@ -1,5 +1,4 @@
 module ApplicationHelper
-
   def policies_path
     "/government/policies"
   end
@@ -10,9 +9,9 @@ module ApplicationHelper
 
   def page_title(*title_parts)
     if title_parts.any?
-      title_parts.push("Admin") if params[:controller] =~ /^admin\//
+      title_parts.push("Admin") if params[:controller].match?(/^admin\//)
       title_parts.push("GOV.UK")
-      @page_title = title_parts.reject { |p| p.blank? }.join(" - ")
+      @page_title = title_parts.reject(&:blank?).join(" - ")
     else
       @page_title
     end
@@ -33,11 +32,15 @@ module ApplicationHelper
   end
 
   def api_link_tag(path)
-    tag :link, href: path, rel: 'alternate', type: Mime::JSON
+    tag :link, href: path, rel: 'alternate', type: Mime[:json]
   end
 
   def format_in_paragraphs(string)
-    safe_join (string || "").split(/(?:\r?\n){2}/).map { |paragraph| content_tag(:p, paragraph) }
+    safe_join(
+      String(string)
+        .split(/(?:\r?\n){2}/)
+        .map { |paragraph| content_tag(:p, paragraph) }
+    )
   end
 
   def format_with_html_line_breaks(string)
@@ -46,6 +49,7 @@ module ApplicationHelper
 
   def link_to_attachment(attachment, options = {})
     return unless attachment
+
     name = attachment.name_for_link
     name = truncate(name) if options[:truncate]
     link_to name, attachment.url(options)
@@ -86,7 +90,7 @@ module ApplicationHelper
   def news_article_type_options
     [
       ["", [""]],
-      ["Common types", NewsArticleType.primary.map { |type|
+      ["Common types", NewsArticleType.all.map { |type|
         [type.singular_name, type.id]
       }]
     ]
@@ -113,13 +117,14 @@ module ApplicationHelper
     PersonPresenter.new(person, self).image
   end
 
-  def render_list_of_roles(roles, class_name = "ministerial_roles", &block)
+  def render_list_of_roles(roles, class_name = "ministerial_roles")
     raise ArgumentError, "please supply the content of the list item" unless block_given?
+
     content_tag(:ul, class: class_name) do
       roles.each do |role|
-        li = content_tag_for(:li, role) do
-          block.call(RolePresenter.new(role, self)).html_safe
-        end.html_safe
+        li = content_tag_for(:li, role) {
+          yield(RolePresenter.new(role, self)).html_safe
+        }.html_safe
         concat li
       end
     end
@@ -132,7 +137,7 @@ module ApplicationHelper
   def full_width_tabs(tab_data)
     content_tag(:nav, class: "activity-navigation") {
       content_tag(:ul) {
-        tab_data.map { | tab |
+        tab_data.map { |tab|
           content_tag :li do
             if tab[:current_when]
               link_to tab[:label], tab[:link_to], class: ('current' if tab[:current_when])
@@ -155,7 +160,7 @@ module ApplicationHelper
   end
 
   def current_link_class(path_matcher)
-    request.path =~ path_matcher ? 'current' : ''
+    request.path.match?(path_matcher) ? 'current' : ''
   end
 
   def render_datetime_microformat(object, method, &block)
@@ -163,15 +168,19 @@ module ApplicationHelper
   end
 
   def absolute_time(time, options = {})
+    return unless time
+
     content_tag(:time, l(time, format: :long_ordinal),
                 class: [options[:class], "datetime"].compact.join(" "),
-                datetime: time.iso8601) if time
+                datetime: time.iso8601)
   end
 
   def absolute_date(time, options = {})
+    return unless time
+
     content_tag(:time, l(time.to_date, format: :long_ordinal),
                 class: [options[:class], "date"].compact.join(" "),
-                datetime: time.iso8601) if time
+                datetime: time.iso8601)
   end
 
   def main_navigation_link_to(name, path, html_options = {}, &block)
@@ -197,7 +206,7 @@ module ApplicationHelper
       if parameters[:action] == 'home'
         root_path
       elsif parameters[:action] == 'get_involved'
-          get_involved_path
+        get_involved_path
       else
         how_government_works_path
       end
@@ -207,16 +216,14 @@ module ApplicationHelper
       root_path
     when "announcements", "news_articles", "speeches", "fatality_notices", "operational_fields"
       announcements_path
-    when "topics", "classifications", "topical_events", "about_pages"
-      topics_path
     when "statistics", "statistics_announcements"
       statistics_path
     when "publications", "statistical_data_sets"
       if parameters[:publication_filter_option] == 'consultations'
         publications_path(publication_filter_option: 'consultations')
       elsif parameters[:publication_filter_option] == 'statistics' ||
-            parameters[:controller] == 'statistical_data_sets' ||
-            @document && @document.try(:statistics?)
+          parameters[:controller] == 'statistical_data_sets' ||
+          @document && @document.try(:statistics?)
         publications_path(publication_filter_option: 'statistics')
       else
         publications_path
@@ -225,7 +232,7 @@ module ApplicationHelper
       publications_path(publication_filter_option: 'consultations')
     when "ministerial_roles"
       ministerial_roles_path
-    when "organisations", "groups", "services_and_information", "email_signup_information"
+    when "organisations", "groups", "email_signup_information"
       if parameters[:courts_only]
         courts_path
       else
@@ -248,8 +255,6 @@ module ApplicationHelper
         organisations_path
       elsif parameters[:world_locations]
         world_locations_path
-      elsif parameters[:topics]
-        topics_path
       else
         latest_path
       end
@@ -286,7 +291,7 @@ module ApplicationHelper
   end
 
   def is_external?(href)
-    if host = Addressable::URI.parse(href).host
+    if (host = Addressable::URI.parse(href).host)
       Whitehall.public_host != host
     end
   end
@@ -295,7 +300,7 @@ module ApplicationHelper
     Locale.new(I18n.locale).rtl?
   end
 
-  def content_tag_if_not_empty(name, options = nil, &block)
+  def content_tag_if_not_empty(name, options = nil)
     content = capture do
       yield
     end

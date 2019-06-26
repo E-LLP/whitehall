@@ -1,6 +1,5 @@
 <% page_title "Attachments for #{attachment.attachable_model_name}" %>
 <% page_class "attachments index" %>
-<% is_publication = attachment.attachable_model_name == 'publication' %>
 
 <div class="row">
   <section class="col-md-8">
@@ -9,12 +8,8 @@
     <%= attachable_editing_tabs(attachable) do %>
       <p class="qa-helper-copy">
         <strong>Note:</strong>
-        <% if is_publication %>
-          Attachments added to a publication will appear automatically.
-        <% else %>
-          Attachments need to be referenced in the body markdown to appear in your document.
-        <% end %>
-      <p>
+        <%= attachment_note(attachment.attachable_model_name) %>
+      </p>
       <ul class="actions list-unstyled">
         <li>
           <%= link_to 'Upload new file attachment', new_polymorphic_path([:admin, typecast_for_attachable_routing(attachable), Attachment]) %>
@@ -35,6 +30,15 @@
           </li>
         <% end %>
       </ul>
+
+      <div class="alert alert-warning">
+        <p>
+          You must upload attachments in an <a href="https://www.gov.uk/guidance/content-design/planning-content#open-formats">open standards format</a>.<br/>
+        </p>
+        <p>
+          For example, if an attachment is text-based and designed to be edited it should be uploaded to GOV.UK as an .odt (OpenDocument text) file instead of a closed format like .docx.
+        </p>
+      </div>
 
       <%= render('attachments', attachable: attachable) if attachable.attachments.any? %>
     <% end %>

@@ -4,6 +4,7 @@ development:
   database: whitehall_development
   username: whitehall
   password: whitehall
+  url: <%= ENV["DATABASE_URL"] %>
 
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
@@ -11,9 +12,10 @@ development:
 test: &test
   encoding: utf8
   adapter: mysql2
-  database: whitehall_test<%= ENV['TEST_ENV_NUMBER'] %>
+  database: whitehall_test<%= "_executor_#{ENV['EXECUTOR_NUMBER']}_" if ENV['EXECUTOR_NUMBER']%><%= ENV['TEST_ENV_NUMBER'] %>
   username: whitehall
   password: whitehall
+  url: <%= ENV["TEST_DATABASE_URL"] %>
 
 benchmark:
   encoding: utf8
@@ -26,6 +28,7 @@ production:
   encoding: utf8
   adapter: mysql2
   database: whitehall_production
+  pool: 10
 
 cucumber:
   <<: *test

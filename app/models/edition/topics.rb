@@ -1,19 +1,34 @@
-# NB: Topic is being renamed to "Policy Area" across GOV.UK.
+# DID YOU MEAN: Policy Area?
+# "Policy area" is the newer name for "topic"
+# (https://www.gov.uk/government/topics)
+# "Topic" is the newer name for "specialist sector"
+# (https://www.gov.uk/topic)
+# You can help improve this code by renaming all usages of this field to use
+# the new terminology.
 module Edition::Topics
   extend ActiveSupport::Concern
   include Edition::Classifications
 
   included do
     has_many :topics, through: :classification_memberships, source: :topic
-    validate :has_at_least_one_topic, unless: :imported?
   end
 
   def can_be_associated_with_topics?
     true
   end
 
+  def has_policy_areas?
+    topics.any?
+  end
+
   def search_index
-    super.merge("topics" => topics.map(&:slug)) { |_, ov, nv| ov + nv }
+    # "Policy area" is the newer name for "topic"
+    # (https://www.gov.uk/government/topics)
+    # Rummager's policy areas also include "topical events", which we model
+    # separately in whitehall.
+    new_slugs = topics.map(&:slug)
+    existing_slugs = super.fetch("policy_areas", [])
+    super.merge("policy_areas" => new_slugs + existing_slugs)
   end
 
   def title_with_topics

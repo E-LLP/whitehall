@@ -1,19 +1,13 @@
 require 'test_helper'
-require 'gds_api/test_helpers/rummager'
+require 'gds_api/test_helpers/search'
 
 class PersonSlugChangerTest < ActiveSupport::TestCase
-  include GdsApi::TestHelpers::Rummager
-  self.use_transactional_fixtures = false
+  include GdsApi::TestHelpers::Search
 
   setup do
     stub_any_publishing_api_call
-    DatabaseCleaner.clean_with :truncation
     @person = create(:person, forename: 'old', surname: 'slug', biography: 'Biog')
     @reslugger = DataHygiene::PersonReslugger.new(@person, 'updated-slug')
-  end
-
-  teardown do
-    DatabaseCleaner.clean_with :truncation
   end
 
   test "re-slugs the person" do
@@ -26,7 +20,6 @@ class PersonSlugChangerTest < ActiveSupport::TestCase
 
     redirect_uuid = SecureRandom.uuid
     SecureRandom.stubs(uuid: redirect_uuid)
-    old_base_path = @person.search_link
     new_base_path = "/government/people/updated-slug"
 
     content_item = PublishingApiPresenters.presenter_for(@person)
@@ -38,10 +31,12 @@ class PersonSlugChangerTest < ActiveSupport::TestCase
     expected_publish_requests = [
       stub_publishing_api_put_content(content_item.content_id, content_item.content),
       stub_publishing_api_patch_links(content_item.content_id, links: content_item.links),
-      stub_publishing_api_publish(content_item.content_id, locale: 'en', update_type: 'major')
+      stub_publishing_api_publish(content_item.content_id, locale: 'en', update_type: nil)
     ]
 
-    @reslugger.run!
+    Sidekiq::Testing.inline! do
+      @reslugger.run!
+    end
 
     assert_all_requested(expected_publish_requests)
   end
@@ -49,7 +44,6 @@ class PersonSlugChangerTest < ActiveSupport::TestCase
   test "deletes the old slug from the search index" do
     Whitehall::SearchIndex.expects(:delete).with { |person| person.slug == 'old-slug' }
     @reslugger.run!
-
   end
 
   test "adds the new slug from the search index" do
@@ -61,8 +55,8 @@ class PersonSlugChangerTest < ActiveSupport::TestCase
     published_news = create(:published_news_article)
     draft_news = create(:draft_news_article)
     role_appointment = create(:role_appointment,
-                        person: @person,
-                        editions: [published_news, draft_news])
+                              person: @person,
+                              editions: [published_news, draft_news])
 
     published_speech = create(:published_speech, role_appointment: role_appointment)
     draft_speech = create(:draft_speech, role_appointment: role_appointment)

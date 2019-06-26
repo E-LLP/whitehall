@@ -13,8 +13,8 @@ module Admin
       scope = unfiltered_scope
       scope = scope.with_title_containing(options[:title]) if options[:title].present?
       scope = scope.in_organisations([options[:organisation_id]]) if options[:organisation_id].present?
-      scope = scope.merge( unlinked_scope ) if unlinked_only?
-      scope = scope.merge( date_and_order_scope )
+      scope = scope.merge(unlinked_scope) if unlinked_only?
+      scope = scope.merge(date_and_order_scope)
       scope
     end
 
@@ -77,6 +77,13 @@ module Admin
       end
     end
 
+    # DID YOU MEAN: Policy Area?
+    # "Policy area" is the newer name for "topic"
+    # (https://www.gov.uk/government/topics)
+    # "Topic" is the newer name for "specialist sector"
+    # (https://www.gov.uk/topic)
+    # You can help improve this code by renaming all usages of this field to use
+    # the new terminology.
     def unfiltered_scope
       # We are doing a "greatest n by group" query here, but on a joined model,
       # i.e. the StatisticsAnnouncementDate, or in this case the

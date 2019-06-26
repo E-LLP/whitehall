@@ -1,10 +1,12 @@
 require "test_helper"
 
 class DocumentTest < ActiveSupport::TestCase
+  include GdsApi::TestHelpers::PublishingApiV2
+
   test "should return documents that have published editions" do
-    superseded_publication = create(:superseded_publication)
+    create(:superseded_publication)
+    create(:draft_publication)
     published_publication = create(:published_publication)
-    draft_publication = create(:draft_publication)
 
     assert_equal [published_publication.document], Document.published
   end
@@ -18,9 +20,9 @@ class DocumentTest < ActiveSupport::TestCase
     draft_publication.change_note = "change-note"
     force_publish(draft_publication)
 
-    superseded_publication = original_publication
+    _superseded_publication = original_publication
     published_publication = draft_publication
-    new_draft_publication = published_publication.create_draft(user)
+    _new_draft_publication = published_publication.create_draft(user)
 
     assert_equal published_publication, document.reload.published_edition
   end
@@ -49,7 +51,6 @@ class DocumentTest < ActiveSupport::TestCase
 
   test "should no longer be published when it's edition is unpublished" do
     published_publication = create(:published_publication)
-    document = published_publication.document
     assert published_publication.document.published?
 
     published_publication.unpublish!
@@ -60,7 +61,7 @@ class DocumentTest < ActiveSupport::TestCase
   test "should ignore deleted editions when finding latest edition" do
     document = create(:document)
     original_edition = create(:published_edition, document: document)
-    deleted_edition = create(:deleted_edition, document: document)
+    _deleted_edition = create(:deleted_edition, document: document)
 
     assert_equal original_edition, document.latest_edition
   end
@@ -88,23 +89,37 @@ class DocumentTest < ActiveSupport::TestCase
     document = create(:document)
     relationship = create(:edition_relation, document: document)
     document.destroy
-    assert_equal nil, EditionRelation.find_by(id: relationship.id)
+    assert_nil EditionRelation.find_by(id: relationship.id)
   end
 
   test "#destroy also destroys document sources" do
     document = create(:document)
     document_source = create(:document_source, document: document)
     document.destroy
-    assert_equal nil, DocumentSource.find_by(id: document_source.id)
+    assert_nil DocumentSource.find_by(id: document_source.id)
   end
 
   test "#destroy also destroys document collection group memberships" do
     published_edition = create(:published_edition)
-    document_collection = create(:published_document_collection,
-      groups: [ build(:document_collection_group, documents: [published_edition.document]) ])
+    create(:published_document_collection,
+           groups: [build(:document_collection_group, documents: [published_edition.document])])
 
     published_edition.document.destroy
     assert_empty DocumentCollectionGroupMembership.where(document_id: published_edition.document.id)
+  end
+
+  test "#destroy also destroys 'featured document' associations" do
+    document = create(:document)
+    feature = create(:feature, document: document)
+    feature_list = create(:feature_list, features: [feature])
+
+    feature_list.reload
+    assert_equal 1, feature_list.features.size
+
+    document.destroy
+
+    feature_list.reload
+    assert_equal 0, feature_list.features.size
   end
 
   test "should list a single change history when sole published edition is marked as a minor change" do
@@ -147,7 +162,7 @@ class DocumentTest < ActiveSupport::TestCase
   end
 
   test "#similar_slug_exists? returns true if a document with a similar slug exists" do
-    existing = create(:news_article, title: "Latest news")
+    _existing = create(:news_article, title: "Latest news")
     draft = create(:news_article, title: "Latest news")
 
     assert draft.document.similar_slug_exists?
@@ -157,10 +172,70 @@ class DocumentTest < ActiveSupport::TestCase
   end
 
   test "#similar_slug_exists? scopes to documents of the same type" do
-    existing = create(:news_article, title: "UK prospers")
+    _existing = create(:news_article, title: "UK prospers")
     draft = create(:speech, title: "UK prospers")
 
     refute draft.document.similar_slug_exists?
   end
 
+  test "should have no associated needs when there are no need ids" do
+    document = create(:document)
+    publishing_api_has_links(content_id: document.content_id, links: {})
+    assert_equal [], document.associated_needs
+  end
+
+  test "should have associated needs when need ids are present" do
+    document = create(:document)
+
+    needs = [
+        {
+            content_id: SecureRandom.uuid,
+            details: {
+                role: "a",
+                goal: "b",
+                benefit: "c",
+            }
+        },
+        {
+            content_id: SecureRandom.uuid,
+            details: {
+                role: "d",
+                goal: "e",
+                benefit: "f",
+            }
+        }
+    ]
+    publishing_api_has_links(
+      content_id: document.content_id,
+      links: {
+          meets_user_needs: needs.map { |need| need[:content_id] }
+      }
+    )
+    publishing_api_has_expanded_links(
+      content_id: document.content_id,
+      expanded_links: {
+          meets_user_needs: needs
+      }
+    )
+
+    assert_equal needs.first[:content_id], document.associated_needs.first["content_id"]
+    assert_equal needs.last[:content_id], document.associated_needs.last["content_id"]
+  end
+
+  test "#patch_meets_user_needs_links should send needs ids to Publishing API" do
+    document = create(:document)
+    need_content_ids = [SecureRandom.uuid, SecureRandom.uuid]
+    document.stubs(:need_ids).returns(need_content_ids)
+
+    need_content_ids = need_content_ids
+    Services.publishing_api.stubs(:patch_links)
+        .with(document.content_id, links: { meets_user_needs: need_content_ids })
+        .returns("Links updated")
+
+    Services.publishing_api.expects(:patch_links)
+        .with(document.content_id, links: { meets_user_needs: need_content_ids })
+        .returns("Links updated")
+
+    assert_equal document.patch_meets_user_needs_links, "Links updated"
+  end
 end

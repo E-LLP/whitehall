@@ -1,19 +1,16 @@
-class Person < ActiveRecord::Base
+class Person < ApplicationRecord
   include PublishesToPublishingApi
-
-  def self.columns
-    # This is here to enable us to gracefully remove the biography column
-    # in a future commit, *after* this change has been deployed
-    super.reject { |column| ['biography'].include?(column.name) }
-  end
-
   include Searchable
+  include MinisterialRole::MinisterialRoleReindexingConcern
 
   mount_uploader :image, ImageUploader, mount_on: :carrierwave_image
 
   has_many :role_appointments
   has_many :current_role_appointments,
            -> { where(RoleAppointment::CURRENT_CONDITION) },
+           class_name: 'RoleAppointment'
+  has_many :previous_role_appointments,
+           -> { where.not(RoleAppointment::CURRENT_CONDITION) },
            class_name: 'RoleAppointment'
   has_many :speeches, through: :role_appointments
   has_many :news_articles, through: :role_appointments
@@ -39,8 +36,8 @@ class Person < ActiveRecord::Base
 
   searchable title: :name,
              link: :search_link,
-             content: :biography_without_markup,
-             description: :biography_without_markup,
+             content: :biography_appropriate_for_role_without_markup,
+             description: :biography_appropriate_for_role_without_markup,
              slug: :slug
 
   extend FriendlyId
@@ -51,23 +48,42 @@ class Person < ActiveRecord::Base
 
   delegate :url, to: :image, prefix: :image
 
+  after_save :republish_organisation_to_publishing_api
   before_destroy :prevent_destruction_if_appointed
   after_update :touch_role_appointments
 
+  def republish_organisation_to_publishing_api
+    organisations.each do |organisation|
+      Whitehall::PublishingApi.republish_async(organisation)
+    end
+  end
+
   def published_policies
-    Whitehall.unified_search_client.unified_search(
+    Whitehall.search_client.search(
       filter_people: [slug],
       filter_format: "policy",
       order: "-public_timestamp"
-    ).results
+    )["results"]
   end
 
   def search_link
     Whitehall.url_maker.person_path(slug)
   end
 
-  def biography_without_markup
-    Govspeak::Document.new(biography).to_text
+  def biography_appropriate_for_role_without_markup
+    Govspeak::Document.new(biography_appropriate_for_role).to_text
+  end
+
+  def biography_appropriate_for_role
+    if currently_in_a_role?
+      biography
+    else
+      truncated_biography
+    end
+  end
+
+  def currently_in_a_role?
+    current_role_appointments.any?
   end
 
   def ministerial_roles_at(date)
@@ -77,7 +93,7 @@ class Person < ActiveRecord::Base
   def role_appointments_at(date)
     role_appointments.where([
       ":date >= started_at AND (:date <= ended_at OR ended_at IS NULL)",
-      {date: date}
+      { date: date }
     ])
   end
 
@@ -95,6 +111,10 @@ class Person < ActiveRecord::Base
 
   def name
     name_as_words(("The Rt Hon" if privy_counsellor?), title, forename, surname, letters)
+  end
+
+  def full_name
+    name_as_words(title, forename, surname, letters)
   end
 
   def name_without_privy_counsellor_prefix
@@ -121,12 +141,10 @@ class Person < ActiveRecord::Base
     [name, role_name, organisation].compact.join(' – ')
   end
 
-  private
+private
 
   def name_as_words(*elements)
-    elements.select { |word|
-      word.present?
-    }.join(' ')
+    elements.select(&:present?).join(' ')
   end
 
   def image_changed?
@@ -139,7 +157,7 @@ class Person < ActiveRecord::Base
   end
 
   def prevent_destruction_if_appointed
-    return false unless destroyable?
+    throw :abort unless destroyable?
   end
 
   # Whenever a person is updated, we want touch the updated_at timestamps of
@@ -147,5 +165,9 @@ class Person < ActiveRecord::Base
   # taggable_ministerial_role_appointments_container gets invalidated.
   def touch_role_appointments
     role_appointments.update_all updated_at: Time.zone.now
+  end
+
+  def truncated_biography
+    biography&.split(/\n/)&.first
   end
 end

@@ -1,6 +1,6 @@
 require "securerandom"
 
-class Unpublishing < ActiveRecord::Base
+class Unpublishing < ApplicationRecord
   belongs_to :edition
 
   validates :edition, :unpublishing_reason, :document_type, :slug, presence: true
@@ -10,8 +10,13 @@ class Unpublishing < ActiveRecord::Base
   validates :alternative_url, gov_uk_url: true, allow_blank: true
   validate :redirect_not_circular
 
-  after_update :publish_to_publishing_api
   after_initialize :ensure_presence_of_content_id
+
+  before_validation :strip_alternative_url
+
+  def strip_alternative_url
+    alternative_url.strip! if alternative_url.present?
+  end
 
   def self.from_slug(slug, type)
     where(slug: slug, document_type: type.to_s).last
@@ -29,14 +34,20 @@ class Unpublishing < ActiveRecord::Base
     UnpublishingReason.find_by_id unpublishing_reason_id
   end
 
+  def unpublishing_reason=(new_unpublishing_reason)
+    self.unpublishing_reason_id = new_unpublishing_reason.try(:id)
+  end
+
   def reason_as_sentence
     unpublishing_reason.as_sentence
   end
 
-  # Because the edition may have been deleted, we override the slug in case it
-  # has bee pre-fixed with 'deleted-'
   def document_path
     Whitehall.url_maker.public_document_path(edition, id: slug)
+  end
+
+  def document_url
+    Whitehall.url_maker.public_document_url(edition, id: slug)
   end
 
   # Because the edition may have been deleted, we need to find it unscoped to
@@ -49,23 +60,32 @@ class Unpublishing < ActiveRecord::Base
     edition.translated_locales
   end
 
+  def alternative_path
+    return if alternative_uri.nil?
+
+    path = alternative_uri.path
+    path << "##{alternative_uri.fragment}" if alternative_uri.fragment.present?
+    path
+  end
+
 private
-  def redirect_not_circular
-    if alternative_url.present?
-      if document_path == alternative_path
-        errors.add(:alternative_url, "cannot redirect to itself")
-      end
+
+  def alternative_uri
+    @alternative_uri ||= begin
+      return if alternative_url.nil?
+
+      Addressable::URI.parse(alternative_url)
+    rescue URI::InvalidURIError
+      nil
     end
   end
 
-  def alternative_path
-    Addressable::URI.parse(alternative_url).path
-  rescue URI::InvalidURIError
-    nil
-  end
-
-  def publish_to_publishing_api
-    Whitehall::PublishingApi.publish_async(self, 'minor')
+  def redirect_not_circular
+    if alternative_uri.present?
+      if document_path == alternative_uri.path
+        errors.add(:alternative_url, "cannot redirect to itself")
+      end
+    end
   end
 
   def ensure_presence_of_content_id

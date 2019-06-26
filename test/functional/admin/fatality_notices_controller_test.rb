@@ -1,6 +1,8 @@
 require 'test_helper'
 
 class Admin::FatalityNoticesControllerTest < ActionController::TestCase
+  include TaxonomyHelper
+
   setup do
     login_as :gds_editor
   end
@@ -22,8 +24,9 @@ class Admin::FatalityNoticesControllerTest < ActionController::TestCase
 
   view_test "show renders the summary" do
     draft_fatality_notice = create(:draft_fatality_notice, summary: "a-simple-summary")
+    stub_publishing_api_expanded_links_with_taxons(draft_fatality_notice.content_id, [])
 
-    get :show, id: draft_fatality_notice
+    get :show, params: { id: draft_fatality_notice }
 
     assert_select ".page-header .lead", text: "a-simple-summary"
   end
@@ -40,7 +43,7 @@ class Admin::FatalityNoticesControllerTest < ActionController::TestCase
     field = create(:operational_field)
     edition = create(:fatality_notice, operational_field: field)
 
-    get :edit, id: edition
+    get :edit, params: { id: edition }
 
     assert_select "form#edit_edition" do
       assert_select "select[name='edition[operational_field_id]']"
@@ -55,20 +58,23 @@ class Admin::FatalityNoticesControllerTest < ActionController::TestCase
 
   test "creating should be able to create a new casualty for the fatality notice" do
     field = create(:operational_field)
-    attributes = controller_attributes_for(:fatality_notice,
+    attributes = controller_attributes_for(
+      :fatality_notice,
       operational_field_id: field.id,
-      fatality_notice_casualties_attributes: {"0" => {
-        personal_details: "Personal details"
-      }}
+      fatality_notice_casualties_attributes: {
+        "0" => {
+          personal_details: "Personal details",
+        },
+      }
     )
 
-    post :create, edition: attributes
+    post :create, params: { edition: attributes }
     assert fatality_notice = FatalityNotice.last
     assert fatality_notice_casuality = fatality_notice.fatality_notice_casualties.last
     assert_equal "Personal details", fatality_notice_casuality.personal_details
   end
 
-  private
+private
 
   def controller_attributes_for(edition_type, attributes = {})
     super.merge(operational_field_id: create(:operational_field).id)

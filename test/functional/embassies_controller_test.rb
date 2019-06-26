@@ -23,7 +23,7 @@ class EmbassiesControllerTest < ActionController::TestCase
                                     worldwide_organisation: aruban_org,
                                     worldwide_office_type: WorldwideOfficeType::Embassy)
 
-    sealand = create(:world_location, name: "Sealand")
+    create(:world_location, name: "Sealand")
 
     get :index
 
@@ -31,9 +31,31 @@ class EmbassiesControllerTest < ActionController::TestCase
     assert_select "ol[class='locations'] h2", "Aruba"
     assert_select "ol[class='locations'] h2", "Sealand"
     assert_select "ol[class='locations'] ul a", /The British Embassy Kabul/
-    assert_select "ol[class='locations'] li p", /Aruba doesn't have consular services, you need to go to the British Consulate General Amsterdam/
-    assert_select "ol[class='locations'] li p", /Sealand doesn't have consular services, you can get consular assistance from/
+    assert_select "ol[class='locations'] li p", /British nationals should contact the British Consulate General Amsterdam in Netherlands/
+    assert_select "ol[class='locations'] li p", /British nationals should contact the local authorities/
   end
 
+  view_test "UK doesn't appear in the page" do
+    create(:world_location, name: "United Kingdom")
 
+    get :index
+
+    assert_select "ol[class='locations'] h2", false, "This page shouldn't contain any embassies."
+  end
+
+  view_test "some countries have different remote consular services" do
+    EmbassyPresenter::SPECIAL_CASES.each do |special_case|
+      name = special_case.first
+      building = special_case.last.fetch(:building)
+      building_location = special_case.last.fetch(:location)
+
+      create(:world_location, :with_worldwide_organisations, name: name)
+
+      get :index
+
+      assert_select "ol[class='locations'] h2", name
+      assert_select "ol[class='locations'] li p", /British nationals should contact the #{building} in #{building_location}/
+      assert_select "ol[class='locations'] li a", building
+    end
+  end
 end

@@ -6,7 +6,6 @@ cs:
         few:
         other: Dokumenty
       applies_to_nations: Týká se
-      field_of_operation: Oblast působnosti
       from:
       location:
       part_of:
@@ -19,6 +18,10 @@ cs:
         one: Autorský článek
         few:
         other: Autorské články
+      blog_post:
+        one:
+        few:
+        other:
       case_study:
         one: Případová studie
         few:
@@ -59,10 +62,6 @@ cs:
         one: Koncept
         few:
         other: Koncepty
-      fatality_notice:
-        one: Hlášení závad
-        few:
-        other: Hlášení závad
       foi_release:
         one: Zpráva vydaná na základě Zákona o svobodném přístupu k informacím
         few:
@@ -95,6 +94,10 @@ cs:
         one:
         few:
         other:
+      manual:
+        one:
+        few:
+        other:
       map:
         one: Mapa
         few:
@@ -111,10 +114,18 @@ cs:
         one: Zpráva
         few:
         other: Zprávy
+      nhs_content:
+        one:
+        few:
+        other:
       notice:
         one:
         few:
         other:
+      official_statistics:
+        one: Statistika
+        few:
+        other: Statistiky
       open_consultation:
         one: Otevřená konzultace
         few:
@@ -163,10 +174,6 @@ cs:
         one: Statistická data
         few:
         other: Statistická data
-      official_statistics:
-        one: Statistika
-        few:
-        other: Statistiky
       statutory_guidance:
         one:
         few:
@@ -179,6 +186,10 @@ cs:
         one: Transparenost
         few:
         other: Transparentnost
+      world_news_story:
+        one:
+        few:
+        other:
       written_statement:
         one: Písemná prohlášení do parlamentu
         few:
@@ -190,7 +201,7 @@ cs:
       published:
       updated:
     published: Publikováno
-    read: "Čtěte %{title}"
+    read: Čtěte %{title}
     speech:
       author_title:
         minister: Minister
@@ -198,7 +209,7 @@ cs:
       delivered_on: Doručeno
       delivery_title:
         minister: Ministr
-        speaker: "Řečník"
+        speaker: Řečník
       written_on: Napsáno
     updated: Aktualizováno
     view: Náhled '%{title}'
@@ -263,6 +274,8 @@ cs:
         unnumbered_hoc_paper:
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         file:
+      edition:
+        nation_inapplicabilities:
       policy_group/policy_group_attachments/attachment/attachment_data:
         file:
       response/consultation_response_attachments/attachment:
@@ -298,7 +311,7 @@ cs:
         ("%{title}")%{references}.
       heading: Tento dokument nemusí být přístupný pro občany používající asistenční
         technologie
-      request_a_different_format: "Žádat o jiný formát dokumentu"
+      request_a_different_format: Žádat o jiný formát dokumentu
     headings:
       order_a_copy: Objednat kopii
       order_a_copy_full: Objednat kopii této publikace
@@ -309,6 +322,12 @@ cs:
     opendocument:
       help_html:
     see_more:
+  broken_links:
+    broken:
+      subheading:
+    caution:
+      subheading:
+    title:
   change_notes:
     page_history:
     published_at:
@@ -319,38 +338,34 @@ cs:
     email: Email
   corporate_information_page:
     type:
-      about:
-      about_our_services:
-      access_and_opening:
-      complaints_procedure:
-      equality_and_diversity:
-      media_enquiries:
-      membership:
-      our_energy_use:
-      our_governance:
-      personal_information_charter: Registr osobních informací
-      petitions_and_campaigns:
-      procurement:
-      publication_scheme: Publikační plán
-      recruitment:
-      research:
-      social_media_use: Použití sociálních sítí
-      staff_update:
-      statistics:
-      terms_of_reference:
-      welsh_language_scheme: Welština
+      link_text:
+        welsh_language_scheme:
+      title:
+        about:
+        about_our_services:
+        access_and_opening:
+        accessible_documents_policy:
+        complaints_procedure:
+        equality_and_diversity:
+        media_enquiries:
+        membership:
+        our_energy_use:
+        our_governance:
+        personal_information_charter: Registr osobních informací
+        petitions_and_campaigns:
+        procurement:
+        publication_scheme: Publikační plán
+        recruitment:
+        research:
+        social_media_use: Použití sociálních sítí
+        staff_update:
+        statistics:
+        terms_of_reference:
+        welsh_language_scheme: Welština
   date:
     formats:
       default: "%d %B %Y"
       long_ordinal: "%e %B %Y"
-  detailed_guidance:
-    back_to_contents:
-    contents:
-    more:
-    part_of_published_collection:
-    published_related_detailed_guides:
-    related_mainstream_content:
-    see_more_like_this:
   document_filters:
     description: Tyto filtry Vám ukáží pouze výstupy, které se shodují s vaším zadáním.
     no_results:
@@ -369,7 +384,7 @@ cs:
   i18n:
     direction: ltr
   language_names:
-    cs: "Česky"
+    cs: Česky
   latest_feed:
     no_updates: Aktualizace nejsou k dispozici
     title: Nejnovější
@@ -386,6 +401,7 @@ cs:
       access_our_info: Přístup k našim informacím
       foi_how_to: Jak zažádat o informace
       foi_releases: Svoboda přístupu k informacím
+      jobs:
       jobs_and_contacts: Pracovní příležitosti
       organisation_chart:
       transparency: 'Data '
@@ -490,6 +506,7 @@ cs:
     headings:
       about_us: O nás
       contact_us: Kontaktujte nás
+      contents:
       corporate_information: Korporátní informace
       follow_us: Buďte s námi
       our_people: Naši lidé

@@ -2,6 +2,10 @@ require 'test_helper'
 
 # NB: Topic is being renamed to "Policy Area" across GOV.UK.
 class TopicTest < ActiveSupport::TestCase
+  setup do
+    Topic.delete_all
+  end
+
   test "should set a slug from the topic name" do
     topic = create(:topic, name: 'Love all the people')
     assert_equal 'love-all-the-people', topic.slug
@@ -16,17 +20,6 @@ class TopicTest < ActiveSupport::TestCase
   test "should not include apostrophes in slug" do
     topic = create(:topic, name: "Bob's bike")
     assert_equal 'bobs-bike', topic.slug
-  end
-
-  test "should not be deletable if there are associated policies" do
-    topic = create(:topic, policy_content_ids: [])
-    assert topic.destroyable?
-
-    topic.update(policy_content_ids: [policy_1["content_id"]])
-
-    refute topic.destroyable?
-    topic.delete!
-    refute topic.deleted?
   end
 
   test 'includes linked policies with multiple parents' do
@@ -87,7 +80,7 @@ class TopicTest < ActiveSupport::TestCase
                   'description' => 'topic description',
                   'slug' => 'topic-name'
                   },
-                topic.search_index)
+                 topic.search_index)
   end
 
   test 'should add topic to search index on creating' do
@@ -138,10 +131,10 @@ class TopicTest < ActiveSupport::TestCase
   test 'should be creatable with featured link data' do
     params = {
       featured_links_attributes: [
-        {url: "https://www.gov.uk/blah/blah",
-         title: "Blah blah"},
-        {url: "https://www.gov.uk/wah/wah",
-         title: "Wah wah"},
+        { url: "https://www.gov.uk/blah/blah",
+         title: "Blah blah" },
+        { url: "https://www.gov.uk/wah/wah",
+         title: "Wah wah" },
       ]
     }
     topic = create(:topic, params)
@@ -169,8 +162,8 @@ class TopicTest < ActiveSupport::TestCase
   test 'should ignore blank featured link attributes' do
     params = {
       featured_links_attributes: [
-        {url: "",
-         title: ""}
+        { url: "",
+         title: "" }
       ]
     }
     topic = build(:topic, params)
@@ -180,7 +173,7 @@ class TopicTest < ActiveSupport::TestCase
   test "with_statistics_announcements scopes to organisations with associated statistics_announcements" do
     topic_with_announcement = create(:topic)
     create(:statistics_announcement, topics: [topic_with_announcement])
-    topic_without_announcement = create(:topic)
+    _topic_without_announcement = create(:topic)
     assert_equal [topic_with_announcement], Topic.with_statistics_announcements
   end
 end

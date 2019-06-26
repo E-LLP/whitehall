@@ -1,7 +1,9 @@
 # All {Edition}s have one document, this model contains the slug and
 # handles the logic for slug regeneration.
-class Document < ActiveRecord::Base
+class Document < ApplicationRecord
   extend FriendlyId
+
+  include Document::Needs
 
   friendly_id :sluggable_string, use: :scoped, scope: :document_type
 
@@ -35,10 +37,17 @@ class Document < ActiveRecord::Base
   has_many :document_collection_group_memberships, inverse_of: :document, dependent: :delete_all
   has_many :document_collection_groups, through: :document_collection_group_memberships
   has_many :document_collections, through: :document_collection_groups
-  has_many :features, inverse_of: :document
+  has_many :features, inverse_of: :document, dependent: :destroy
 
   validates_presence_of :content_id
 
+  # DID YOU MEAN: Policy Area?
+  # "Policy area" is the newer name for "topic"
+  # (https://www.gov.uk/government/topics)
+  # "Topic" is the newer name for "specialist sector"
+  # (https://www.gov.uk/topic)
+  # You can help improve this code by renaming all usages of this field to use
+  # the new terminology.
   delegate :topics, to: :latest_edition
 
   after_create :ensure_document_has_a_slug
@@ -50,16 +59,22 @@ class Document < ActiveRecord::Base
   end
 
   def self.at_slug(document_types, slug)
+    document_types = Array(document_types).map(&:to_s)
     where(document_type: document_types, slug: slug).first
   end
 
   def similar_slug_exists?
     scope = Document.where(document_type: document_type)
     sequence_separator = friendly_id_config.sequence_separator
+
+    # slug is a nullable column, so we can't assume that it exists
+    return false if slug.nil?
+
     slug_without_sequence = slug.split(sequence_separator).first
 
-    scope.where("slug IN (?) OR slug LIKE ?", [slug, slug_without_sequence].uniq,
-      slug_without_sequence + sequence_separator + '%').count > 1
+    scope.where("slug IN (?) OR slug LIKE ?",
+                [slug, slug_without_sequence].uniq,
+                slug_without_sequence + sequence_separator + '%').count > 1
   end
 
   def should_generate_new_friendly_id?
@@ -76,7 +91,10 @@ class Document < ActiveRecord::Base
   end
 
   def published?
-    published_edition(true).present?
+    Edition.exists?(
+      state: Edition::PUBLICLY_VISIBLE_STATES,
+      document_id: id,
+    )
   end
 
   def first_published_date
@@ -100,13 +118,13 @@ class Document < ActiveRecord::Base
   end
 
   def humanized_document_type
-    document_type.underscore.gsub('_', ' ')
+    document_type.underscore.tr('_', ' ')
   end
 
-  private
+private
 
   def destroy_all_editions
-    Edition.unscoped.destroy_all(document_id: self.id)
+    Edition.unscoped.where(document_id: self.id).destroy_all
   end
 
   def ensure_document_has_a_slug

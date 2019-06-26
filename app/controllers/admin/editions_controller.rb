@@ -1,26 +1,24 @@
 class Admin::EditionsController < Admin::BaseController
-  before_filter :remove_blank_parameters
-  before_filter :clean_edition_parameters, only: [:create, :update]
-  before_filter :build_array_out_of_need_ids_string, only: [:create, :update]
-  before_filter :clear_scheduled_publication_if_not_activated, only: [:create, :update]
-  before_filter :find_edition, only: [:show, :edit, :update, :submit, :revise, :diff, :reject, :destroy]
-  before_filter :prevent_modification_of_unmodifiable_edition, only: [:edit, :update]
-  before_filter :delete_absent_edition_organisations, only: [:create, :update]
-  before_filter :build_edition, only: [:new, :create]
-  before_filter :detect_other_active_editors, only: [:edit]
-  before_filter :set_edition_defaults, only: :new
-  before_filter :build_blank_image, only: [:new, :edit]
-  before_filter :enforce_permissions!
-  before_filter :limit_edition_access!, only: [:show, :edit, :update, :submit, :revise, :diff, :reject, :destroy]
-  before_filter :redirect_to_controller_for_type, only: [:show]
-  before_filter :deduplicate_specialist_sectors, only: [:create, :update]
-  before_filter :trigger_previously_published_validations, only: [:create], if: :document_can_be_previously_published
-  before_filter :forbid_editing_of_historic_content!, only: [:create, :edit, :update, :submit, :destory, :revise]
+  before_action :remove_blank_parameters
+  before_action :clean_edition_parameters, only: %i[create update]
+  before_action :clear_scheduled_publication_if_not_activated, only: %i[create update]
+  before_action :find_edition, only: %i[show edit update submit revise diff reject destroy]
+  before_action :prevent_modification_of_unmodifiable_edition, only: %i[edit update]
+  before_action :delete_absent_edition_organisations, only: %i[create update]
+  before_action :build_edition, only: %i[new create]
+  before_action :detect_other_active_editors, only: [:edit]
+  before_action :set_edition_defaults, only: :new
+  before_action :build_blank_image, only: %i[new edit]
+  before_action :enforce_permissions!
+  before_action :limit_edition_access!, only: %i[show edit update submit revise diff reject destroy]
+  before_action :redirect_to_controller_for_type, only: [:show]
+  before_action :deduplicate_specialist_sectors, only: %i[create update]
+  before_action :forbid_editing_of_historic_content!, only: %i[create edit update submit destory revise]
 
   def forbid_editing_of_historic_content!
     unless can?(:modify, @edition)
       redirect_to [:admin, @edition],
-        alert: %{This document is in <a href="https://www.gov.uk/guidance/how-to-publish-on-gov-uk/creating-and-updating-pages#history-mode">history mode</a>. Please <a href="https://support.publishing.service.gov.uk/content_change_request/new">contact GDS</a> if you need to change it.}
+                  alert: %{This document is in <a href="https://www.gov.uk/guidance/how-to-publish-on-gov-uk/creating-and-updating-pages#history-mode">history mode</a>. Please <a href="https://support.publishing.service.gov.uk/content_change_request/new">contact GDS</a> if you need to change it.}
     end
   end
 
@@ -61,8 +59,12 @@ class Admin::EditionsController < Admin::BaseController
   end
 
   def export
-    DocumentListExportWorker.perform_async(params_filters_with_default_state, current_user.id)
-    flash[:notice] = "The document list is being exported"
+    if filter && filter.exportable?
+      DocumentListExportWorker.perform_async(params_filters_with_default_state, current_user.id)
+      flash[:notice] = "The document list is being exported"
+    else
+      flash[:alert] = "The document list is too large for export"
+    end
     redirect_to params_filters.merge(action: :index)
   end
 
@@ -72,10 +74,15 @@ class Admin::EditionsController < Admin::BaseController
 
   def show
     fetch_version_and_remark_trails
+
+    @edition_taxons = EditionTaxonsFetcher.new(@edition.content_id).fetch
+
+    if @edition.can_be_tagged_to_worldwide_taxonomy?
+      @edition_world_taxons = EditionTaxonsFetcher.new(@edition.content_id).fetch_world_taxons
+    end
   end
 
-  def new
-  end
+  def new; end
 
   def create
     if updater.can_perform? && @edition.save
@@ -100,8 +107,8 @@ class Admin::EditionsController < Admin::BaseController
     if updater.can_perform? && @edition.save_as(current_user)
       updater.perform!
 
-      if @edition.links_reports.last
-        LinksReport.queue_for!(@edition)
+      if @edition.link_check_reports.last
+        LinkCheckerApiService.check_links(@edition, admin_link_checker_api_callback_url)
       end
 
       @edition.convert_to_draft! if params[:speed_save_convert]
@@ -131,7 +138,7 @@ class Admin::EditionsController < Admin::BaseController
       redirect_to edit_admin_edition_path(new_draft)
     else
       redirect_to edit_admin_edition_path(@edition.document.latest_edition),
-        alert: new_draft.errors.full_messages.to_sentence
+                  alert: new_draft.errors.full_messages.to_sentence
     end
   end
 
@@ -149,7 +156,7 @@ class Admin::EditionsController < Admin::BaseController
     end
   end
 
-  private
+private
 
   def speed_tagging?
     params[:speed_save_convert] || params[:speed_save]
@@ -165,7 +172,7 @@ class Admin::EditionsController < Admin::BaseController
   end
 
   def edition_params
-    params.fetch(:edition, {}).permit(*permitted_edition_attributes)
+    @edition_params ||= params.fetch(:edition, {}).permit(*permitted_edition_attributes)
   end
 
   def permitted_edition_attributes
@@ -178,12 +185,11 @@ class Admin::EditionsController < Admin::BaseController
       :relevant_to_local_government, :role_appointment_id, :speech_type_id,
       :delivered_on, :location, :person_override, :primary_locale,
       :related_mainstream_content_url,
-      :related_mainstream_content_title,
       :additional_related_mainstream_content_url,
-      :additional_related_mainstream_content_title,
       :primary_specialist_sector_tag,
       :corporate_information_page_type_id,
       :political,
+      :read_consultation_principles,
       secondary_specialist_sector_tags: [],
       lead_organisation_ids: [],
       supporting_organisation_ids: [],
@@ -201,20 +207,17 @@ class Admin::EditionsController < Admin::BaseController
       document_collection_group_ids: [],
       images_attributes: [
         :id, :alt_text, :caption, :_destroy,
-        image_data_attributes: [:file, :file_cache]
+        image_data_attributes: %i[file file_cache]
       ],
       consultation_participation_attributes: [
         :id, :link_url, :email, :postal_address,
         consultation_response_form_attributes: [
-          :id, :title, :_destroy,
-          consultation_response_form_data_attributes: [:id, :file, :file_cache]
+          :id, :title, :_destroy, :attachment_action,
+          consultation_response_form_data_attributes: %i[id file file_cache]
         ]
       ],
-      nation_inapplicabilities_attributes: [
-        :id, :nation_id, :alternative_url, :excluded
-      ],
-      fatality_notice_casualties_attributes: [:id, :personal_details, :_destroy],
-      need_ids: []
+      nation_inapplicabilities_attributes: %i[id nation_id alternative_url excluded],
+      fatality_notice_casualties_attributes: %i[id personal_details _destroy]
     ]
   end
 
@@ -223,10 +226,10 @@ class Admin::EditionsController < Admin::BaseController
   end
 
   def show_or_edit_path
-    if params[:save_and_continue].present?
+    if params[:save].present?
       [:edit, :admin, @edition]
     else
-      admin_edition_path(@edition)
+      edit_admin_edition_tags_path(@edition.id)
     end
   end
 
@@ -266,18 +269,19 @@ class Admin::EditionsController < Admin::BaseController
   end
 
   def set_default_edition_locations
-    if current_user.world_locations.any? && !@edition.world_locations.any?
+    if current_user.world_locations.any? && @edition.world_locations.none?
       @edition.world_locations = current_user.world_locations
     end
   end
 
   def delete_absent_edition_organisations
-    return unless params[:edition]
-    if params[:edition][:lead_organisation_ids]
-      params[:edition][:lead_organisation_ids] = params[:edition][:lead_organisation_ids].reject(&:blank?)
+    return if edition_params.empty?
+
+    if edition_params[:lead_organisation_ids]
+      edition_params[:lead_organisation_ids] = edition_params[:lead_organisation_ids].reject(&:blank?)
     end
-    if params[:edition][:supporting_organisation_ids]
-      params[:edition][:supporting_organisation_ids] = params[:edition][:supporting_organisation_ids].reject(&:blank?)
+    if edition_params[:supporting_organisation_ids]
+      edition_params[:supporting_organisation_ids] = edition_params[:supporting_organisation_ids].reject(&:blank?)
     end
   end
 
@@ -289,7 +293,7 @@ class Admin::EditionsController < Admin::BaseController
   end
 
   def default_filters
-    {organisation: current_user.organisation.try(:id), state: :active}
+    { organisation: current_user.organisation.try(:id), state: :active }
   end
 
   def session_filters
@@ -297,7 +301,7 @@ class Admin::EditionsController < Admin::BaseController
   end
 
   def params_filters
-    params.slice(:type, :state, :organisation, :author, :page, :title, :world_location, :from_date, :to_date).to_hash
+    params.permit!.to_h.slice(:type, :state, :organisation, :author, :page, :title, :world_location, :from_date, :to_date, :only_broken_links)
   end
 
   def params_filters_with_default_state
@@ -305,11 +309,21 @@ class Admin::EditionsController < Admin::BaseController
   end
 
   def filter
-    @filter ||= Admin::EditionFilter.new(edition_class, current_user, params_filters_with_default_state.symbolize_keys) if params_filters.any?
+    @filter ||= Admin::EditionFilter.new(edition_class, current_user, edition_filter_options) if params_filters.any?
+  end
+
+  def edition_filter_options
+    params_filters_with_default_state.
+      symbolize_keys.
+      merge(
+        include_unpublishing: true,
+        include_link_check_reports: true,
+        include_last_author: true
+      )
   end
 
   def detect_other_active_editors
-    RecentEditionOpening.expunge! if rand(10) == 0
+    RecentEditionOpening.expunge! if rand(10).zero?
     @recent_openings = @edition.active_edition_openings.except_editor(current_user)
   end
 
@@ -318,19 +332,21 @@ class Admin::EditionsController < Admin::BaseController
   end
 
   def clean_edition_parameters
-    params[:edition][:title].strip! if params[:edition] && params[:edition][:title]
-    params[:edition].delete(:primary_locale) if params[:edition] && params[:edition][:primary_locale].blank?
-    params[:edition][:policy_content_ids].reject!(&:blank?) if params[:edition] && params[:edition][:policy_content_ids]
+    return if edition_params.empty?
+
+    edition_params[:title].strip! if edition_params[:title]
+    edition_params.delete(:primary_locale) if edition_params[:primary_locale].blank?
+    edition_params[:policy_content_ids].reject!(&:blank?) if edition_params[:policy_content_ids]
   end
 
   def clear_scheduled_publication_if_not_activated
-    if params[:scheduled_publication_active] && params[:scheduled_publication_active].to_i == 0
-      params[:edition].keys.each do |key|
-        if key =~ /^scheduled_publication(\([0-9]i\))?/
-          params[:edition].delete(key)
+    if params[:scheduled_publication_active] && params[:scheduled_publication_active].to_i.zero?
+      edition_params.keys.each do |key|
+        if key.match?(/^scheduled_publication(\([0-9]i\))?/)
+          edition_params.delete(key)
         end
       end
-      params[:edition][:scheduled_publication] = nil
+      edition_params[:scheduled_publication] = nil
     end
   end
 
@@ -365,21 +381,10 @@ class Admin::EditionsController < Admin::BaseController
   helper_method :force_scheduler
 
   def deduplicate_specialist_sectors
-    if params[:edition] && params[:edition][:secondary_specialist_sector_tags] && params[:edition][:primary_specialist_sector_tag]
-      params[:edition][:secondary_specialist_sector_tags] -= [params[:edition][:primary_specialist_sector_tag]]
+    return if edition_params.empty?
+
+    if edition_params[:secondary_specialist_sector_tags] && edition_params[:primary_specialist_sector_tag]
+      edition_params[:secondary_specialist_sector_tags] -= [edition_params[:primary_specialist_sector_tag]]
     end
-  end
-
-  def build_array_out_of_need_ids_string
-    return if params[:edition].blank? || params[:edition][:need_ids].nil?
-    params[:edition][:need_ids] = params[:edition][:need_ids].split(",").map(&:strip).reject(&:blank?)
-  end
-
-  def trigger_previously_published_validations
-    @edition.trigger_previously_published_validations
-  end
-
-  def document_can_be_previously_published
-    true
   end
 end

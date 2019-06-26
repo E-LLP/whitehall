@@ -1,12 +1,11 @@
 class Admin::UsersController < Admin::BaseController
-  before_filter :load_user, only: [:show, :edit, :update]
+  before_action :load_user, only: %i[show edit update]
 
   def index
     @users = User.enabled.includes(organisation: [:translations]).sort_by { |u| u.fuzzy_last_name.downcase }
   end
 
-  def show
-  end
+  def show; end
 
   def edit
     head :forbidden unless @user.editable_by?(current_user)
@@ -25,15 +24,15 @@ class Admin::UsersController < Admin::BaseController
     end
   end
 
-  private
+private
 
   def load_user
     @user = User.find(params[:id])
   end
 
   def user_params
-    params.require(:user)
-          .reverse_merge(world_location_ids: [])
-          .permit(world_location_ids: [])
+    { world_location_ids: [] }.merge(
+      params.require(:user).permit(world_location_ids: [])
+    )
   end
 end

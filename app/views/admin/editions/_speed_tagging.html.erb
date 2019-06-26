@@ -26,8 +26,8 @@
     <%= form.text_field :title %>
     <div class="title-length-info">Title text should be 65 characters or fewer and the slug will be truncated past 150. <span class="count"></span></div>
 
-    <%= form.text_area :summary, rows: 2, class: 'js-summary-length-counting', data: { 'count-message-threshold' => 140, 'count-message-selector' => '.summary-length-info' } %>
-    <div class="summary-length-info">Summary text should be 140 characters or fewer. <span class="count"></span></div>
+    <%= form.text_area :summary, rows: 2, class: 'js-summary-length-counting', data: { 'count-message-threshold' => 160, 'count-message-selector' => '.summary-length-info' } %>
+    <div class="summary-length-info">Summary text should be 160 characters or fewer. <span class="count"></span></div>
 
     <%= form.text_area :body, rows: 20, class: "previewable" %>
 
@@ -55,7 +55,7 @@
 
     <% if @edition.can_be_associated_with_topics? %>
       <h3>Policy Areas</h3>
-      <%= render partial: 'topic_fields', locals: { form: form, edition: @edition } %>
+      <%= render partial: 'policy_area_fields', locals: { form: form, edition: @edition } %>
     <% end %>
 
     <% if @edition.can_be_associated_with_world_locations? %>

@@ -1,7 +1,6 @@
 require 'test_helper'
 
 class HomePageListTest < ActiveSupport::TestCase
-
   test "is invalid without an owner" do
     list = build(:home_page_list, owner: nil)
     refute list.valid?
@@ -23,7 +22,7 @@ class HomePageListTest < ActiveSupport::TestCase
 
   test 'is invalid if the owner already has a list with that name' do
     o = create(:organisation)
-    list_1 = create(:home_page_list, owner: o, name: 'contacts')
+    _list_1 = create(:home_page_list, owner: o, name: 'contacts')
     list_2 = build(:home_page_list, owner: o, name: 'contacts')
     refute list_2.valid?
   end
@@ -74,7 +73,7 @@ class HomePageListTest < ActiveSupport::TestCase
     contact = create(:contact)
     list.add_item(contact)
 
-    assert list.home_page_list_items.where(item_id: contact.id, item_type: contact.class).any?
+    assert list.home_page_list_items.where(item_id: contact.id, item_type: contact.class.to_s).any?
   end
 
   test '#add_item will not duplicate an item that is already on the list' do
@@ -83,7 +82,7 @@ class HomePageListTest < ActiveSupport::TestCase
     list.home_page_list_items << build(:home_page_list_item, item: contact)
     list.add_item(contact)
 
-    assert_equal 1, list.home_page_list_items.where(item_id: contact.id, item_type: contact.class).length
+    assert_equal 1, list.home_page_list_items.where(item_id: contact.id, item_type: contact.class.to_s).length
   end
 
   test '#add_item will persist the list' do
@@ -100,7 +99,7 @@ class HomePageListTest < ActiveSupport::TestCase
     list.home_page_list_items << build(:home_page_list_item, item: contact)
     list.remove_item(contact)
 
-    refute list.home_page_list_items.where(item_id: contact.id, item_type: contact.class).any?
+    refute list.home_page_list_items.where(item_id: contact.id, item_type: contact.class.to_s).any?
   end
 
   test '#remove_item won\'t complain if the supplied item isn\'t already on the list' do
@@ -118,12 +117,15 @@ class HomePageListTest < ActiveSupport::TestCase
   end
 
   test '.get will return the list for the supplied owned_by: and called: params' do
-    o = create(:organisation)
-    list_1 = create(:home_page_list, owner: o, name: 'donkeys')
-    list_2 = create(:home_page_list, owner: o, name: 'cats')
-    list_3 = create(:home_page_list, owner: create(:organisation), name: 'cats')
+    organisation_1 = create(:organisation)
+    organisation_2 = create(:organisation)
 
-    assert_equal list_2, HomePageList.get(owned_by: o, called: 'cats')
+    create(:home_page_list, owner: organisation_1, name: 'donkeys')
+    create(:home_page_list, owner: organisation_2, name: 'cats')
+
+    list = create(:home_page_list, owner: organisation_1, name: 'cats')
+
+    assert_equal list, HomePageList.get(owned_by: organisation_1, called: 'cats')
   end
 
   test '.get will build a new list for the supplied owned_by: and called: params if one does not exist already' do
@@ -143,7 +145,7 @@ class HomePageListTest < ActiveSupport::TestCase
   end
 
   test '.get will raise ArgumentError if owned_by: and called: are not both present' do
-    assert_raise(ArgumentError) { HomePageList.get() }
+    assert_raise(ArgumentError) { HomePageList.get }
     assert_raise(ArgumentError) { HomePageList.get(owned_by: create(:organisation)) }
     assert_raise(ArgumentError) { HomePageList.get(called: 'cates') }
   end

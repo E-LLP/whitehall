@@ -1,5 +1,6 @@
-class Contact < ActiveRecord::Base
+class Contact < ApplicationRecord
   include Dependable
+  include PublishesToPublishingApi
 
   belongs_to :contactable, polymorphic: true
   has_many   :contact_numbers, dependent: :destroy
@@ -10,10 +11,13 @@ class Contact < ActiveRecord::Base
 
   validates :title, :contact_type, presence: true
   validates :contact_form_url, uri: true, allow_blank: true
-  validates :street_address, :country_id, presence: true, if: -> r { r.has_postal_address? }
+  validates :street_address, :country_id, presence: true, if: ->(r) { r.has_postal_address? }
   accepts_nested_attributes_for :contact_numbers, allow_destroy: true, reject_if: :all_blank
 
   after_update :republish_dependent_editions
+
+  after_create :republish_organisation_to_publishing_api
+  after_destroy :republish_organisation_to_publishing_api
 
   include TranslatableModel
   translates :title, :comments, :recipient, :street_address, :locality,
@@ -22,15 +26,17 @@ class Contact < ActiveRecord::Base
   extend HomePageList::ContentItem
   is_stored_on_home_page_lists
 
+  def republish_organisation_to_publishing_api
+    Whitehall::PublishingApi.republish_async(contactable) if contactable.is_a?(Organisation)
+  end
+
   def contactable_name
     if contactable.is_a? WorldwideOffice
       contactable.worldwide_organisation.name
+    elsif contactable.acronym.present?
+      contactable.acronym
     else
-      if contactable.acronym.present?
-        contactable.acronym
-      else
-        contactable.name
-      end
+      contactable.name
     end
   end
 
@@ -70,5 +76,4 @@ class Contact < ActiveRecord::Base
   def missing_translations
     super & contactable.non_english_translated_locales
   end
-
 end

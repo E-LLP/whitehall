@@ -3,10 +3,11 @@
 class Frontend::StatisticsAnnouncement
   attr_accessor :slug, :title, :summary,
                 :publication, :document_type,
-                :release_date, :display_date, :release_date_confirmed,
+                :display_date, :release_date_confirmed,
                 :release_date_change_note, :previous_display_date,
-                :organisations, :topics,
-                :state, :cancellation_reason, :cancellation_date
+                :organisations, :state, :cancellation_reason
+
+  attr_reader :release_date, :cancellation_date
 
   def initialize(attrs = {})
     attrs = Hash(attrs)

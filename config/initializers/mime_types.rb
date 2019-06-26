@@ -2,13 +2,12 @@
 
 # Add new mime types for use in respond_to blocks:
 # Mime::Type.register "text/richtext", :rtf
-# Mime::Type.register_alias "text/html", :iphone
 
 Mime::Type.unregister :html
-Mime::Type.register "text/html", :html, %w( application/xhtml+xml application/vnd.wap.xhtml+xml), %w( xhtml )
+Mime::Type.register "text/html", :html, %w(application/xhtml+xml application/vnd.wap.xhtml+xml), %w(xhtml)
 Mime::Type.register "text/rtf", :rtf
 
-Mime::Type.register "image/jpeg", :jpg, [], %w( jpeg )
+Mime::Type.register "image/jpeg", :jpg, [], %w(jpeg)
 
 Mime::Type.register "application/msword", :doc
 Mime::Type.register "application/msword", :dot
@@ -28,3 +27,5 @@ Mime::Type.register "application/rdf+xml", :rdf
 Mime::Type.register "application/dxf", :dxf
 
 Mime::Type.register "application/gml+xml", :gml
+
+Mime::Type.register "image/svg+xml", :svg

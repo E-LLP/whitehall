@@ -1,12 +1,12 @@
-require "gds_api/test_helpers/rummager"
+require "gds_api/test_helpers/search"
 require "gds_api/test_helpers/publishing_api_v2"
 
 module PolicyTaggingHelpers
-  include GdsApi::TestHelpers::Rummager
+  include GdsApi::TestHelpers::Search
   include GdsApi::TestHelpers::PublishingApiV2
 
   def assert_published_policies_returns_all_tagged_policies(object)
-    rummager_has_policies_for_every_type
+    stub_search_has_policies_for_every_type
 
     all_policy_titles = [
       "Welfare reform",
@@ -21,11 +21,13 @@ module PolicyTaggingHelpers
       "Child maintenance reform",
     ]
 
-    assert_equal all_policy_titles, object.published_policies.map(&:title)
+    actual_policy_title = object.published_policies.collect { |p| p["title"] }
+
+    assert_equal all_policy_titles, actual_policy_title
   end
 
   def stub_publishing_api_policies
-    policies = [
+    @policies = [
       policy_1,
       policy_2,
       policy_3,
@@ -35,9 +37,9 @@ module PolicyTaggingHelpers
       policy_relevant_to_local_government,
     ]
 
-    publishing_api_has_linkables(policies, document_type: "policy")
+    publishing_api_has_linkables(@policies, document_type: "policy")
 
-    policies.each do |policy|
+    @policies.each do |policy|
       publishing_api_has_links(
         "content_id" => policy["content_id"],
         "links" => policy["links"],

@@ -31,12 +31,42 @@ class PolicyGroupTest < ActiveSupport::TestCase
 
   test "publishes to the publishing API" do
     policy_group = create(:policy_group)
-    Whitehall::PublishingApi.expects(:publish_async).with(policy_group).once
+    Whitehall::PublishingApi.expects(:publish).with(policy_group).once
     policy_group.publish_to_publishing_api
   end
 
   test "#published_policies should return all tagged policies" do
     policy_group = create(:policy_group)
     assert_published_policies_returns_all_tagged_policies(policy_group)
+  end
+
+  test '#access_limited? returns false' do
+    policy_group = FactoryBot.build(:policy_group)
+    refute policy_group.access_limited?
+  end
+
+  test '#access_limited_object returns nil' do
+    policy_group = FactoryBot.build(:policy_group)
+    assert_nil policy_group.access_limited_object
+  end
+
+  test 'is always publicly visible' do
+    policy_group = FactoryBot.build(:policy_group)
+    assert policy_group.publicly_visible?
+  end
+
+  test 'is never unpublished' do
+    policy_group = FactoryBot.build(:policy_group)
+    refute policy_group.unpublished?
+  end
+
+  test 'never has unpublished edition' do
+    policy_group = FactoryBot.build(:policy_group)
+    assert_nil policy_group.unpublished_edition
+  end
+
+  test 'is always accessible' do
+    policy_group = FactoryBot.build(:policy_group)
+    assert policy_group.accessible_to?(nil)
   end
 end

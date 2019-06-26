@@ -1,5 +1,8 @@
+require 'zip'
+
 class Notifications < ActionMailer::Base
   include ActionView::RecordIdentifier
+  include ActionView::Helpers::TextHelper
   include Admin::EditionRoutesHelper
 
   def fact_check_request(request, url_options)
@@ -42,6 +45,12 @@ class Notifications < ActionMailer::Base
     mail from: no_reply_email_address, to: @author.email, subject: subject
   end
 
+  def edition_published_by_monitored_user(user)
+    @user = user
+    subject = "Account holder #{@user.name} (#{user.email}) has published to live"
+    mail from: no_reply_email_address, to: content_second_line_email_address, subject: subject
+  end
+
   def broken_link_reports(zip_path, recipient_address)
     filename = File.basename(zip_path)
     attachments[filename] = File.read(zip_path)
@@ -50,21 +59,60 @@ class Notifications < ActionMailer::Base
   end
 
   def document_list(csv, recipient_address, filter_title)
-    attachments['document_list.csv'] = csv
+    stream = Zip::OutputStream.write_buffer do |zip|
+      zip.put_next_entry("document_list.csv")
+      zip.write(csv)
+    end
+
+    stream.rewind
+
+    attachments["document_list.zip"] = stream.sysread
 
     mail from: no_reply_email_address, to: recipient_address, subject: "#{filter_title} from GOV.UK"
   end
 
-  private
+  def consultation_deadline_upcoming(consultation, weeks_left:)
+    @title = consultation.title
+    @weeks_left = weeks_left
+
+    mail from: no_reply_email_address,
+      to: consultation.authors.uniq.map(&:email),
+      subject: "Consultation response due in #{pluralize(weeks_left, 'week')}"
+  end
+
+  def consultation_deadline_passed(consultation)
+    @title = consultation.title
+
+    mail from: no_reply_email_address,
+      to: consultation.authors.uniq.map(&:email),
+      subject: "Consultation deadline breached"
+  end
+
+  helper_method :production?
+
+  def production?
+    GovukAdminTemplate.environment_style == "production"
+  end
+
+private
 
   def no_reply_email_address
-    name = "DO NOT REPLY"
-    if GovukAdminTemplate.environment_label !~ /production/i
+    name = "GOV.UK publishing"
+    unless production?
       name.prepend("[GOV.UK #{GovukAdminTemplate.environment_label}] ")
     end
 
-    address = Mail::Address.new("inside-government@digital.cabinet-office.gov.uk")
+    email_address = "inside-government@digital.cabinet-office.gov.uk"
+    unless production?
+      email_address = "inside-government+#{GovukAdminTemplate.environment_style}@digital.cabinet-office.gov.uk"
+    end
+
+    address = Mail::Address.new(email_address)
     address.display_name = name
     address.format
+  end
+
+  def content_second_line_email_address
+    "second-line-content@digital.cabinet-office.gov.uk"
   end
 end

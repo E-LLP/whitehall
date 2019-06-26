@@ -20,13 +20,7 @@ class AttachmentDataTest < ActiveSupport::TestCase
     empty_file = fixture_file_upload('empty_file.txt', 'text/plain')
     attachment = build(:attachment_data, file: empty_file)
     refute attachment.valid?
-    assert_match /empty file/, attachment.errors[:file].first
-  end
-
-  test 'is still valid whilst file is being virus-scanned' do
-    attachment_data = create(:attachment_data)
-    assert_equal :pending, attachment_data.reload.virus_status
-    assert AttachmentData.find(attachment_data.id).valid?
+    assert_match %r[empty file], attachment.errors[:file].first
   end
 
   test 'should return filename even after reloading' do
@@ -99,10 +93,16 @@ class AttachmentDataTest < ActiveSupport::TestCase
     assert_equal 3, attachment.number_of_pages
   end
 
-  test "should save attachment even if unable to count the number of pages" do
-    greenpaper_pdf = fixture_file_upload('greenpaper.pdf')
-    AttachmentData.any_instance.stubs(:`).raises
-    assert_nothing_raised { create(:attachment_data, file: greenpaper_pdf) }
+  test "should set number of pages to nil if pdf-reader cannot count the number of pages" do
+    greenpage_pdf = fixture_file_upload('greenpaper.pdf')
+
+    errors = %w(PDF::Reader::MalformedPDFError PDF::Reader::UnsupportedFeatureError OpenSSL::Cipher::CipherError)
+    errors.each do |err|
+      PDF::Reader.any_instance.stubs(:page_count).raises(err.constantize)
+      attachment = create(:attachment_data, file: greenpage_pdf)
+      attachment.reload
+      assert_nil attachment.number_of_pages
+    end
   end
 
   test "should allow CSV file types as attachments" do
@@ -143,10 +143,19 @@ class AttachmentDataTest < ActiveSupport::TestCase
   test "should successfully create PNG thumbnail from the file_cache after a validation failure" do
     greenpaper_pdf = fixture_file_upload('greenpaper.pdf', 'application/pdf')
     attachment = build(:attachment_data, file: greenpaper_pdf)
+
+    Services.asset_manager.stubs(:create_whitehall_asset)
+    Services.asset_manager.expects(:create_whitehall_asset).with do |value|
+      if value[:file].path.ends_with?('.png')
+        type = `file -b --mime-type "#{value[:file].path}"`
+        assert_equal "image/png", type.strip
+      end
+    end
+
     second_attempt_attachment = build(:attachment_data, file: nil, file_cache: attachment.file_cache)
     assert second_attempt_attachment.save
-    type = `file -b --mime-type "#{second_attempt_attachment.file.thumbnail.path}"`
-    assert_equal "image/png", type.strip
+
+    AssetManagerCreateWhitehallAssetWorker.drain
   end
 
   test "should return nil file extension when no uploader present" do
@@ -179,26 +188,6 @@ class AttachmentDataTest < ActiveSupport::TestCase
     assert_equal "greenpaper", attachment.filename_without_extension
   end
 
-  test "should return virus status as pending when in incoming folder" do
-    test_pdf = fixture_file_upload('simple.pdf', 'application/pdf')
-    attachment = create(:attachment_data, file: test_pdf)
-    assert_equal :pending, attachment.virus_status
-  end
-
-  test "should return virus status as failed when in infected folder" do
-    test_pdf = fixture_file_upload('simple.pdf', 'application/pdf')
-    attachment = create(:attachment_data, file: test_pdf)
-    VirusScanHelpers.simulate_virus_scan_infected(attachment.file)
-    assert_equal :infected, attachment.virus_status
-  end
-
-  test "should return virus status as clean when in the clean folder" do
-    test_pdf = fixture_file_upload('simple.pdf', 'application/pdf')
-    attachment = create(:attachment_data, file: test_pdf)
-    VirusScanHelpers.simulate_virus_scan(attachment.file)
-    assert_equal :clean, attachment.virus_status
-  end
-
   test "should ensure instances know when they've been replaced by a new instance" do
     to_be_replaced = create(:attachment_data)
     replace_with = build(:attachment_data)
@@ -222,5 +211,148 @@ class AttachmentDataTest < ActiveSupport::TestCase
     to_be_replaced.replace_with!(replacer)
     assert_equal replacer, to_be_replaced.replaced_by
     assert_equal replacer, replaced.reload.replaced_by
+  end
+
+  test 'order attachments by attachable ID' do
+    attachment_data = create(:attachment_data)
+    edition_1 = create(:edition)
+    edition_2 = create(:edition)
+    attachment_1 = build(:file_attachment, attachable: edition_2)
+    attachment_2 = build(:file_attachment, attachable: edition_1)
+    attachment_data.attachments << attachment_1
+    attachment_data.attachments << attachment_2
+
+    assert_equal [attachment_2, attachment_1], attachment_data.attachments.to_a
+  end
+
+  test '#access_limited? is falsey if there is no last attachable' do
+    attachment_data = build(:attachment_data)
+    attachment_data.stubs(:attachments).returns([])
+    refute attachment_data.access_limited?
+  end
+
+  test '#access_limited? delegates to the last attachable' do
+    attachable = stub('attachable', access_limited?: 'access-limited')
+    attachment_data = build(:attachment_data)
+    attachment_data.stubs(:last_attachable).returns(attachable)
+    assert_equal 'access-limited', attachment_data.access_limited?
+  end
+
+  test '#access_limited_object returns nil if there is no last attachable' do
+    attachment_data = build(:attachment_data)
+    attachment_data.stubs(:attachments).returns([])
+    assert_nil attachment_data.access_limited_object
+  end
+
+  test '#access_limited_object delegates to the last attachable' do
+    attachable = stub('attachable', access_limited_object: 'access-limited-object')
+    attachment_data = build(:attachment_data)
+    attachment_data.stubs(:last_attachable).returns(attachable)
+    assert_equal 'access-limited-object', attachment_data.access_limited_object
+  end
+
+  test '#last_publicly_visible_attachment returns publicly visible attachable' do
+    attachable = build(:edition)
+    attachable.stubs(:publicly_visible?).returns(true)
+    attachment = build(:file_attachment, attachable: attachable)
+    attachment_data = build(:attachment_data)
+    attachment_data.stubs(:attachments).returns([attachment])
+
+    assert_equal attachment, attachment_data.last_publicly_visible_attachment
+  end
+
+  test '#last_publicly_visible_attachment returns latest publicly visible attachable' do
+    earliest_attachable = build(:edition)
+    earliest_attachable.stubs(:publicly_visible?).returns(true)
+    latest_attachable = build(:edition)
+    latest_attachable.stubs(:publicly_visible?).returns(true)
+    earliest_attachment = build(:file_attachment, attachable: earliest_attachable)
+    latest_attachment = build(:file_attachment, attachable: latest_attachable)
+    attachment_data = build(:attachment_data)
+    attachment_data.stubs(:attachments).returns([earliest_attachment, latest_attachment])
+
+    assert_equal latest_attachment, attachment_data.last_publicly_visible_attachment
+  end
+
+  test '#last_publicly_visible_attachment returns nil if there are no publicly visible attachables' do
+    attachable = build(:edition)
+    attachable.stubs(:publicly_visible?).returns(false)
+    attachment = build(:file_attachment, attachable: attachable)
+    attachment_data = build(:attachment_data)
+    attachment_data.stubs(:attachments).returns([attachment])
+
+    assert_nil attachment_data.last_publicly_visible_attachment
+  end
+
+  test '#last_publicly_visible_attachment returns nil if there are no attachables' do
+    attachment = build(:file_attachment, attachable: nil)
+    attachment_data = build(:attachment_data)
+    attachment_data.stubs(:attachments).returns([attachment])
+
+    assert_nil attachment_data.last_publicly_visible_attachment
+  end
+
+  test '#last_attachment returns attachment for latest attachable' do
+    earliest_attachable = build(:edition)
+    latest_attachable = build(:edition)
+    earliest_attachment = build(:file_attachment, attachable: earliest_attachable)
+    latest_attachment = build(:file_attachment, attachable: latest_attachable)
+    attachment_data = build(:attachment_data)
+    attachment_data.stubs(:attachments).returns([earliest_attachment, latest_attachment])
+
+    assert_equal latest_attachment, attachment_data.last_attachment
+  end
+
+  test '#last_attachment ignores attachments without attachable' do
+    earliest_attachable = build(:edition)
+    earliest_attachment = build(:file_attachment, attachable: earliest_attachable)
+    latest_attachment = build(:file_attachment, attachable: nil)
+    attachment_data = build(:attachment_data)
+    attachment_data.stubs(:attachments).returns([earliest_attachment, latest_attachment])
+
+    assert_equal earliest_attachment, attachment_data.last_attachment
+  end
+
+  test '#last_attachment returns null attachment if no attachments' do
+    attachment_data = build(:attachment_data)
+    attachment_data.stubs(:attachments).returns([])
+
+    assert_instance_of Attachment::Null, attachment_data.last_attachment
+  end
+
+  test '#deleted? returns true if attachment is deleted' do
+    attachable = build(:edition)
+    attachable.stubs(:publicly_visible?).returns(false)
+    deleted_attachment = build(:file_attachment, attachable: attachable, deleted: true)
+    attachment_data = build(:attachment_data)
+    attachment_data.stubs(:attachments).returns([deleted_attachment])
+
+    assert attachment_data.deleted?
+  end
+
+  test '#deleted? returns false if attachment is not deleted' do
+    attachable = build(:edition)
+    attachable.stubs(:publicly_visible?).returns(false)
+    deleted_attachment = build(:file_attachment, attachable: attachable, deleted: false)
+    attachment_data = build(:attachment_data)
+    attachment_data.stubs(:attachments).returns([deleted_attachment])
+
+    refute attachment_data.deleted?
+  end
+
+  test '#deleted? returns true if attachment is deleted even if attachable is nil' do
+    deleted_attachment = build(:file_attachment, attachable: nil, deleted: true)
+    attachment_data = build(:attachment_data)
+    attachment_data.stubs(:attachments).returns([deleted_attachment])
+
+    assert attachment_data.deleted?
+  end
+
+  test '#deleted? returns false if attachment is not deleted even if attachable is nil' do
+    deleted_attachment = build(:file_attachment, attachable: nil, deleted: false)
+    attachment_data = build(:attachment_data)
+    attachment_data.stubs(:attachments).returns([deleted_attachment])
+
+    refute attachment_data.deleted?
   end
 end

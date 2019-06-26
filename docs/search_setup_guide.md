@@ -1,4 +1,4 @@
-#Search setup guide
+# Search setup guide
 
 ## Setup search locally
 
@@ -32,11 +32,11 @@ reindex), and seamlessly switching to the new index on completion.
 
 Steps:
 
-1. Make sure you have created the rummager indices by running the
-following task from the rummager repo:
+1. Make sure you have created the search indices by running the
+following task from the search-api repo:
 
     ```
-    RUMMAGER_INDEX=government bundle exec rake rummager:migrate_index
+    SEARCH_INDEX=government bundle exec rake search:migrate_schema
     ```
 
 2. Run the bulk export and load:
@@ -75,4 +75,3 @@ is defined in `Searchable.searchable_options`, where the `index_after` is set to
 To trigger indexing for an instance of these classes in unit/integration tests,
 create an instance in a valid publishing state ('submitted', 'rejected') and
 call `save!` on it.
-

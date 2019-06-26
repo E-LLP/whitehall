@@ -14,13 +14,12 @@ module Govspeak
 
     test 'unpublished edition links are replaced with plain text' do
       draft_speech = create(:draft_speech)
-      admin_path   = Whitehall.url_maker.admin_speech_path(draft_speech)
-      public_url   = Whitehall.url_maker.public_document_url(draft_speech)
+      _admin_path  = Whitehall.url_maker.admin_speech_path(draft_speech)
       fragment     = govspeak_to_nokogiri_fragment("this is an [unpublished thing](/government/admin/speeches/#{draft_speech.id})")
 
       AdminLinkReplacer.new(fragment).replace!
 
-      refute_select_within_html fragment.to_html, "a[href='#{public_url}']", text: "unpublished thing"
+      refute_select_within_html fragment.to_html, "a"
       assert_select_within_html fragment.to_html, "p", text: 'this is an unpublished thing'
     end
 

@@ -7,7 +7,6 @@ sr:
         many:
         other: Dokumenti
       applies_to_nations: Odnosi se na
-      field_of_operation: polje delovanja
       from:
       location:
       part_of:
@@ -22,6 +21,11 @@ sr:
         few:
         many:
         other: Autorski članci
+      blog_post:
+        one:
+        few:
+        many:
+        other:
       case_study:
         one: Studija slučaja
         few:
@@ -72,11 +76,6 @@ sr:
         few:
         many:
         other: Nacrti tekstova
-      fatality_notice:
-        one: Obaveštenje o smrtnim slučajevima
-        few:
-        many:
-        other: Obaveštenja o smrtnim slučajevima
       foi_release:
         one: Odgovor na zahtev za pristup informaciji od javnog značaja
         few:
@@ -117,6 +116,11 @@ sr:
         few:
         many:
         other:
+      manual:
+        one:
+        few:
+        many:
+        other:
       map:
         one: mapa
         few:
@@ -137,11 +141,21 @@ sr:
         few:
         many:
         other: Vesti
+      nhs_content:
+        one:
+        few:
+        many:
+        other:
       notice:
         one:
         few:
         many:
         other:
+      official_statistics:
+        one: statistika
+        few:
+        many:
+        other: statistika
       open_consultation:
         one: Otvorene konsultacije
         few:
@@ -202,11 +216,6 @@ sr:
         few:
         many:
         other: set statističkih podataka
-      official_statistics:
-        one: statistika
-        few:
-        many:
-        other: statistika
       statutory_guidance:
         one:
         few:
@@ -222,6 +231,11 @@ sr:
         few:
         many:
         other: podaci o transparentnosti
+      world_news_story:
+        one:
+        few:
+        many:
+        other:
       written_statement:
         one: Pisana predstavka Parlamentu
         few:
@@ -311,6 +325,8 @@ sr:
         unnumbered_hoc_paper:
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         file:
+      edition:
+        nation_inapplicabilities:
       policy_group/policy_group_attachments/attachment/attachment_data:
         file:
       response/consultation_response_attachments/attachment:
@@ -356,6 +372,12 @@ sr:
     opendocument:
       help_html:
     see_more:
+  broken_links:
+    broken:
+      subheading:
+    caution:
+      subheading:
+    title:
   change_notes:
     page_history:
     published_at:
@@ -366,38 +388,34 @@ sr:
     email: e-mail
   corporate_information_page:
     type:
-      about:
-      about_our_services:
-      access_and_opening:
-      complaints_procedure:
-      equality_and_diversity:
-      media_enquiries:
-      membership:
-      our_energy_use:
-      our_governance:
-      personal_information_charter:
-      petitions_and_campaigns:
-      procurement:
-      publication_scheme:
-      recruitment:
-      research:
-      social_media_use:
-      staff_update:
-      statistics:
-      terms_of_reference:
-      welsh_language_scheme:
+      link_text:
+        welsh_language_scheme:
+      title:
+        about:
+        about_our_services:
+        access_and_opening:
+        accessible_documents_policy:
+        complaints_procedure:
+        equality_and_diversity:
+        media_enquiries:
+        membership:
+        our_energy_use:
+        our_governance:
+        personal_information_charter:
+        petitions_and_campaigns:
+        procurement:
+        publication_scheme:
+        recruitment:
+        research:
+        social_media_use:
+        staff_update:
+        statistics:
+        terms_of_reference:
+        welsh_language_scheme:
   date:
     formats:
       default:
       long_ordinal: "%e %B %Y"
-  detailed_guidance:
-    back_to_contents:
-    contents:
-    more:
-    part_of_published_collection:
-    published_related_detailed_guides:
-    related_mainstream_content:
-    see_more_like_this:
   document_filters:
     description: Možete iskoristiti filter da biste videli rezultate u skladu sa vašim
       interesovanjima
@@ -434,6 +452,7 @@ sr:
       access_our_info: Pritupite našim informacijama
       foi_how_to: Kako podneti zahtev za pristup informacijama od javnog značaja?
       foi_releases: Odgovori na zahteve za pristup informacijama od javnog značaja
+      jobs:
       jobs_and_contacts: Poslovi i ugovori
       organisation_chart:
       transparency: podaci o transparentnosti
@@ -531,14 +550,15 @@ sr:
       about_our_services_html:
       personal_information_charter_html: "%{link} daje informacije o tome kako obrađujemo
         vaše lične podatke. "
-      publication_scheme_html: "Čitajte o tipovima informacija koje redovno objavljujemo
-        u  %{link}."
+      publication_scheme_html: Čitajte o tipovima informacija koje redovno objavljujemo
+        u  %{link}.
       social_media_use_html: Pročitajte o našoj politici prema  %{link}.
       welsh_language_scheme_html: Saznajte naš stav o objavljivanju u %{link}.
     find_out_more: 'Pogledajte pun profil i sve kontakt detalje '
     headings:
       about_us: O nama
       contact_us: Kontakt
+      contents:
       corporate_information: Informacije o organizaciji
       follow_us: Pratite nas
       our_people: Naše osoblje

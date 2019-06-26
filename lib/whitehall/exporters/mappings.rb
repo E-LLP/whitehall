@@ -9,6 +9,7 @@ class Whitehall::Exporters::Mappings
         document.document_sources.each do |document_source|
           begin
             next if fake_source_url?(document_source)
+
             target << document_row(edition, document, document_source)
           rescue StandardError => e
             Rails.logger.error("#{self.class.name}: when exporting #{edition} - #{e} - #{e.backtrace.join("\n")}")
@@ -20,11 +21,12 @@ class Whitehall::Exporters::Mappings
     AttachmentSource.find_each do |attachment_source|
       begin
         next if fake_source_url?(attachment_source)
+
         if attachment_source.attachment
           path = attachment_source.attachment.url
           attachment_url = "#{Whitehall.public_root}#{path}"
-          visibility = AttachmentVisibility.new(attachment_source.attachment.attachment_data, nil)
-          state = visibility.visible? ? 'published' : 'draft'
+          attachment_data = attachment_source.attachment.attachment_data
+          state = attachment_data.visible_to?(nil) ? 'published' : 'draft'
           target << [attachment_source.url, attachment_url, '', state]
         end
       rescue StandardError => e
@@ -34,6 +36,7 @@ class Whitehall::Exporters::Mappings
   end
 
 private
+
   def document_row(edition, document, document_source)
     public_url = document_url(edition, document, document_source)
     [

@@ -34,9 +34,6 @@ $orange: #f47738;
   .flash {
     @extend .flash-box;
   }
-  .js-flash {
-    cursor: pointer;
-  }
   .alert {
     @extend .flash-box;
     @extend .flash-alert;
@@ -69,6 +66,11 @@ p.warning {
   color: $alert-border-color;
   font-size: 1.2em;
   font-weight: bold;
+  margin: 15px 0;
+}
+
+div.info {
+  font-size: 1.2em;
   margin: 15px 0;
 }
 

@@ -1,7 +1,6 @@
 require 'test_helper'
 
 class EditionUnpublisherTest < ActiveSupport::TestCase
-
   test '#perform! with a published edition returns the edition to draft, resets the version numbers and saves the unpublishing details' do
     edition = create(:published_edition)
     unpublisher = EditionUnpublisher.new(edition, unpublishing: unpublishing_params)
@@ -31,9 +30,23 @@ class EditionUnpublisherTest < ActiveSupport::TestCase
     assert_equal Time.zone.now, feature.reload.ended_at
   end
 
-  test 'only "published" editions can be unpublished' do
-    (Edition.available_states - [:published]).each do |state|
-      edition = create(:edition, state: state)
+  test '"published" editions can be unpublished' do
+    edition = create(:published_edition)
+    unpublisher = EditionUnpublisher.new(edition, unpublishing: unpublishing_params)
+
+    assert unpublisher.perform!
+  end
+
+  test '"draft" editions can be unpublished' do
+    edition = create(:draft_edition)
+    unpublisher = EditionUnpublisher.new(edition, unpublishing: unpublishing_params)
+
+    assert unpublisher.perform!
+  end
+
+  test 'other edition states cannot be unpublished' do
+    (Edition.available_states - %i[published draft]).each do |state|
+      edition = create(:edition, state: state, first_published_at: 1.hour.ago)
       unpublisher = EditionUnpublisher.new(edition, unpublishing: unpublishing_params)
 
       refute unpublisher.perform!
@@ -59,17 +72,17 @@ class EditionUnpublisherTest < ActiveSupport::TestCase
 
     refute unpublisher.can_perform?
     assert_equal 'There is already a draft edition of this document. You must discard it before you can unpublish this edition.',
-      unpublisher.failure_reason
+                 unpublisher.failure_reason
   end
 
   test 'cannot unpublish a published edition if a newer submitted version exists' do
     edition = create(:published_edition)
-    submitted_edition = create(:submitted_edition, document: edition.document)
+    _submitted_edition = create(:submitted_edition, document: edition.document)
     unpublisher = EditionUnpublisher.new(edition, unpublishing: unpublishing_params)
 
     refute unpublisher.can_perform?
     assert_equal 'There is already a submitted edition of this document. You must discard it before you can unpublish this edition.',
-      unpublisher.failure_reason
+                 unpublisher.failure_reason
   end
 
   test 'cannot unpublish without an unpublishing details' do

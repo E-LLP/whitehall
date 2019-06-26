@@ -45,13 +45,24 @@ en:
     ms: Malay
     ps: Pashto
     si: Sinhala
-    sk: Slovakian
+    sk: Slovak
     so: Somali
     sw: Swahili
     ta: Tamil
     tk: Turkmen
     uz: Uzbeki
     id: Indonesian
+    nl: Dutch
+    "no": Norwegian
+    hr: Croatian
+    mt: Maltese
+    da: Danish
+    fi: Finish
+    is: Icelandic
+    gd: Irish
+    sl: Slovenian
+    sv: Swedish
+    kk: Kazakh
   activerecord:
     nested_attachment_field_names: &nested_attachment_field_names
       command_paper_number: Attachment command paper number
@@ -75,6 +86,8 @@ en:
         <<: *nested_attachment_field_names
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         <<: *nested_attachment_data_field_names
+      edition:
+        nation_inapplicabilities: 'Excluded nations'
       policy_group/policy_group_attachments/attachment/attachment_data:
         <<: *nested_attachment_data_field_names
       response/consultation_response_attachments/attachment:
@@ -96,7 +109,6 @@ en:
     published: published
     contents: Contents
     headings:
-      field_of_operation: Field of operation
       applies_to_nations: Applies to
       part_of: Part of
       from: From
@@ -108,6 +120,9 @@ en:
       announcement:
         one: Announcement
         other: Announcements
+      blog_post:
+        one: Blog post
+        other: Blog posts
       case_study:
         one: Case study
         other: Case studies
@@ -135,9 +150,6 @@ en:
       draft_text:
         one: Draft text
         other: Draft texts
-      fatality_notice:
-        one: Fatality notice
-        other: Fatality notices
       foi_release:
         one: FOI release
         other: FOI releases
@@ -162,6 +174,9 @@ en:
       international_treaty:
         one: International treaty
         other: International treaties
+      manual:
+        one: Manual
+        other: Manuals
       map:
         one: Map
         other: Maps
@@ -174,6 +189,9 @@ en:
       national_statistics:
         one: National Statistics
         other: National Statistics
+      nhs_content:
+        one: NHS content
+        other: NHS content
       news_article:
         one: News article
         other: News articles
@@ -231,6 +249,9 @@ en:
       written_statement:
         one: Written statement to Parliament
         other: Written statements to Parliament
+      world_news_story:
+        one: Worldwide news story
+        other: Worldwide news stories
       authored_article:
         one: Authored article
         other: Authored articles
@@ -292,35 +313,40 @@ en:
       our_services: Our services
       our_people: Our people
       contact_us: Contact us
+      contents: Contents
       corporate_information: Corporate information
     corporate_information:
       publication_scheme_html: Read about the types of information we routinely publish in our %{link}.
       personal_information_charter_html: Our %{link} explains how we treat your personal information.
-      welsh_language_scheme_html: Find out about our commitment to publishing in the %{link}.
+      welsh_language_scheme_html: Find out about our commitment to %{link}.
       social_media_use_html: Read our policy on %{link}.
       about_our_services_html: Find out %{link}.
   corporate_information_page:
     type:
-      personal_information_charter: Personal information charter
-      publication_scheme: Publication scheme
-      complaints_procedure: Complaints procedure
-      terms_of_reference: Terms of reference
-      our_governance: Our governance
-      statistics: Statistics at %{organisation_name}
-      procurement: Procurement at %{organisation_name}
-      recruitment: Working for %{organisation_name}
-      our_energy_use: Our energy use
-      membership: Membership
-      welsh_language_scheme: Welsh language scheme
-      equality_and_diversity: Equality and diversity
-      petitions_and_campaigns: Petitions and campaigns
-      research: Research at %{organisation_name}
-      access_and_opening: Office access and opening times
-      staff_update: Staff news and information
-      media_enquiries: Media enquiries
-      social_media_use: Social media use
-      about_our_services: About our services
-      about: About us
+      title:
+        about: About us
+        about_our_services: About our services
+        accessible_documents_policy: Accessible documents policy
+        access_and_opening: Office access and opening times
+        complaints_procedure: Complaints procedure
+        equality_and_diversity: Equality and diversity
+        media_enquiries: Media enquiries
+        membership: Membership
+        our_energy_use: Our energy use
+        our_governance: Our governance
+        personal_information_charter: Personal information charter
+        petitions_and_campaigns: Petitions and campaigns
+        procurement: Procurement at %{organisation_name}
+        publication_scheme: Publication scheme
+        recruitment: Working for %{organisation_name}
+        research: Research at %{organisation_name}
+        social_media_use: Social media use
+        staff_update: Staff news and information
+        statistics: Statistics at %{organisation_name}
+        terms_of_reference: Terms of reference
+        welsh_language_scheme: Welsh language scheme
+      link_text:
+        welsh_language_scheme: publishing in Welsh
   contact:
     email: Email
     contact_form: Contact form
@@ -359,6 +385,7 @@ en:
       access_our_info: Access our information
       jobs_and_contacts: Jobs and contracts
       transparency: Transparency data
+      jobs: Jobs
       foi_releases: FOI releases
       foi_how_to: How to make an FOI request
     about:
@@ -425,20 +452,12 @@ en:
       heading: This file may not be suitable for users of assistive technology.
       request_a_different_format: Request an accessible format.
       full_help_html: |
-        If you use assistive technology (eg a screen reader) and need a
+        If you use assistive technology (such as a screen reader) and need a
         version of this document in a more accessible format, please email %{email}.
         Please tell us what format you need. It will help us if you say what assistive technology you use.
     opendocument:
-      help_html: This file is in an <a rel="external" href="https://en.wikipedia.org/wiki/OpenDocument_software">OpenDocument</a> format
+      help_html: This file is in an <a href="https://www.gov.uk/guidance/using-open-document-formats-odf-in-your-organisation">OpenDocument</a> format
     see_more: See more information about this %{document_type}
-  detailed_guidance:
-    back_to_contents: Back to contents
-    contents: Contents
-    more: More like this
-    part_of_published_collection: This is part of a collection
-    published_related_detailed_guides: Related detailed guidance
-    related_mainstream_content: Too much detail?<br/>See these quick guides
-    see_more_like_this: See more like this
   see_all:
     announcement: See all our announcements
     case_study: See all our case studies
@@ -483,3 +502,9 @@ en:
     transparency: See all our transparency data
     written_statement: See all our written statements to Parliament
     authored_article: See all our authored articles
+  broken_links:
+    title: Broken links
+    broken:
+      subheading: We’ve found links in this document that may be broken
+    caution:
+      subheading: We’ve found some issues with links that may indicate problems, you should apply caution in linking to them

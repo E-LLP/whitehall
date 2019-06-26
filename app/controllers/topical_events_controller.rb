@@ -1,41 +1,38 @@
 class TopicalEventsController < ClassificationsController
   enable_request_formats show: :atom
 
-  def index
-    redirect_to :topics
-  end
-
   def show
-    @classification = TopicalEvent.friendly.find(params[:id])
-    @publications = fetch_associated(:published_publications, PublicationesquePresenter)
-    @consultations = fetch_associated(:published_consultations, PublicationesquePresenter)
-    @announcements = fetch_associated(:published_announcements, AnnouncementPresenter)
-    @detailed_guides = @classification.published_detailed_guides.includes(:translations, :document).limit(5)
-    @related_classifications = @classification.related_classifications
-    @featurings = decorate_collection(@classification.classification_featurings.includes(:image, edition: :document).limit(5), ClassificationFeaturingPresenter)
+    @topical_event = TopicalEvent.friendly.find(params[:id])
+    @content_item = Whitehall.content_store.content_item(@topical_event.base_path)
+    @publications =  find_documents(filter_format: 'publication', count: 3)
+    @consultations = find_documents(filter_format: 'consultation', count: 3)
+    @announcements = find_documents(filter_content_store_document_type: announcement_document_types, count: 3)
+    @detailed_guides = @topical_event.published_detailed_guides.includes(:translations, :document).limit(5)
+    @featurings = decorate_collection(@topical_event.classification_featurings.includes(:image, edition: :document).limit(5), ClassificationFeaturingPresenter)
 
-    set_slimmer_organisations_header(@classification.organisations)
-    set_slimmer_page_owner_header(@classification.lead_organisations.first)
-    set_meta_description(@classification.description)
+    set_slimmer_organisations_header(@topical_event.organisations)
+    set_slimmer_page_owner_header(@topical_event.lead_organisations.first)
+    set_meta_description(@topical_event.description)
 
     set_expiry 5.minutes
     respond_to do |format|
       format.html do
-        @recently_changed_documents = @classification.latest(3)
+        @recently_changed_documents = find_documents(count: 3)['results']
       end
       format.atom do
-        @recently_changed_documents = @classification.latest(10)
+        @recently_changed_documents = find_documents(count: 10)['results']
       end
     end
   end
 
-  private
-    def fetch_associated(type, presenter_class)
-      editions = @classification
-        .send(type)
-        .in_reverse_chronological_order
-        .includes(:translations, :document)
-        .limit(3)
-      decorate_collection(editions, presenter_class)
-    end
+private
+
+  def find_documents(filter_params)
+    filter_params[:filter_topical_events] = @topical_event.slug
+    SearchRummagerService.new.fetch_related_documents(filter_params)
+  end
+
+  def announcement_document_types
+    Whitehall::AnnouncementFilterOption.all.map(&:document_type).flatten
+  end
 end

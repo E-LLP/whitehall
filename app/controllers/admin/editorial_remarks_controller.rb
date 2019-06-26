@@ -1,7 +1,7 @@
 class Admin::EditorialRemarksController < Admin::BaseController
-  before_filter :find_edition
-  before_filter :enforce_permissions!
-  before_filter :limit_edition_access!
+  before_action :find_edition
+  before_action :enforce_permissions!
+  before_action :limit_edition_access!
 
   def enforce_permissions!
     enforce_permission!(:make_editorial_remark, @edition)
@@ -21,6 +21,7 @@ class Admin::EditorialRemarksController < Admin::BaseController
   end
 
 private
+
   def find_edition
     @edition = Edition.find(params[:edition_id])
   end

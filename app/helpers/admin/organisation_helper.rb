@@ -9,9 +9,8 @@ module Admin::OrganisationHelper
         label_text = "<span class='normal'>#{role_name}</span><br/>#{organisation_role_form.object.role.current_person_name}".html_safe
       end
       content_tag(:div,
-        organisation_role_form.text_field(:ordering, label_text: label_text, class: "ordering"),
-        class: "well remove-bottom-padding"
-      )
+                  organisation_role_form.text_field(:ordering, label_text: label_text, class: "ordering"),
+                  class: "well remove-bottom-padding")
     end
   end
 
@@ -24,18 +23,16 @@ module Admin::OrganisationHelper
       tabs["Promotional features"] = admin_organisation_promotional_features_path(organisation)
     end
 
-    tabs["Features"] = features_admin_organisation_path(organisation, locale: nil)
+    tabs["Features"] = features_admin_organisation_path(organisation, locale: I18n.default_locale)
     organisation.non_english_translated_locales.each do |locale|
       tabs["Features (#{locale.native_language_name})"] = features_admin_organisation_path(organisation, locale: locale.code)
     end
     tabs["Corporate information pages"] = admin_organisation_corporate_information_pages_path(organisation)
     tabs["More"] = {
       "Social media accounts" => admin_organisation_social_media_accounts_path(organisation),
-      "Governance groups" => admin_organisation_groups_path(organisation),
       "People" => people_admin_organisation_path(organisation),
       "Translations" => admin_organisation_translations_path(organisation),
       "Financial Reports" => admin_organisation_financial_reports_path(organisation),
-      "Featured policies" => admin_organisation_featured_policies_path(organisation),
     }
     tabs
   end

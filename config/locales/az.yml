@@ -18,6 +18,8 @@ az:
         unnumbered_hoc_paper:
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         file:
+      edition:
+        nation_inapplicabilities:
       policy_group/policy_group_attachments/attachment/attachment_data:
         file:
       response/consultation_response_attachments/attachment:
@@ -60,48 +62,50 @@ az:
     opendocument:
       help_html:
     see_more:
+  broken_links:
+    broken:
+      subheading:
+    caution:
+      subheading:
+    title:
   change_notes:
     page_history:
     published_at:
     see_all_updates:
     updated_at:
   contact:
-    contact_form: "Əlaqə vasitəsi"
+    contact_form: Əlaqə vasitəsi
     email: elektron poçt
   corporate_information_page:
     type:
-      about:
-      about_our_services:
-      access_and_opening:
-      complaints_procedure:
-      equality_and_diversity:
-      media_enquiries:
-      membership:
-      our_energy_use:
-      our_governance:
-      personal_information_charter: "şəxsi məlumatlar bölümü"
-      petitions_and_campaigns:
-      procurement:
-      publication_scheme: "çap sxemi"
-      recruitment:
-      research:
-      social_media_use:
-      staff_update:
-      statistics:
-      terms_of_reference:
-      welsh_language_scheme: Uels dili cədvəli
+      link_text:
+        welsh_language_scheme:
+      title:
+        about:
+        about_our_services:
+        access_and_opening:
+        accessible_documents_policy:
+        complaints_procedure:
+        equality_and_diversity:
+        media_enquiries:
+        membership:
+        our_energy_use:
+        our_governance:
+        personal_information_charter: şəxsi məlumatlar bölümü
+        petitions_and_campaigns:
+        procurement:
+        publication_scheme: çap sxemi
+        recruitment:
+        research:
+        social_media_use:
+        staff_update:
+        statistics:
+        terms_of_reference:
+        welsh_language_scheme: Uels dili cədvəli
   date:
     formats:
       default:
       long_ordinal:
-  detailed_guidance:
-    back_to_contents:
-    contents:
-    more:
-    part_of_published_collection:
-    published_related_detailed_guides:
-    related_mainstream_content:
-    see_more_like_this:
   document:
     contents:
     footer_meta:
@@ -114,7 +118,6 @@ az:
       attachments:
         one:
         other:
-      field_of_operation: "əməliyyat sahəsi"
       from:
       location:
       part_of:
@@ -124,7 +127,7 @@ az:
       author_title:
         minister:
         speaker:
-      delivered_on: "çatdırılıb"
+      delivered_on: çatdırılıb
       delivery_title:
         minister: Nazir
         speaker: Spiker
@@ -136,9 +139,12 @@ az:
       authored_article:
         one:
         other:
+      blog_post:
+        one:
+        other:
       case_study:
-        one: "Öyrənilib"
-        other: "Öyrənilib"
+        one: Öyrənilib
+        other: Öyrənilib
       closed_consultation:
         one: Bağlı məslətləşmə
         other: Bağlı məslətləşmələr
@@ -158,17 +164,14 @@ az:
         one:
         other:
       detailed_guidance:
-        one: "ətraflı məlumat"
-        other: "ətraflı məlumat"
+        one: ətraflı məlumat
+        other: ətraflı məlumat
       document_collection:
         one: növlər
         other:
       draft_text:
         one: hazırlanmış mətn
         other: hazırlanmış mətn
-      fatality_notice:
-        one: səhvlə bağlı qeyd
-        other: səhvlə bağlı qeydlər
       foi_release:
         one: Məlumat azadlığı ilə bağlı açıqlama
         other: Məlumat azadlığı ilə bağlı açıqlamalar
@@ -179,8 +182,8 @@ az:
         one:
         other:
       guidance:
-        one: "İnstruksiya"
-        other: "İnstruksiya"
+        one: İnstruksiya
+        other: İnstruksiya
       impact_assessment:
         one: Dəyərləndirmə
         other: Dəyərləndirmə
@@ -191,6 +194,9 @@ az:
         one: Müstəqil məruzə
         other: Müstəqil məruzələr
       international_treaty:
+        one:
+        other:
+      manual:
         one:
         other:
       map:
@@ -205,9 +211,15 @@ az:
       news_story:
         one: Xəbərlər
         other: Xəbərlər
+      nhs_content:
+        one:
+        other:
       notice:
         one:
         other:
+      official_statistics:
+        one: statistika
+        other: statistika
       open_consultation:
         one: açıq məsləhətləşmələr
         other: açıq məsləhətləşmələr
@@ -233,20 +245,17 @@ az:
         one: Tətqiqat və analiz
         other: Tətqiqat və analiz
       speaking_notes:
-        one: "Çıxış üçün  qeydləri"
-        other: "Çıxış üçün  qeydləri"
+        one: Çıxış üçün  qeydləri
+        other: Çıxış üçün  qeydləri
       speech:
-        one: "çıxış"
-        other: "Çıxışlar"
+        one: çıxış
+        other: Çıxışlar
       statement_to_parliament:
         one: Parlamentə bəyanat
         other: Parlamentə bəyanatlar
       statistical_data_set:
         one: statistik məlumatlar bazası
         other: statistik məlumatlar bazaları
-      official_statistics:
-        one: statistika
-        other: statistika
       statutory_guidance:
         one:
         other:
@@ -254,8 +263,11 @@ az:
         one: Transkripsiya
         other: Transkripsiyalar
       transparency:
-        one: "Şəffaf məlumat"
-        other: "Şəffaf məlumat"
+        one: Şəffaf məlumat
+        other: Şəffaf məlumat
+      world_news_story:
+        one:
+        other:
       written_statement:
         one: Parlamentə yazılı müraciət
         other: Parlamentə yazılı müraciət
@@ -282,7 +294,7 @@ az:
     az: Azərbaycanca
   latest_feed:
     no_updates: yeni məlumat yoxdur
-    title: "Ən sonuncu"
+    title: Ən sonuncu
   national_statistics:
     heading:
   number:
@@ -296,6 +308,7 @@ az:
       access_our_info:
       foi_how_to:
       foi_releases:
+      jobs:
       jobs_and_contacts:
       organisation_chart:
       transparency:
@@ -342,7 +355,7 @@ az:
     heading: Nəşrlər
     headings:
       detail:
-  read_more: "Ətraflı oxu"
+  read_more: Ətraflı oxu
   roles:
     heading:
       one:
@@ -410,7 +423,7 @@ az:
   world_location:
     headings:
       announcements: Bizim elanlar
-      country: "Ölkə"
+      country: Ölkə
       documents: Sənədlər
       mission: Bizim missiyamız
       organisations: Təşkilatlar
@@ -435,7 +448,8 @@ az:
     find_out_more: Bütün profilə və əlaqə nömrələrinə bax
     headings:
       about_us: Barəmizdə
-      contact_us: "Əlaqə vasitəsi"
+      contact_us: Əlaqə vasitəsi
+      contents:
       corporate_information: Məlumatlar
       follow_us: Bizi izlə
       our_people: Bizim adamlar

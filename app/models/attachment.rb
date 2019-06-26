@@ -1,6 +1,5 @@
 # Abstract base class for Attachments.
-class Attachment < ActiveRecord::Base
-  include HasContentId
+class Attachment < ApplicationRecord
   belongs_to :attachable, polymorphic: true
   has_one :attachment_source
 
@@ -10,7 +9,7 @@ class Attachment < ActiveRecord::Base
   before_save :nilify_locale_if_blank
   before_save :prevent_saving_of_abstract_base_class
 
-  VALID_COMMAND_PAPER_NUMBER_PREFIXES = ['C.', 'Cd.', 'Cmd.', 'Cmnd.', 'Cm.']
+  VALID_COMMAND_PAPER_NUMBER_PREFIXES = ['C.', 'Cd.', 'Cmd.', 'Cmnd.', 'Cm.'].freeze
 
   validates_with AttachmentValidator
   validates :attachable, presence: true
@@ -24,11 +23,12 @@ class Attachment < ActiveRecord::Base
   validates :order_url, uri: true, allow_blank: true
   validates :order_url, presence: {
     message: "must be entered as you've entered a price",
-    if: -> publication { publication.price.present? }
+    if: ->(publication) { publication.price.present? }
   }
   validates :price, numericality: {
     allow_blank: true, greater_than: 0
   }
+  validates :unique_reference, length: { maximum: 255 }, allow_blank: true
 
   scope :with_filename, ->(basename) {
     joins(:attachment_data).where('attachment_data.carrierwave_file = ?', basename)
@@ -39,11 +39,22 @@ class Attachment < ActiveRecord::Base
   scope :for_current_locale, -> { where(locale: [nil, I18n.locale]) }
 
   scope :not_deleted, -> { where(deleted: false) }
+  scope :deleted, -> { where(deleted: true) }
+
+  class Null
+    def deleted?
+      false
+    end
+
+    def attachable
+      Attachable::Null.new
+    end
+  end
 
   def self.parliamentary_sessions
     (1951..Time.zone.now.year).to_a.reverse.map do |year|
       starts = Date.new(year).strftime('%Y')
-      ends = Date.new(year + 1).strftime('%y')  # %y gives last two digits of year
+      ends = Date.new(year + 1).strftime('%y') # %y gives last two digits of year
       "#{starts}-#{ends}"
     end
   end
@@ -75,6 +86,7 @@ class Attachment < ActiveRecord::Base
 
   def rtl_locale?
     return false if locale.blank?
+
     Locale.new(locale).rtl?
   end
 
@@ -126,14 +138,14 @@ class Attachment < ActiveRecord::Base
     callbacks_result ? self : false
   end
 
-  private
+private
 
   def store_price_in_pence
     self.price_in_pence = if price && price.to_s.empty?
-      nil
-    elsif price
-      price.to_f * 100
-    end
+                            nil
+                          elsif price
+                            price.to_f * 100
+                          end
   end
 
   def set_ordering

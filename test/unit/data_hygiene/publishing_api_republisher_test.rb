@@ -13,10 +13,12 @@ class DataHygiene::PublishingApiRepublisherTest < ActiveSupport::TestCase
     expected_requests = [
       stub_publishing_api_put_content(presenter.content_id, presenter.content),
       stub_publishing_api_patch_links(presenter.content_id, links: presenter.links),
-      stub_publishing_api_publish(presenter.content_id, locale: 'en', update_type: 'republish')
+      stub_publishing_api_publish(presenter.content_id, locale: 'en', update_type: nil)
     ]
 
-    DataHygiene::PublishingApiRepublisher.new(@scope, NullLogger.instance).perform
+    Sidekiq::Testing.inline! do
+      DataHygiene::PublishingApiRepublisher.new(@scope, NullLogger.instance).perform
+    end
 
     assert_all_requested(expected_requests)
   end
@@ -25,5 +27,4 @@ class DataHygiene::PublishingApiRepublisherTest < ActiveSupport::TestCase
     Whitehall::PublishingApi.expects(:bulk_republish_async).with(@organisation)
     DataHygiene::PublishingApiRepublisher.new(@scope, NullLogger.instance).perform
   end
-
 end

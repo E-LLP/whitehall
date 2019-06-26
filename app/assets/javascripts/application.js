@@ -5,15 +5,17 @@
 // the compiled file.
 //
 //= require jquery_ujs
-//= require vendor/jquery/jquery-ui-1.10.2.custom
+//= require jquery.ui.all
 //= require vendor/jquery/magna-charta.min
+//= require vendor/jquery/jquery.player.min.js
 //= require vendor/sorttable
 //= require vendor/object-create-polyfill
 //
-//= require govuk_toolkit
 //= require shared_mustache
 //= require templates
 //
 //= require govuk
 //= require_tree ./common
 //= require_tree ./application
+//
+//= require govuk_publishing_components/all_components

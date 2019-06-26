@@ -1,0 +1,42 @@
+AllCops:
+  Exclude:
+    - 'db/schema.rb'
+    - 'lib/tasks/cucumber.rake'
+
+Metrics/BlockLength:
+  Enabled: false
+
+# This doesn't pass at the moment, as there are some empty lines
+# around comments
+Layout/EmptyLinesAroundArguments:
+  Enabled: false
+
+# This suggests awkward alignment, so disable it
+Layout/RescueEnsureAlignment:
+  Exclude:
+    - 'app/models/email_signup/feed_url_validator.rb'
+    - 'app/models/unpublishing.rb'
+    - 'app/presenters/detailed_guide_presenter.rb'
+    - 'app/presenters/detailed_guide_presenter.rb'
+
+Style/EvalWithLocation:
+  Exclude:
+    - 'app/helpers/admin/edition_routes_helper.rb'
+
+Naming/VariableNumber:
+  EnforcedStyle: snake_case
+
+Style/FormatStringToken:
+  Exclude:
+    - 'config/routes.rb'
+    # Hopefully this file can be removed soon...
+    - 'lib/migrate_assets_to_asset_manager.rb'
+    - 'lib/tasks/scheduled_publishing.rake'
+
+# Cops disabled, due to false positives and infinite loops
+
+Layout/AccessModifierIndentation:
+  Enabled: false
+
+Style/AccessModifierDeclarations:
+  Enabled: false

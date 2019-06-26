@@ -1,5 +1,5 @@
 class Api::Responder < ActionController::Responder
-  def to_json
+  def to_json(*_args)
     display resource.as_json.merge(response_info)
   end
 
@@ -8,7 +8,7 @@ class Api::Responder < ActionController::Responder
     super
   end
 
-  private
+private
 
   def response_info
     response_info = { status: status_for_response_info }
@@ -25,14 +25,14 @@ class Api::Responder < ActionController::Responder
   end
 
   def link_header
-    @link_hedaer ||= extract_link_header_from_options_and_resource
+    @link_header ||= extract_link_header_from_options_and_resource
   end
 
   def extract_link_header_from_options_and_resource
     links = resource.links if resource.respond_to?(:links)
     links ||= []
     links |= (@options[:links] || [])
-    links_for_link_header = links.map {|(url, attrs)| [url, attrs.to_a]}
+    links_for_link_header = links.map { |(url, attrs)| [url, attrs.to_a] }
     LinkHeader.new(links_for_link_header)
   end
 

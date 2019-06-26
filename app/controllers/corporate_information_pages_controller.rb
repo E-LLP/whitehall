@@ -1,6 +1,6 @@
 class CorporateInformationPagesController < DocumentsController
-  prepend_before_filter :find_organisation
-  before_filter :set_slimmer_headers_for_document, only: [:show, :index]
+  prepend_before_action :find_organisation
+  before_action :set_slimmer_headers_for_document, only: %i[show index]
 
   def show
     @corporate_information_page = @document
@@ -13,7 +13,7 @@ class CorporateInformationPagesController < DocumentsController
   end
 
   def index
-    params[:id] = "about"  # Set CIP slug explicitly to look up the about page.
+    params[:id] = "about" # Set CIP slug explicitly to look up the about page.
     @document = find_document_or_edition
     @corporate_publications = @organisation.corporate_publications.in_reverse_chronological_order.published
   end
@@ -33,7 +33,7 @@ private
     Unpublishing.joins(
       'JOIN edition_organisations ON edition_organisations.edition_id = unpublishings.edition_id'
     ).where(
-      edition_organisations: {organisation_id: @organisation.id}, slug: params[:id], document_type: document_class
+      edition_organisations: { organisation_id: @organisation.id }, slug: params[:id], document_type: document_class.to_s
     ).first
   end
 

@@ -1,7 +1,7 @@
 class Admin::SocialMediaAccountsController < Admin::BaseController
-  before_filter :find_socialable
-  before_filter :find_social_media_account, only: [:edit, :update, :destroy]
-  before_filter :strip_whitespace_from_url
+  before_action :find_socialable
+  before_action :find_social_media_account, only: %i[edit update destroy]
+  before_action :strip_whitespace_from_url
 
   def index
     @social_media_accounts = @socialable.social_media_accounts
@@ -11,14 +11,13 @@ class Admin::SocialMediaAccountsController < Admin::BaseController
     @social_media_account = @socialable.social_media_accounts.build
   end
 
-  def edit
-  end
+  def edit; end
 
   def update
     @social_media_account.update_attributes(social_media_account_params)
     if @social_media_account.save
       redirect_to [:admin, @socialable, SocialMediaAccount],
-        notice: "#{@social_media_account.service_name} account updated successfully"
+                  notice: "#{@social_media_account.service_name} account updated successfully"
     else
       render :edit
     end
@@ -28,7 +27,7 @@ class Admin::SocialMediaAccountsController < Admin::BaseController
     @social_media_account = @socialable.social_media_accounts.build(social_media_account_params)
     if @social_media_account.save
       redirect_to [:admin, @socialable, SocialMediaAccount],
-        notice: "#{@social_media_account.service_name} account created successfully"
+                  notice: "#{@social_media_account.service_name} account created successfully"
     else
       render :edit
     end
@@ -37,7 +36,7 @@ class Admin::SocialMediaAccountsController < Admin::BaseController
   def destroy
     if @social_media_account.destroy
       redirect_to [:admin, @socialable, SocialMediaAccount],
-        notice: "#{@social_media_account.service_name} account deleted successfully"
+                  notice: "#{@social_media_account.service_name} account deleted successfully"
     else
       render :edit
     end

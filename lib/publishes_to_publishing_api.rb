@@ -14,13 +14,14 @@ module PublishesToPublishingApi
 
   def publish_to_publishing_api
     run_callbacks :published do
-      Whitehall::PublishingApi.publish_async(self)
+      Whitehall::PublishingApi.patch_links(self)
+      Whitehall::PublishingApi.publish(self)
     end
   end
 
   def publish_gone_to_publishing_api
     run_callbacks :published_gone do
-      Whitehall::PublishingApi.publish_gone_async(content_id)
+      Whitehall::PublishingApi.publish_gone_async(content_id, nil, nil)
     end
   end
 end

@@ -1,6 +1,6 @@
 class Admin::DetailedGuidesController < Admin::EditionsController
+  private
 
-private
   def edition_class
     DetailedGuide
   end

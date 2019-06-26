@@ -2,6 +2,7 @@ Feature: Administering Organisations
 
 Background:
   Given I am an admin in the organisation "Ministry of Pop"
+  And a directory of organisations exists
   And a world location "United Kingdom" exists
 
 Scenario: Adding an Organisation
@@ -71,8 +72,7 @@ Scenario: Defining the order of featured news on an organisation page
 Scenario: Requesting publications in alternative format
   And I set the alternative format contact email of "Ministry of Pop" to "alternative.format@ministry-of-pop.gov.uk"
   And a published publication "Charleston styles today" with a PDF attachment and alternative format provider "Ministry of Pop"
-  When I visit the publication "Charleston styles today"
-  Then I should see a mailto link for the alternative format contact email "alternative.format@ministry-of-pop.gov.uk"
+  Then the alternative format contact email is "alternative.format@ministry-of-pop.gov.uk"
 
 Scenario: Adding featured links
   Given I am a GDS editor in the organisation "Ministry of Pop"
@@ -123,27 +123,6 @@ Scenario: Editing an existing translation
     | logo formatted name | Département des barbes en France                  |
     | description         | Barbes, moustaches, même rouflaquettes            |
     | about us            | Nous nous occupons de la pilosité faciale du pays |
-
-Scenario: Viewing the organisations index and seeing organisations grouped into categories
-  Given some organisations of every type exist
-  When I visit the organisations page
-  Then I should see the executive offices listed
-  And I should see the ministerial departments including their sub-organisations listed with count and number live
-  And I should see the non ministerial departments including their sub-organisations listed with count
-  And I should see the agencies and government bodies listed with count
-  And I should see the public corporations listed with count
-  And I should see the devolved administrations listed with count
-  And I should see the high profile groups listed with count
-
-Scenario: Viewing the organisations index and seeing the status of agencies and public bodies live on govuk
-  Given 1 live, 1 transitioning and 1 exempt executive agencies
-  When I visit the organisations page
-  Then I should see metadata in the agency list indicating the status of each organisation which is not live
-
-Scenario: Viewing the organisations index and seeing the status of non ministerial departments
-  Given 1 live, 1 transitioning and 1 exempt non ministerial departments
-  When I visit the organisations page
-  Then I should see metadata in the non ministerial department list indicating the status of each organisation which is not live
 
 Scenario: Organisation page should show consultations
   Given the organisation "Attorney General's Office" is associated with consultations "More tea vicar?" and "Cake or biscuit?"
@@ -204,27 +183,3 @@ Scenario: Citizen views a closed organisation
   When I view the organisation
   Then I can see that the organisation is closed and has been superseded by the other
   And I can see the documents associated with that organisation
-
-Scenario: Featuring policies on an organisation
-  Given I am an editor in the organisation "Department of Fun"
-  And and the policies "Dance around" and "Sing aloud" exist
-  When I feature the policies "Dance around" and "Sing aloud" for "Department of Fun"
-  Then I should see the featured policies in the "Department of Fun" organisation are:
-    |Dance around|
-    |Sing aloud|
-  When I stop featuring the polices "Dance around" for "Department of Fun"
-  Then I should see the featured policies in the "Department of Fun" organisation are:
-    |Sing aloud|
-  When I stop featuring the polices "Sing aloud" for "Department of Fun"
-  Then there should be no featured policies on the home page of "Department of Fun"
-
-Scenario: Setting the order of policies featured on an organisation
-  Given I am an editor in the organisation "Department of Fun"
-  And and the policies "Dance around" and "Sing aloud" exist
-  When I feature the policies "Dance around" and "Sing aloud" for "Department of Fun"
-  And I order the featured policies in the "Department of Fun" organisation as:
-    |Sing aloud|
-    |Dance around|
-  Then I should see the featured policies in the "Department of Fun" organisation are:
-    |Sing aloud|
-    |Dance around|

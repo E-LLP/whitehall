@@ -1,6 +1,6 @@
 # The base class for almost all editoral content.
 # @abstract Using STI should not create editions directly.
-class Edition < ActiveRecord::Base
+class Edition < ApplicationRecord
   include Edition::Traits
 
   include Edition::NullImages
@@ -27,9 +27,8 @@ class Edition < ActiveRecord::Base
 
   include Dependable
 
-  serialize :need_ids, Array
-
   extend Edition::FindableByOrganisation
+  extend Edition::FindableByWorldwideOrganisation
 
   include Searchable
 
@@ -37,7 +36,7 @@ class Edition < ActiveRecord::Base
   has_many :edition_authors, dependent: :destroy
   has_many :authors, through: :edition_authors, source: :user
   has_many :classification_featurings, inverse_of: :edition
-  has_many :links_reports, as: :link_reportable
+  has_many :link_check_reports, as: :link_reportable, class_name: 'LinkCheckerApiReport'
 
   has_many :edition_dependencies, dependent: :destroy
   has_many :depended_upon_contacts, through: :edition_dependencies, source: :dependable, source_type: 'Contact'
@@ -45,13 +44,17 @@ class Edition < ActiveRecord::Base
 
   validates_with SafeHtmlValidator
   validates_with NoFootnotesInGovspeakValidator, attribute: :body
+  validates_with TaxonValidator, on: :publish
 
   validates :creator, presence: true
   validates :title, presence: true, if: :title_required?, length: { maximum: 255 }
   validates :body, presence: true, if: :body_required?, length: { maximum: 16777215 }
   validates :summary, presence: true, if: :summary_required?, length: { maximum: 65535 }
   validates :first_published_at, recent_date: true, allow_blank: true
-  validate :need_ids_are_six_digit_integers?
+  validates :first_published_at, previously_published: true
+  validates_each :first_published_at do |record, attr, value|
+    record.errors.add(attr, "can't be set to a future date") if value && Time.zone.now < value
+  end
 
   UNMODIFIABLE_STATES = %w(scheduled published superseded deleted).freeze
   FROZEN_STATES = %w(superseded deleted).freeze
@@ -59,7 +62,7 @@ class Edition < ActiveRecord::Base
   POST_PUBLICATION_STATES = %w(published superseded withdrawn).freeze
   PUBLICLY_VISIBLE_STATES = %w(published withdrawn).freeze
 
-  scope :with_title_or_summary_containing, -> (*keywords) {
+  scope :with_title_or_summary_containing, ->(*keywords) {
     pattern = "(#{keywords.map { |k| Regexp.escape(k) }.join('|')})"
     in_default_locale.where("edition_translations.title REGEXP :pattern OR edition_translations.summary REGEXP :pattern", pattern: pattern)
   }
@@ -137,7 +140,15 @@ class Edition < ActiveRecord::Base
   end
 
   def self.in_reverse_chronological_order
-    order(arel_table[:public_timestamp].desc, arel_table[:document_id].desc, arel_table[:id].desc)
+    ids = pluck(:id)
+    Edition
+      .unscoped
+      .where(id: ids)
+      .order(
+        arel_table[:public_timestamp].desc,
+        arel_table[:document_id].desc,
+        arel_table[:id].desc
+      )
   end
 
   def self.without_editions_of_type(*edition_classes)
@@ -161,7 +172,7 @@ class Edition < ActiveRecord::Base
 
   # used by Admin::EditionFilter
   def self.by_type(type)
-    where(type: type)
+    where(type: type.to_s)
   end
 
   # used by Admin::EditionFilter
@@ -185,6 +196,14 @@ class Edition < ActiveRecord::Base
 
   def self.to_date(date)
     where("editions.updated_at <= ?", date)
+  end
+
+  # used by Admin::EditionFilter
+  def self.only_broken_links
+    joins("INNER JOIN link_checker_api_reports ON link_checker_api_reports.link_reportable_id = editions.id")
+    .joins("INNER JOIN link_checker_api_report_links ON link_checker_api_report_links.link_checker_api_report_id = link_checker_api_reports.id")
+    .where("link_checker_api_reports.link_reportable_type = 'Edition' AND link_checker_api_report_links.status != 'ok'")
+    .distinct
   end
 
   def self.latest_edition
@@ -233,6 +252,10 @@ class Edition < ActiveRecord::Base
     document && document.scheduled_edition
   end
 
+  def attachables
+    []
+  end
+
   def skip_main_validation?
     FROZEN_STATES.include?(state)
   end
@@ -249,16 +272,22 @@ class Edition < ActiveRecord::Base
     id: :id,
     title: :search_title,
     link: :search_link,
-    format: -> (d) { d.format_name.tr(" ", "_") },
+    format: ->(d) { d.format_name.tr(" ", "_") },
     content: :indexable_content,
     description: :summary,
-    organisations: nil,
     people: nil,
     display_type: :display_type,
     detailed_format: :detailed_format,
     public_timestamp: :public_timestamp,
     relevant_to_local_government: :relevant_to_local_government?,
     world_locations: nil,
+    # DID YOU MEAN: Policy Area?
+    # "Policy area" is the newer name for "topic"
+    # (https://www.gov.uk/government/topics)
+    # "Topic" is the newer name for "specialist sector"
+    # (https://www.gov.uk/topic)
+    # You can help improve this code by renaming all usages of this field to use
+    # the new terminology.
     topics: nil,
     only: :search_only,
     index_after: [],
@@ -266,12 +295,12 @@ class Edition < ActiveRecord::Base
     search_format_types: :search_format_types,
     attachments: nil,
     operational_field: nil,
-    specialist_sectors: :live_specialist_sector_tags,
     latest_change_note: :most_recent_change_note,
     is_political: :political?,
     is_historic: :historic?,
     is_withdrawn: :withdrawn?,
-    government_name: :search_government_name
+    government_name: :search_government_name,
+    content_store_document_type: :content_store_document_type,
   )
 
   def search_title
@@ -303,7 +332,7 @@ class Edition < ActiveRecord::Base
   end
 
   def creator
-    edition_authors.first && edition_authors.first.user
+    edition_authors.first&.user
   end
 
   def creator=(user)
@@ -380,7 +409,7 @@ class Edition < ActiveRecord::Base
     false
   end
 
-  def image_disallowed_in_body_text?(_)
+  def image_disallowed_in_body_text?(_index)
     false
   end
 
@@ -404,6 +433,18 @@ class Edition < ActiveRecord::Base
     false
   end
 
+  def can_be_tagged_to_worldwide_taxonomy?
+    false
+  end
+
+  def has_been_tagged?
+    api_response = Services.publishing_api.get_links(content_id)
+
+    return false if api_response["links"].nil? || api_response["links"]["taxons"].nil?
+
+    api_response["links"]["taxons"].any?
+  end
+
   def included_in_statistics_feed?
     search_format_types.include?("publicationesque-statistics")
   end
@@ -414,20 +455,15 @@ class Edition < ActiveRecord::Base
     unless published?
       raise "Cannot create new edition based on edition in the #{state} state"
     end
-    draft_attributes = attributes.except(*%w{
-      id
-      type
-      state
-      created_at
-      updated_at
-      change_note
-      minor_change
-      force_published
-      scheduled_publication
-    })
-    self.class.new(draft_attributes.merge('state' => 'draft', 'creator' => user)).tap do |draft|
+
+    ignorable_attribute_keys = %w(id type state created_at updated_at change_note
+                                  minor_change force_published scheduled_publication)
+    draft_attributes = attributes.except(*ignorable_attribute_keys)
+      .merge('state' => 'draft', 'creator' => user, 'previously_published' => previously_published)
+
+    self.class.new(draft_attributes).tap do |draft|
       traits.each { |t| t.process_associations_before_save(draft) }
-      if draft.valid? || !draft.errors.keys.include?(:base)
+      if draft.valid? || !draft.errors.key?(:base)
         if draft.save(validate: false)
           traits.each { |t| t.process_associations_after_save(draft) }
         end
@@ -457,7 +493,6 @@ class Edition < ActiveRecord::Base
   def submitted_by
     most_recent_submission_audit_entry.try(:actor)
   end
-
 
   def title_with_state
     "#{title} (#{state})"
@@ -568,11 +603,11 @@ class Edition < ActiveRecord::Base
   end
 
   def set_public_timestamp
-    if first_published_version?
-      self.public_timestamp = first_public_at
-    else
-      self.public_timestamp = major_change_published_at
-    end
+    self.public_timestamp = if first_published_version?
+                              first_public_at
+                            else
+                              major_change_published_at
+                            end
   end
 
   def title_required?
@@ -583,50 +618,22 @@ class Edition < ActiveRecord::Base
     true
   end
 
-  def has_associated_needs?
-    associated_needs.any?
+  attr_accessor :has_previously_published_error
+
+  # 'previously_published' is a transient attribute populated
+  # by request parameters, and because it's not persisted it's
+  # not converted to a boolean, hence this manual attr writer method.
+  # NOTE: This method isn't called when the user fails to select an
+  # option for this field and so the value remains nil.
+  def previously_published=(value)
+    @previously_published = value.to_s == "true"
   end
 
-  def associated_needs
-    return [] if need_ids.empty?
-    Whitehall.need_api.needs_by_id(*need_ids).with_subsequent_pages.to_a
-  end
-
-  def need_ids_are_six_digit_integers?
-    invalid_need_ids = need_ids.reject { |need_id| need_id =~ /\A\d{6}\z/ }
-    unless invalid_need_ids.empty?
-      errors.add(:need_ids, "are invalid: #{invalid_need_ids.join(', ')}")
-    end
-  end
-
-  attr_accessor :has_first_published_error
-
-  attr_writer :previously_published
   def previously_published
-    if @previously_published.present?
-      @previously_published
-    elsif imported?
-      true
-    elsif !new_record?
-      first_published_at.present?
-    end
-  end
+    return first_published_at.present? unless new_record?
+    return true if imported?
 
-  def trigger_previously_published_validations
-    @validate_previously_published = true
-  end
-
-  validate :previously_published_documents_have_date
-
-  def previously_published_documents_have_date
-    return unless @validate_previously_published
-    if @previously_published.nil?
-      errors[:base] << 'You must specify whether the document has been published before'
-      @has_first_published_error = true
-    elsif previously_published == 'true' # not a real field, so isn't converted to bool
-      errors.add(:first_published_at, "can't be blank") if first_published_at.blank?
-      @has_first_published_error = true
-    end
+    @previously_published
   end
 
   def government
@@ -649,6 +656,22 @@ class Edition < ActiveRecord::Base
 
   def detailed_format
     display_type.parameterize
+  end
+
+  def content_store_document_type
+    PublishingApiPresenters.presenter_for(self).document_type
+  end
+
+  def has_legacy_tags?
+    has_policies? || has_policy_areas? || has_primary_sector? || has_secondary_sectors?
+  end
+
+  def has_policies?
+    false
+  end
+
+  def has_policy_areas?
+    false
   end
 
 private

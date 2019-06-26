@@ -1,87 +1,53 @@
-[![Code Climate](https://codeclimate.com/github/alphagov/whitehall.png)](https://codeclimate.com/github/alphagov/whitehall)
+# whitehall
 
-# Whitehall App
-
-"Whitehall" is the code name for the
-[Inside Government](https://www.gov.uk/government/) project, which
-aims to bring Government departments online in a consistent and
-user-friendly manner. Documentation can be found on [rdoc](http://rdoc.info/github/alphagov/whitehall/frames).
+whitehall is a Ruby on Rails content management application for content published by government departments and agencies.
 
 ## Nomenclature
 
-* *Govspeak* A variation of [Markdown](https://daringfireball.net/projects/markdown) 
-used throughout 'Whitehall' as the general publishing format
+- *Govspeak* A variation of [Markdown](https://daringfireball.net/projects/markdown) used throughout whitehall as the general publishing format
 
-## Technical Documentation
+## Technical documentation
 
-Whitehall is a Rails 4 app built on a MySQL database. It is deployed
-in two modes, 'admin' for publishers to create and manage content and
-'frontend' for rendering content under https://www.gov.uk/government. In addition to
-storing and managing its own content database Whitehall also updates
-various other APIs including search and is currently being migrated
-towards a new publishing model utilising [Publishing
-API](https://github.com/alphagov/publishing-api) and 
-[Content Store](https://github.com/alphagov/content-store).
+whitehall is a Ruby on Rails app built on a MySQL database. It is deployed in two modes: 'admin' for publishers to create and manage content and 'frontend' for rendering some content under https://www.gov.uk/government and https://www.gov.uk/world. whitehall also sends most content to the publishing-api and rummager.
 
 ## Dependencies
 
-* Xcode (for the Command Line Tools `xcode-select --install`)
-* Ruby 2.2.3
-* Rubygems and Bundler
-* Mysql
-* Imagemagick and Ghostscript (for generating thumbnails of uploaded
-  PDFs)
-* xpdf (first download [XQuartz](http://www.xquartz.org/))
-* PhantomJS (for running the Javascript tests)
+- [alphagov/asset-manager](http://github.com/alphagov/asset-manager): provides uploading for static files
+- [alphagov/publishing-api](http://github.com/alphagov/publishing-api): documents are sent here, persisted and then requested
+- [alphagov/rummager](http://github.com/alphagov/rummager): allows documents to be indexed for searching in both finders and site search
+- [alphagov/link-checker-api](https://github.com/alphagov/link-checker-api): checks all the links in an edition on request from the edition show page.
 
 ## Running the application
 
-The application can be started with
-
 ```
-bundle exec rails s
+$ ./startup.sh
 ```
+If you are using the [GDS development virtual machine](https://docs.publishing.service.gov.uk/manual/get-started.html#4-boot-your-vm) then the application will be available on the host at http://whitehall-admin.dev.gov.uk/
 
-Note that the application itself will respond to requests on the root URL `/` with a
-routing error. To check that it works, try visiting `/government/admin` and `/government/organisations`.
-
-Further setup instructions are available in the [detailed setup guide](docs/detailed_setup_guide.md)
+Further setup instructions are available in the [detailed setup guide](docs/detailed_setup_guide.md).
 
 ## Running the test suite
 
-See the [testing guide](docs/testing_guide.md)
+```
+$ bundle exec rake
+```
 
-## Assets
+## Other documentation
 
-GOV.UK shares assets (eg stylesheets and JavaScript) across apps using the
-[`slimmer` gem](https://github.com/alphagov/slimmer) and the [`static`
-app](https://github.com/alphagov/static). 
+- [Contributing guide](CONTRIBUTING.md)
+- [CSS](docs/css.md)
+- [Edition workflow](docs/edition_workflow.md)
+- [How to publish a finder in whitehall](docs/finders.md)
+- [Internationalisation](docs/internationalisation_guide.md)
+- [JavaScript](docs/javascript.md)
+- [Local assets](docs/local_asset_setup_guide.md)
+- [Search setup guide](docs/search_setup_guide.md)
+- [Testing guide](docs/testing_guide.md)
+- [Timestamps](docs/timestamps.md)
 
-See the [local asset setup guide](docs/local_asset_setup_guide.md) 
+## Generating technical documentation
 
-## Search
-
-The Whitehall app relies on
-[Rummager](https://github.com/alphagov/rummager) for document
-indexing, and the
-[GOV.UK frontend application](https://github.com/alphagov/frontend) to
-serve results.
-
-See the [search setup guide](docs/search_setup_guide.md)
-
-## Other guides
-
-[Timestamps](docs/timestamps.md)
-
-[Internationalisation](docs/internationalisation_guide.md)
-
-[Creating new users](docs/creating_new_users.md)
-
-[Contributing guide](CONTRIBUTING.md)
-
-## Generating the documentation
-
-We use [YARD](https://github.com/lsegal/yard) for the documentation. You can generate a local copy with:
+We use [YARD](https://github.com/lsegal/yard) for the technical documentation. You can generate a local copy with:
 
     yard server --reload
 
@@ -90,9 +56,3 @@ You can also read the docs on [rdoc.info](http://rdoc.info/github/alphagov/white
 ## Licence
 
 [MIT License](LICENCE)
-
-
-
-
-
-

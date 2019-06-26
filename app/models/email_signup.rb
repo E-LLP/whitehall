@@ -8,26 +8,31 @@ class EmailSignup
 
   def initialize(attributes = {})
     @attributes = attributes
-    @feed = local_government ? add_local_government(attributes[:feed]) : attributes[:feed]
+    @feed = attributes[:feed]
   end
 
   def save
     if valid?
-      ensure_govdelivery_topic_exists
+      ensure_subscriber_list_exists
       true
     end
   end
 
-  def local_government
-    ActiveRecord::Type::Boolean.new.type_cast_from_database(@attributes[:local_government])
+  def ensure_subscriber_list_exists
+    @ensure_subscriber_list_exists ||=
+      Services.email_alert_api.find_or_create_subscriber_list(criteria)
   end
 
-  def ensure_govdelivery_topic_exists
-    Whitehall.govuk_delivery_client.topic(feed, description)
+  def criteria
+    UrlToSubscriberListCriteria.new(feed).convert.merge("title" => description)
   end
 
-  def govdelivery_url
-    Whitehall.govuk_delivery_client.signup_url(feed)
+  def topic_id
+    ensure_subscriber_list_exists['subscriber_list']['gov_delivery_id']
+  end
+
+  def signup_url
+    ensure_subscriber_list_exists['subscriber_list']['subscription_url']
   end
 
   def description
@@ -46,11 +51,6 @@ class EmailSignup
 protected
 
   def feed_url_validator
-    @feed_url_validator ||= Whitehall::GovUkDelivery::FeedUrlValidator.new(feed)
-  end
-
-  def add_local_government(feed)
-    param_character = feed.include?('?') ? '&' : '?'
-    "#{feed}#{param_character}relevant_to_local_government=1"
+    @feed_url_validator ||= FeedUrlValidator.new(feed)
   end
 end

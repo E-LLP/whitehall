@@ -13,6 +13,7 @@ class EditionService
       ActiveRecord::Base.transaction do
         prepare_edition
         fire_transition!
+        update_publishing_api!
       end
       notify!
       true
@@ -41,8 +42,25 @@ class EditionService
 
 private
 
+  def is_whitehall_corp_info_page?
+    edition.type == 'CorporateInformationPage' &&
+      edition.rendering_app == Whitehall::RenderingApp::WHITEHALL_FRONTEND
+  end
+
   def notify!
-    notifier && notifier.publish(verb, edition, options)
+    # reload the edition to strip the LocalisedModel, as this can
+    # cause problems later with localisation.
+    #
+    # If we can get rid of LocalisedModel, this can be removed.
+    notifier && notifier.publish(verb, edition.reload, options)
+  end
+
+  def update_publishing_api!
+    return if is_whitehall_corp_info_page?
+
+    ServiceListeners::PublishingApiPusher
+      .new(edition.reload)
+      .push(event: verb, options: options)
   end
 
   def prepare_edition

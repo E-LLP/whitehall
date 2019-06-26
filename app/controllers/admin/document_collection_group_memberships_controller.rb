@@ -1,16 +1,16 @@
 class Admin::DocumentCollectionGroupMembershipsController < Admin::BaseController
-  before_filter :load_document_collection
-  before_filter :load_document_collection_group
-  before_filter :find_document, only: :create
+  before_action :load_document_collection
+  before_action :load_document_collection_group
+  before_action :find_document, only: :create
 
   def create
     membership = DocumentCollectionGroupMembership.new(document: @document, document_collection_group: @group)
     if membership.save
       redirect_to admin_document_collection_groups_path(@collection),
-        notice: "'#{params[:title]}' added to '#{@group.heading}'"
+                  notice: "'#{params[:title]}' added to '#{@group.heading}'"
     else
       redirect_to admin_document_collection_groups_path(@collection),
-        alert: membership.errors.full_messages.join(". ") + '.'
+                  alert: membership.errors.full_messages.join(". ") + '.'
     end
   end
 
@@ -64,9 +64,9 @@ private
   end
 
   def find_document
-    unless @document = Document.where(id: params[:document_id]).first
+    unless (@document = Document.where(id: params[:document_id]).first)
       redirect_to admin_document_collection_groups_path(@collection),
-        alert: "We couldn't find a document titled '#{params[:title]}'"
+                  alert: "We couldn't find a document titled '#{params[:title]}'"
     end
   end
 end

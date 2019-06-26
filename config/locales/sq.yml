@@ -5,7 +5,6 @@ sq:
         one: Dokument
         other: Dokumente
       applies_to_nations: Zbatohet mbi
-      field_of_operation: Fusha e veprimit
       from:
       location:
       part_of:
@@ -16,6 +15,9 @@ sq:
       authored_article:
         one: Artikull autori
         other: Artikuj autoresh
+      blog_post:
+        one:
+        other:
       case_study:
         one: Rast studimi
         other: Raste studimi
@@ -46,9 +48,6 @@ sq:
       draft_text:
         one: Draft tekst
         other: draft tekste
-      fatality_notice:
-        one: njoftim fataliteti
-        other: njoftime fataliteti
       foi_release:
         one: Njoftim mbi Lirine e Informacionit
         other: Njoftime mbi Lirine e Informacionit
@@ -73,6 +72,9 @@ sq:
       international_treaty:
         one:
         other:
+      manual:
+        one:
+        other:
       map:
         one: Harte
         other: Harta
@@ -85,9 +87,15 @@ sq:
       news_story:
         one: Ngjarje
         other: Ngjarje
+      nhs_content:
+        one:
+        other:
       notice:
         one:
         other:
+      official_statistics:
+        one: Statistika
+        other: Statistika
       open_consultation:
         one: Konsultim i hapur
         other: Konsultime te hapur
@@ -124,9 +132,6 @@ sq:
       statistical_data_set:
         one: Grup te dhenash statistikore
         other: Grupe te dhenash stasistikore
-      official_statistics:
-        one: Statistika
-        other: Statistika
       statutory_guidance:
         one:
         other:
@@ -136,6 +141,9 @@ sq:
       transparency:
         one: Te dhena per transparencen
         other: Te dhena per transparencen
+      world_news_story:
+        one:
+        other:
       written_statement:
         one: Deklarate me shkrim per Parlamentin
         other: Deklarata me shkrim per Parlamentin
@@ -215,6 +223,8 @@ sq:
         unnumbered_hoc_paper:
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         file:
+      edition:
+        nation_inapplicabilities:
       policy_group/policy_group_attachments/attachment/attachment_data:
         file:
       response/consultation_response_attachments/attachment:
@@ -260,6 +270,12 @@ sq:
     opendocument:
       help_html:
     see_more:
+  broken_links:
+    broken:
+      subheading:
+    caution:
+      subheading:
+    title:
   change_notes:
     page_history:
     published_at:
@@ -270,38 +286,34 @@ sq:
     email: Email
   corporate_information_page:
     type:
-      about:
-      about_our_services:
-      access_and_opening:
-      complaints_procedure:
-      equality_and_diversity:
-      media_enquiries:
-      membership:
-      our_energy_use:
-      our_governance:
-      personal_information_charter: Informacion Personal
-      petitions_and_campaigns:
-      procurement:
-      publication_scheme: Skeme publikimi
-      recruitment:
-      research:
-      social_media_use: Perdorim media sociale
-      staff_update:
-      statistics:
-      terms_of_reference:
-      welsh_language_scheme: Skeme e gjuhes Uells
+      link_text:
+        welsh_language_scheme:
+      title:
+        about:
+        about_our_services:
+        access_and_opening:
+        accessible_documents_policy:
+        complaints_procedure:
+        equality_and_diversity:
+        media_enquiries:
+        membership:
+        our_energy_use:
+        our_governance:
+        personal_information_charter: Informacion Personal
+        petitions_and_campaigns:
+        procurement:
+        publication_scheme: Skeme publikimi
+        recruitment:
+        research:
+        social_media_use: Perdorim media sociale
+        staff_update:
+        statistics:
+        terms_of_reference:
+        welsh_language_scheme: Skeme e gjuhes Uells
   date:
     formats:
       default: "%d %B %Y"
       long_ordinal: "%e %B %Y"
-  detailed_guidance:
-    back_to_contents:
-    contents:
-    more:
-    part_of_published_collection:
-    published_related_detailed_guides:
-    related_mainstream_content:
-    see_more_like_this:
   document_filters:
     description: Ju mund te perdorni filtrat per te treguar&nbsp; vetem rezultatet
       qe perputhen me interesin tuaj&nbsp;
@@ -338,6 +350,7 @@ sq:
       access_our_info: Shiko informacionin tone
       foi_how_to: Si te besh nje kerkese FOI
       foi_releases: Njoftime FOI
+      jobs:
       jobs_and_contacts: Vende pune dhe kontrata
       organisation_chart:
       transparency: Te dhena transparence
@@ -442,6 +455,7 @@ sq:
     headings:
       about_us: Rreth nesh
       contact_us: Kontakto
+      contents:
       corporate_information: Informacion korporate
       follow_us: Na ndiq
       our_people: Njerezit tane

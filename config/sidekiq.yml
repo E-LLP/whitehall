@@ -1,11 +1,16 @@
 :verbose: true
-:concurrency: 2
+:concurrency: 8
 :logfile: ./log/sidekiq.json.log
 :queues:
-  - [bulk_republishing, 1]
-  - [imports, 2]
-  - [router, 4]
-  - [panopticon, 4]
-  - [publishing_api, 4]
-  - [default, 5]
-  - [scheduled_publishing, 10]
+  - scheduled_publishing
+  - default
+  - publishing_api
+  - asset_manager
+  - email_alert_api_signup
+  - bulk_republishing
+  - link_checks
+  - asset_migration
+:schedule:
+  check_all_organisations_links_worker:
+    cron: '0 1 * * *' # Runs at 1 a.m every day
+    class: CheckAllOrganisationsLinksWorker

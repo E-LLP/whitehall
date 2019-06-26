@@ -8,7 +8,7 @@ class ConsultationTest < ActiveSupport::TestCase
   should_not_allow_inline_attachments
   should_protect_against_xss_and_content_attacks_on :title, :body, :summary, :change_note
 
-  [:imported, :deleted].each do |state|
+  %i[imported deleted].each do |state|
     test "#{state} editions are valid without an opening at time" do
       edition = build(:consultation, state: state, opening_at: nil)
       assert edition.valid?
@@ -36,7 +36,7 @@ class ConsultationTest < ActiveSupport::TestCase
     end
   end
 
-  [:draft, :scheduled, :published, :submitted, :rejected].each do |state|
+  %i[draft scheduled published submitted rejected].each do |state|
     test "#{state} editions are not valid without an opening at time" do
       edition = build(:consultation, state: state, opening_at: nil)
       refute edition.valid?
@@ -56,7 +56,7 @@ class ConsultationTest < ActiveSupport::TestCase
 
     edition.external_url = 'bad.url'
     refute edition.valid?
-    assert_match /not valid/, edition.errors[:external_url].first
+    assert_match %r[not valid], edition.errors[:external_url].first
   end
 
   test "should be invalid if the opening time is after the closing time" do
@@ -67,8 +67,8 @@ class ConsultationTest < ActiveSupport::TestCase
   test "should build a draft copy of the existing consultation with inapplicable nations" do
     published_consultation = create(:published_consultation, nation_inapplicabilities: [
       create(:nation_inapplicability, nation_id: Nation.wales.id, alternative_url: "http://wales.gov.uk"),
-      create(:nation_inapplicability, nation_id: Nation.scotland.id, alternative_url: "http://scot.gov.uk")]
-    )
+      create(:nation_inapplicability, nation_id: Nation.scotland.id, alternative_url: "http://scot.gov.uk")
+    ])
 
     draft_consultation = published_consultation.create_draft(create(:writer))
 
@@ -85,19 +85,48 @@ class ConsultationTest < ActiveSupport::TestCase
   end
 
   test ".closed excludes consultations closing in the future" do
-    open_consultation = create(:consultation, opening_at: 2.days.ago, closing_at: 1.minute.from_now)
+    _open_consultation = create(:consultation, opening_at: 2.days.ago, closing_at: 1.minute.from_now)
 
     assert_equal 0, Consultation.closed.count
   end
 
-  test ".closed_since only includes consultations closed at or after the specified time" do
+  test ".closed_at_or_after only includes consultations closed at or after the specified time" do
     closed_three_days_ago = create(:consultation, opening_at: 1.month.ago, closing_at: 3.days.ago)
     closed_two_days_ago = create(:consultation, opening_at: 1.month.ago, closing_at: 2.days.ago)
-    open = create(:consultation, opening_at: 1.month.ago, closing_at: 1.day.from_now)
+    _open = create(:consultation, opening_at: 1.month.ago, closing_at: 1.day.from_now)
 
-    assert_same_elements [], Consultation.closed_since(1.days.ago)
-    assert_same_elements [closed_two_days_ago], Consultation.closed_since(2.days.ago)
-    assert_same_elements [closed_two_days_ago, closed_three_days_ago], Consultation.closed_since(3.days.ago)
+    assert_same_elements [], Consultation.closed_at_or_after(1.days.ago)
+    assert_same_elements [closed_two_days_ago], Consultation.closed_at_or_after(2.days.ago)
+    assert_same_elements [closed_two_days_ago, closed_three_days_ago], Consultation.closed_at_or_after(3.days.ago)
+  end
+
+  test ".closed_at_or_within_24_hours_of includes consultations closed at or in the 24 hours running up to the specified time" do
+    base_time = 1.day
+    closed_now = FactoryBot.create(:closed_consultation, closing_at: base_time.ago)
+    closed_an_hour_ago = FactoryBot.create(:closed_consultation, closing_at: (base_time + 1.hour).ago)
+    closed_less_than_24_hours_ago = FactoryBot.create(:closed_consultation, opening_at: 10.days.ago, closing_at: (base_time + 23.hours + 59.minutes + 59.seconds).ago)
+    FactoryBot.create(:closed_consultation, opening_at: 10.days.ago, closing_at: (base_time + 24.hours).ago)
+    FactoryBot.create(:closed_consultation, opening_at: 10.days.ago, closing_at: (base_time + 25.hours).ago)
+    FactoryBot.create(:open_consultation)
+
+    assert_same_elements [closed_now, closed_an_hour_ago, closed_less_than_24_hours_ago], Consultation.closed_at_or_within_24_hours_of(base_time.ago)
+  end
+
+  test ".responded includes closed consultations with an outcome" do
+    closed_with_outcome = FactoryBot.create(:consultation_with_outcome)
+    FactoryBot.create(:closed_consultation)
+    FactoryBot.create(:open_consultation)
+
+    assert_same_elements [closed_with_outcome], Consultation.responded
+  end
+
+  test ".awaiting_response includes published closed consultations with no outcome" do
+    FactoryBot.create(:consultation_with_outcome)
+    closed_without_outcome = FactoryBot.create(:closed_consultation)
+    FactoryBot.create(:closed_consultation, :superseded)
+    FactoryBot.create(:open_consultation)
+
+    assert_same_elements [closed_without_outcome], Consultation.awaiting_response
   end
 
   test ".open includes consultations closing in the future and opening in the past" do
@@ -108,15 +137,25 @@ class ConsultationTest < ActiveSupport::TestCase
   end
 
   test ".open excludes consultations opening in the future" do
-    upcoming_consultation = create(:consultation, opening_at: 10.minutes.from_now, closing_at: 2.days.from_now)
+    _upcoming_consultation = create(:consultation, opening_at: 10.minutes.from_now, closing_at: 2.days.from_now)
 
     assert_equal 0, Consultation.open.count
   end
 
   test ".open excludes consultations closing in the past" do
-    closed_consultation = create(:consultation, opening_at: 2.days.ago, closing_at: 10.minutes.ago)
+    _closed_consultation = create(:consultation, opening_at: 2.days.ago, closing_at: 10.minutes.ago)
 
     assert_equal 0, Consultation.open.count
+  end
+
+  test ".opened_at_or_after only includes consultations open at or after the specified time" do
+    create(:consultation, opening_at: 1.month.ago)
+    open_three_days_ago = create(:consultation, opening_at: 3.days.ago)
+    open_two_days_ago = create(:consultation, opening_at: 2.days.ago)
+
+    assert_same_elements [], Consultation.opened_at_or_after(1.days.ago)
+    assert_same_elements [open_two_days_ago], Consultation.opened_at_or_after(2.days.ago)
+    assert_same_elements [open_two_days_ago, open_three_days_ago], Consultation.opened_at_or_after(3.days.ago)
   end
 
   test ".upcoming includes consultations opening in the future" do
@@ -127,14 +166,14 @@ class ConsultationTest < ActiveSupport::TestCase
   end
 
   test ".upcoming excludes consultations opening in the past" do
-    open_consultation = create(:consultation, opening_at: 10.minutes.ago, closing_at: 1.day.from_now)
-    closed_consultation = create(:consultation, opening_at: 2.days.ago, closing_at: 10.minutes.ago)
+    _open_consultation = create(:consultation, opening_at: 10.minutes.ago, closing_at: 1.day.from_now)
+    _closed_consultation = create(:consultation, opening_at: 2.days.ago, closing_at: 10.minutes.ago)
 
     assert_equal 0, Consultation.upcoming.count
   end
 
   test "should not create a participation if all participation fields are blank" do
-    attributes = {link_url: nil, consultation_response_form_attributes: {title: nil, file: nil}}
+    attributes = { link_url: nil, consultation_response_form_attributes: { title: nil, file: nil } }
     consultation = create(:consultation, consultation_participation_attributes: attributes)
     assert consultation.consultation_participation.blank?
   end
@@ -183,8 +222,8 @@ class ConsultationTest < ActiveSupport::TestCase
 
   test "should copy the outcome without falling over if the outcome has attachments but no summary" do
     consultation = create(:published_consultation)
-    outcome = create(:consultation_outcome, consultation: consultation, summary: '', attachments: [
-      attachment = build(:file_attachment, title: 'attachment-title', attachment_data_attributes: { file: fixture_file_upload('greenpaper.pdf') })
+    create(:consultation_outcome, consultation: consultation, summary: '', attachments: [
+      build(:file_attachment, title: 'attachment-title', attachment_data_attributes: { file: fixture_file_upload('greenpaper.pdf') })
     ])
 
     assert_nothing_raised {
@@ -214,7 +253,7 @@ class ConsultationTest < ActiveSupport::TestCase
 
   test "should copy public feedback without falling over if the feedback has attachments but no summary" do
     consultation = create(:published_consultation)
-    public_feedback = create(:consultation_public_feedback, consultation: consultation, summary: '', attachments: [
+    create(:consultation_public_feedback, consultation: consultation, summary: '', attachments: [
       build(:file_attachment, title: 'attachment-title', attachment_data_attributes: { file: fixture_file_upload('greenpaper.pdf') })
     ])
 
@@ -238,7 +277,7 @@ class ConsultationTest < ActiveSupport::TestCase
 
   test "should report that the outcome has been published if the consultation is closed and there is an outcome" do
     consultation = create(:consultation, opening_at: 2.days.ago, closing_at: 1.day.ago)
-    outcome = create(:consultation_outcome, consultation: consultation)
+    _outcome = create(:consultation_outcome, consultation: consultation)
 
     assert consultation.outcome_published?
   end
@@ -252,10 +291,10 @@ class ConsultationTest < ActiveSupport::TestCase
     assert_equal today, consultation.outcome_published_on
   end
 
-  test "make_public_at should not set first_published_at" do
+  test "make_public_at should set first_published_at" do
     consultation = build(:consultation, first_published_at: nil)
     consultation.make_public_at(2.days.ago)
-    refute consultation.first_published_at
+    assert consultation.first_published_at
   end
 
   test "display_type when not yet open" do
@@ -353,11 +392,77 @@ class ConsultationTest < ActiveSupport::TestCase
     assert consultation_with_command_paper_outcome.search_index[:has_act_paper]
   end
 
-  test "#government returns the government active on the opening_at date" do
+  test "#government returns the government active on the first_public_at date" do
     create(:current_government)
     previous_government = create(:previous_government)
-    consultation = create(:consultation, opening_at: 4.years.ago)
+    consultation = create(:consultation, first_published_at: 4.years.ago)
 
     assert_equal previous_government, consultation.government
+  end
+
+  test "#save triggers consultation opening in the future to be republished twice" do
+    opening_at = 2.days.from_now
+    closing_at = 3.days.from_now
+
+    consultation = create(:consultation, opening_at: opening_at, closing_at: closing_at)
+
+    PublishingApiDocumentRepublishingWorker
+      .expects(:perform_at)
+      .with(opening_at, consultation.document.id)
+      .once
+
+    PublishingApiDocumentRepublishingWorker
+      .expects(:perform_at)
+      .with(closing_at, consultation.document.id)
+      .once
+
+    consultation.save
+  end
+
+  test "#save triggers consultation closing in the future to be republished once" do
+    opening_at = 2.days.ago
+    closing_at = 3.days.from_now
+
+    consultation = create(:consultation, opening_at: opening_at, closing_at: closing_at)
+
+    PublishingApiDocumentRepublishingWorker
+      .expects(:perform_at)
+      .with(opening_at, consultation.document.id)
+      .never
+
+    PublishingApiDocumentRepublishingWorker
+      .expects(:perform_at)
+      .with(closing_at, consultation.document.id)
+      .once
+
+    consultation.save
+  end
+
+  test '#attachables returns array including itself' do
+    consultation = build(:consultation)
+    assert_equal [consultation], consultation.attachables
+  end
+
+  test '#attachables returns array including itself & outcome' do
+    outcome = build(:consultation_outcome)
+    consultation = build(:consultation, outcome: outcome)
+    assert_equal [consultation, outcome], consultation.attachables
+  end
+
+  test '#attachables returns array including itself & public feedback' do
+    public_feedback = build(:consultation_public_feedback)
+    consultation = build(:consultation, public_feedback: public_feedback)
+    assert_equal [consultation, public_feedback], consultation.attachables
+  end
+
+  test '#attachables returns array including itself, outcome & public feedback' do
+    outcome = build(:consultation_outcome)
+    public_feedback = build(:consultation_public_feedback)
+    consultation = build(:consultation, outcome: outcome, public_feedback: public_feedback)
+    assert_equal [consultation, outcome, public_feedback], consultation.attachables
+  end
+
+  test "consultations cannot be previously published" do
+    refute build(:consultation).previously_published
   end
 end

@@ -1,6 +1,6 @@
 class Admin::OrganisationsController < Admin::BaseController
-  before_filter :load_organisation, except: [:index, :new, :create]
-  before_filter :enforce_permissions!, only: [:new, :create, :edit, :update]
+  before_action :load_organisation, except: %i[index new create]
+  before_action :enforce_permissions!, only: %i[new create edit update]
 
   def index
     @organisations = Organisation.alphabetical
@@ -15,14 +15,14 @@ class Admin::OrganisationsController < Admin::BaseController
   def create
     @organisation = Organisation.new(organisation_params)
     if @organisation.save
+      publish_services_and_information_page
       redirect_to admin_organisations_path
     else
       render :new
     end
   end
 
-  def show
-  end
+  def show; end
 
   def people
     @ministerial_organisation_roles = @organisation.organisation_roles.joins(:role).
@@ -42,14 +42,17 @@ class Admin::OrganisationsController < Admin::BaseController
   def features
     @feature_list = @organisation.load_or_create_feature_list(params[:locale])
 
-    filter_params = params.slice(:page, :type, :author, :organisation, :title).
-      merge(state: 'published')
+    filtering_organisation = params[:organisation] || @organisation.id
+
+    filter_params = params.permit!.to_h.slice(:page, :type, :author, :title).
+      merge(state: 'published', organisation: filtering_organisation)
+
     @filter = Admin::EditionFilter.new(Edition, current_user, filter_params)
     @featurable_topical_events = TopicalEvent.active
     @featurable_offsite_links = @organisation.offsite_links
 
     if request.xhr?
-      render partial: 'admin/feature_lists/search_results', locals: {feature_list: @feature_list}
+      render partial: 'admin/feature_lists/search_results', locals: { feature_list: @feature_list }
     else
       render :features
     end
@@ -63,6 +66,7 @@ class Admin::OrganisationsController < Admin::BaseController
   def update
     delete_absent_organisation_classifications
     if @organisation.update_attributes(organisation_params)
+      publish_services_and_information_page
       redirect_to admin_organisation_path(@organisation)
     else
       render :edit
@@ -74,7 +78,7 @@ class Admin::OrganisationsController < Admin::BaseController
     redirect_to admin_organisations_path
   end
 
-  private
+private
 
   def enforce_permissions!
     case action_name
@@ -95,13 +99,11 @@ class Admin::OrganisationsController < Admin::BaseController
       :regulatory_function, :important_board_members, :custom_jobs_url,
       :homepage_type, :political,
       superseding_organisation_ids: [],
-      default_news_image_attributes: [:file, :file_cache],
-      organisation_roles_attributes: [:id, :ordering],
+      default_news_image_attributes: %i[file file_cache],
+      organisation_roles_attributes: %i[id ordering],
       parent_organisation_ids: [],
-      organisation_classifications_attributes: [
-        :classification_id, :ordering, :id, :_destroy
-      ],
-      featured_links_attributes: [:title, :url, :_destroy, :id],
+      organisation_classifications_attributes: %i[classification_id ordering id _destroy],
+      featured_links_attributes: %i[title url _destroy id],
     )
   end
 
@@ -121,7 +123,8 @@ class Admin::OrganisationsController < Admin::BaseController
 
   def delete_absent_organisation_classifications
     return unless params[:organisation] &&
-                  params[:organisation][:organisation_classifications_attributes]
+      params[:organisation][:organisation_classifications_attributes]
+
     params[:organisation][:organisation_classifications_attributes].each do |p|
       if p[:classification_id].blank?
         p["_destroy"] = true
@@ -131,5 +134,9 @@ class Admin::OrganisationsController < Admin::BaseController
 
   def load_organisation
     @organisation = Organisation.friendly.find(params[:id])
+  end
+
+  def publish_services_and_information_page
+    Whitehall::PublishingApi.publish_services_and_information_async(@organisation.id)
   end
 end

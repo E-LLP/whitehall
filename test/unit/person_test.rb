@@ -3,13 +3,6 @@ require 'test_helper'
 class PersonTest < ActiveSupport::TestCase
   should_protect_against_xss_and_content_attacks_on :biography
 
-  test "#columns excludes biography so that we can safely it from editions in a future migration" do
-    # This test ensure that we're excluding the biography column from Person.columns.
-    # You can safely remove this, and Person.columns, once it's been deployed and we've subsequently removed
-    # this column for real.
-    refute Person.columns.map(&:name).include?('biography')
-  end
-
   test 'should return search index data suitable for Rummageable' do
     person = create(:person, content_id: 'f585949d-3796-4566-ab31-cb0d978aec00', forename: 'David', surname: 'Cameron', biography: 'David Cameron became Prime Minister in May 2010.')
 
@@ -24,6 +17,25 @@ class PersonTest < ActiveSupport::TestCase
                   }, person.search_index)
   end
 
+  test "truncates the biography sent to rummager unless they currently hold a role" do
+    full_bio = <<~BIO
+      Dapibus Mattis Euismod
+
+      Sit Aenean Venenatis
+
+      Vulputate Euismod Vehicula
+    BIO
+
+    person_in_role = FactoryBot.create(:person, biography: full_bio)
+    FactoryBot.create(:role_appointment, person: person_in_role)
+    person_in_role.reload
+
+    person_not_in_role = FactoryBot.create(:person, biography: full_bio)
+
+    assert_equal "Dapibus Mattis Euismod", person_not_in_role.search_index["indexable_content"]
+    assert_equal full_bio.gsub(/[\n]+/, " ").strip, person_in_role.search_index["indexable_content"]
+  end
+
   test "should be invalid without a name" do
     person = build(:person, title: nil, forename: nil, surname: nil, letters: nil)
     refute person.valid?
@@ -35,7 +47,12 @@ class PersonTest < ActiveSupport::TestCase
   end
 
   test "should be valid if legacy image isn't 960x640px" do
-    person = build(:person, slug: 'stubbed', image: File.open(Rails.root.join('test/fixtures/horrible-image.64x96.jpg')))
+    person = build(
+      :person,
+      slug: 'stubbed',
+      image: File.open(Rails.root.join('test/fixtures/horrible-image.64x96.jpg')),
+      content_id: SecureRandom.uuid,
+    )
     person.save(validate: false)
     assert person.reload.valid?
   end
@@ -70,12 +87,12 @@ class PersonTest < ActiveSupport::TestCase
   test '#previous_role_appointments include appointments that have ended' do
     person = create(:person)
     role_appointment = create(:ministerial_role_appointment, person: person, started_at: 1.year.ago, ended_at: 1.day.ago)
-    assert_equal [role_appointment], person.previous_role_appointments
+    assert_equal [role_appointment], person.reload.previous_role_appointments
   end
 
   test '#previous_role_appointments excludes current appointments' do
     person = create(:person)
-    role_appointment = create(:ministerial_role_appointment, person: person, started_at: 1.year.ago, ended_at: nil)
+    create(:ministerial_role_appointment, person: person, started_at: 1.year.ago, ended_at: nil)
     assert_equal [], person.previous_role_appointments
   end
 
@@ -83,39 +100,39 @@ class PersonTest < ActiveSupport::TestCase
     person = create(:person)
     older_appointment = create(:ministerial_role_appointment, person: person, started_at: 2.year.ago, ended_at: 1.year.ago)
     newer_appointment = create(:ministerial_role_appointment, person: person, started_at: 1.year.ago, ended_at: 1.day.ago)
-    assert_equal [newer_appointment, older_appointment], person.previous_role_appointments
+    assert_equal [newer_appointment, older_appointment], person.reload.previous_role_appointments
   end
 
   test '#organisations includes organisations linked through current ministerial roles' do
     person = create(:person)
     role_appointment = create(:ministerial_role_appointment, person: person, started_at: 1.year.ago, ended_at: nil)
-    assert_equal role_appointment.role.organisations, person.organisations
+    assert_equal role_appointment.role.organisations, person.reload.organisations
   end
 
   test '#organisations excludes organisations linked through past ministerial roles' do
     person = create(:person)
-    role_appointment = create(:ministerial_role_appointment, person: person, started_at: 1.year.ago, ended_at: 1.day.ago)
-    assert_equal [], person.organisations
+    create(:ministerial_role_appointment, person: person, started_at: 1.year.ago, ended_at: 1.day.ago)
+    assert_equal [], person.reload.organisations
   end
 
   test '#organisations includes organisations linked through current board member roles' do
     person = create(:person)
     role_appointment = create(:board_member_role_appointment, person: person, started_at: 1.year.ago, ended_at: nil)
-    assert_equal role_appointment.role.organisations, person.organisations
+    assert_equal role_appointment.role.organisations, person.reload.organisations
   end
 
   test '#organisations excludes organisations linked through past board member roles roles' do
     person = create(:person)
-    role_appointment = create(:board_member_role_appointment, person: person, started_at: 1.year.ago, ended_at: 1.day.ago)
-    assert_equal [], person.organisations
+    create(:board_member_role_appointment, person: person, started_at: 1.year.ago, ended_at: 1.day.ago)
+    assert_equal [], person.reload.organisations
   end
 
   test 'can access speeches associated via role_appointments' do
     person = create(:person)
-    speech1 = create(:draft_speech, role_appointment: create(:role_appointment, person: person))
-    speech2 = create(:draft_speech, role_appointment: create(:role_appointment, person: person))
+    speech_1 = create(:draft_speech, role_appointment: create(:role_appointment, person: person))
+    speech_2 = create(:draft_speech, role_appointment: create(:role_appointment, person: person))
 
-    assert_equal [speech1, speech2], person.speeches
+    assert_equal [speech_1, speech_2], person.speeches
   end
 
   test 'can access news_articles associated with ministerial roles of a person' do

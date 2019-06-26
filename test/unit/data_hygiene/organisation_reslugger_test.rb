@@ -6,14 +6,9 @@ module OrganisationResluggerTest
     include GdsApi::TestHelpers::PublishingApi
     extend ActiveSupport::Testing::Declarative
 
-    def self.included(klass)
-      klass.use_transactional_fixtures = false
-    end
-
     def setup
       stub_any_publishing_api_call
-      DatabaseCleaner.clean_with :truncation
-      @organisation = create_organisation
+      @organisation = create_org_and_stub_content_store
       WebMock.reset! # clear the Publishing API calls after org creation
       stub_any_publishing_api_call
       @reslugger = DataHygiene::OrganisationReslugger.new(@organisation, 'corrected-slug')
@@ -21,7 +16,6 @@ module OrganisationResluggerTest
 
     def teardown
       WebMock.reset!
-      DatabaseCleaner.clean_with :truncation
     end
 
     test "re-slugs the organisation" do
@@ -31,20 +25,23 @@ module OrganisationResluggerTest
 
     test "publishes to Publishing API with the new slug" do
       new_base_path = "#{base_path}/corrected-slug"
+      new_atom_base_path = "#{base_path}/corrected-slug.atom"
 
       content_item = PublishingApiPresenters.presenter_for(@organisation)
       content = content_item.content
       content[:base_path] = new_base_path
       content[:routes][0][:path] = new_base_path
+      content[:routes][1][:path] = new_atom_base_path unless content[:routes][1].nil?
       content_item.stubs(content: content)
 
       expected_publish_requests = [
         stub_publishing_api_put_content(content_item.content_id, content_item.content),
-        stub_publishing_api_patch_links(content_item.content_id, links: content_item.links),
-        stub_publishing_api_publish(content_item.content_id, locale: 'en', update_type: 'major')
+        stub_publishing_api_publish(content_item.content_id, locale: 'en', update_type: nil)
       ]
 
-      @reslugger.run!
+      Sidekiq::Testing.inline! do
+        @reslugger.run!
+      end
 
       assert_all_requested expected_publish_requests
     end
@@ -63,7 +60,7 @@ module OrganisationResluggerTest
   class OrganisationTest < ActiveSupport::TestCase
     include SharedTests
 
-    def create_organisation
+    def create_org_and_stub_content_store
       create(:organisation, name: "Old slug")
     end
 
@@ -92,12 +89,12 @@ module OrganisationResluggerTest
   class WorldwideOrganisationTest < ActiveSupport::TestCase
     include SharedTests
 
-    def create_organisation
+    def create_org_and_stub_content_store
       create(:worldwide_organisation, name: "Old slug")
     end
 
     def base_path
-      "/government/world/organisations"
+      "/world/organisations"
     end
   end
 end

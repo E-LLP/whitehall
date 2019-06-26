@@ -1,16 +1,17 @@
 module Whitehall
   class FormBuilder < ActionView::Helpers::FormBuilder
+    include Admin::AnalyticsHelper
 
-    def label(method, text = nil, options = {}, &block)
+    def label(method, text = nil, options = {})
       if calculate_required(method, options)
         unless !options[:required].nil? && options[:required] == false
           add_class_to_options(options, 'required')
-          text_override = text ? text : method.to_s.humanize
+          text_override = text || method.to_s.humanize
           text = "#{text_override}<span>*</span>".html_safe
         end
       end
       options.delete(:required)
-      label_tag = super(method, text, options)
+      super(method, text, options)
     end
 
     def labelled_radio_button(label_text, *radio_button_args)
@@ -27,23 +28,25 @@ module Whitehall
     end
 
     def errors
-       return unless object.errors.any?
-       @template.content_tag(:div, "class" => "alert alert-danger form-errors") do
-         @template.concat @template.content_tag(:p, "To save the #{object.class.name.demodulize.underscore.humanize.downcase} please fix the following issues:")
-         @template.concat error_list
-       end
-     end
+      return unless object.errors.any?
+
+      @template.content_tag(:div, "class" => "alert alert-danger form-errors") do
+        @template.concat @template.content_tag(:p, "To save the #{object.class.name.demodulize.underscore.humanize.downcase} please fix the following issues:")
+        @template.concat error_list
+      end
+    end
 
     def error_list
       @template.content_tag(:ul, "class" => "errors disc") do
+        analytics_action = "#{object.class.name.demodulize.underscore.dasherize}-error"
         object.errors.full_messages.each do |msg|
-          @template.concat @template.content_tag(:li, msg)
+          @template.concat @template.content_tag(:li, msg, data: track_analytics_data('form-error', analytics_action, msg))
         end
       end
     end
 
     def form_actions(options = {})
-      @template.content_tag(:div, "class" => "form-actions") {
+      @template.content_tag(:div, "class" => "form-actions", data: { module: 'track-button-click', 'track-category' => 'form-button', 'track-action' => "#{object.class.name.demodulize.underscore.dasherize}-button" }) {
         options[:buttons].each do |name, value|
           @template.concat submit(value, name: name, class: "btn btn-primary btn-lg")
         end
@@ -68,7 +71,7 @@ module Whitehall
     end
 
     def save_or_continue_or_cancel(options = {})
-      buttons = { save: 'Save', save_and_continue: 'Save and continue editing' }
+      buttons = { save: 'Save', save_and_continue: 'Save and continue' }
       form_actions(options.reverse_merge(buttons: buttons))
     end
 
@@ -89,7 +92,7 @@ module Whitehall
       label_text = options.delete(:label_text)
 
       @template.content_tag(:div, class: 'form-group') do
-          label(method, label_text, label_options) + super
+        label(method, label_text, label_options) + super
       end
     end
 
@@ -101,7 +104,7 @@ module Whitehall
       translated_input method, text_area(method, translated_input_options(options))
     end
 
-    def untranslated_text(method, options = {})
+    def untranslated_text(method, _options = {})
       english_translation = object.__send__ method, :en
       @template.content_tag(:p, "English: #{english_translation}", class: "original-translation", id: "english_#{method}")
     end
@@ -135,7 +138,7 @@ module Whitehall
       end
     end
 
-    private
+  private
 
     def add_class_to_options(options, name)
       options[:class] ||= ""
@@ -158,7 +161,7 @@ module Whitehall
     end
 
     def required_by_validators?(method)
-      (attribute_validators(method)).any? { |v| v.kind == :presence && valid_validator?(v) }
+      attribute_validators(method).any? { |v| v.kind == :presence && valid_validator?(v) }
     end
 
     def attribute_validators(method)
@@ -194,8 +197,8 @@ module Whitehall
       Locale.new(object.fixed_locale).rtl?
     end
 
-    def translated_input(method, input, options = {})
-      options = right_to_left? ? {class: 'right-to-left'} : {}
+    def translated_input(method, input, _options = {})
+      options = right_to_left? ? { class: 'right-to-left' } : {}
       @template.content_tag :fieldset, options do
         input + untranslated_text(method)
       end
@@ -211,15 +214,23 @@ module Whitehall
 
     def cancel_path(path)
       return path if path
-      if object.is_a?(CorporateInformationPage)
-        object.new_record? ? @template.polymorphic_path([:admin, object.owning_organisation, CorporateInformationPage]) :
-                             @template.admin_edition_path(object)
-      elsif object.is_a?(Edition)
-        object.new_record? ? @template.admin_editions_path :
-                             @template.admin_edition_path(object)
+
+      if object.new_record?
+        case object
+        when CorporateInformationPage
+          @template.polymorphic_path([:admin, object.owning_organisation, CorporateInformationPage])
+        when Edition
+          @template.admin_editions_path
+        else
+          @template.polymorphic_path([:admin, object.class])
+        end
       else
-        object.new_record? ? @template.polymorphic_path([:admin, object.class]) :
-                             @template.polymorphic_path([:admin, object])
+        case object
+        when CorporateInformationPage, Edition
+          @template.admin_edition_path(object)
+        else
+          @template.polymorphic_path([:admin, object])
+        end
       end
     end
 

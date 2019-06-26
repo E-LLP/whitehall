@@ -3,12 +3,6 @@ require 'test_helper'
 class ClassificationTest < ActiveSupport::TestCase
   should_protect_against_xss_and_content_attacks_on :name, :description
 
-  test "publishes to the publishing API" do
-    topic = create(:classification)
-    Whitehall::PublishingApi.expects(publish_async: topic).once
-    topic.publish_to_publishing_api
-  end
-
   test "should default to the 'current' state" do
     topic = Classification.new
     assert topic.current?
@@ -89,8 +83,8 @@ class ClassificationTest < ActiveSupport::TestCase
 
   test '#featured_editions returns featured editions by ordering' do
     topic = create(:topic)
-    alpha = topic.feature(edition_id: create(:edition, title: "Alpha").id, ordering: 1, alt_text: 'A thing', image: create(:classification_featuring_image_data))
-    beta  = topic.feature(edition_id: create(:published_news_article, title: "Beta").id, ordering: 2, alt_text: 'A thing', image: create(:classification_featuring_image_data))
+    _alpha = topic.feature(edition_id: create(:edition, title: "Alpha").id, ordering: 1, alt_text: 'A thing', image: create(:classification_featuring_image_data))
+    beta = topic.feature(edition_id: create(:published_news_article, title: "Beta").id, ordering: 2, alt_text: 'A thing', image: create(:classification_featuring_image_data))
     gamma = topic.feature(edition_id: create(:published_news_article, title: "Gamma").id, ordering: 3, alt_text: 'A thing', image: create(:classification_featuring_image_data))
     delta = topic.feature(edition_id: create(:published_news_article, title: "Delta").id, ordering: 0, alt_text: 'A thing', image: create(:classification_featuring_image_data))
 

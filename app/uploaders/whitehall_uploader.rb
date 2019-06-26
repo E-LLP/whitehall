@@ -1,5 +1,3 @@
-require 'carrierwave/processing/mime_types'
-
 class WhitehallUploader < CarrierWave::Uploader::Base
   def store_dir
     "system/uploads/#{model.class.to_s.underscore}/#{mounted_as}/#{model.id}"
@@ -10,7 +8,7 @@ class WhitehallUploader < CarrierWave::Uploader::Base
     store_path(File.basename(path))
   end
 
-  def clean_path
-    File.join(Whitehall.clean_uploads_root, relative_path)
+  def assets_protected?
+    false
   end
 end

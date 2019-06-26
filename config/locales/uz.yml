@@ -5,7 +5,6 @@ uz:
         one: Hujjat
         other: Hujjatlar
       applies_to_nations: 'Tegishli '
-      field_of_operation: Faoliyat sohasi
       from:
       location:
       part_of:
@@ -16,6 +15,9 @@ uz:
       authored_article:
         one: Muallif maqolasi
         other: Muallif maqolalari
+      blog_post:
+        one:
+        other:
       case_study:
         one: Holat o'rganilishi
         other: Holat o'rganilishlari
@@ -46,9 +48,6 @@ uz:
       draft_text:
         one: Matn loyihasi
         other: Matn loyihalari
-      fatality_notice:
-        one: Falokat haqida e'lon
-        other: Falokat haqida e'lonlar
       foi_release:
         one: So'z erkinligiga bag'ishlangan nashr
         other: So'z erkinligiga bag'ishlangan nashrlar
@@ -73,6 +72,9 @@ uz:
       international_treaty:
         one:
         other:
+      manual:
+        one:
+        other:
       map:
         one: Xarita
         other: Xaritalar
@@ -85,9 +87,15 @@ uz:
       news_story:
         one: Yangilik
         other: Yangiliklar
+      nhs_content:
+        one:
+        other:
       notice:
         one:
         other:
+      official_statistics:
+        one: Statistika
+        other: Statistika
       open_consultation:
         one: Ochiq fikr almashish
         other: Ochiq fikr almashishlar
@@ -124,9 +132,6 @@ uz:
       statistical_data_set:
         one: Statistika ma'lumot to'plami
         other: Statistika ma'lumot to'plamlari
-      official_statistics:
-        one: Statistika
-        other: Statistika
       statutory_guidance:
         one:
         other:
@@ -136,6 +141,9 @@ uz:
       transparency:
         one: Ochiqlikka oid ma'lumotlar
         other: Ochiqlikka oid ma'lumotlar
+      world_news_story:
+        one:
+        other:
       written_statement:
         one: Parlament uchun yozma hisobot
         other: Parlament uchun yozma hisobotlar
@@ -215,6 +223,8 @@ uz:
         unnumbered_hoc_paper:
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         file:
+      edition:
+        nation_inapplicabilities:
       policy_group/policy_group_attachments/attachment/attachment_data:
         file:
       response/consultation_response_attachments/attachment:
@@ -259,6 +269,12 @@ uz:
     opendocument:
       help_html:
     see_more:
+  broken_links:
+    broken:
+      subheading:
+    caution:
+      subheading:
+    title:
   change_notes:
     page_history:
     published_at:
@@ -269,38 +285,34 @@ uz:
     email: Elektron manzil
   corporate_information_page:
     type:
-      about:
-      about_our_services:
-      access_and_opening:
-      complaints_procedure:
-      equality_and_diversity:
-      media_enquiries:
-      membership:
-      our_energy_use:
-      our_governance:
-      personal_information_charter: Shaxsiy ma'lumot nizomi
-      petitions_and_campaigns:
-      procurement:
-      publication_scheme: Nashr rejasi
-      recruitment:
-      research:
-      social_media_use: Jamoat media vositalarini qullanilishi
-      staff_update:
-      statistics:
-      terms_of_reference:
-      welsh_language_scheme: Uels tili rejasi
+      link_text:
+        welsh_language_scheme:
+      title:
+        about:
+        about_our_services:
+        access_and_opening:
+        accessible_documents_policy:
+        complaints_procedure:
+        equality_and_diversity:
+        media_enquiries:
+        membership:
+        our_energy_use:
+        our_governance:
+        personal_information_charter: Shaxsiy ma'lumot nizomi
+        petitions_and_campaigns:
+        procurement:
+        publication_scheme: Nashr rejasi
+        recruitment:
+        research:
+        social_media_use: Jamoat media vositalarini qullanilishi
+        staff_update:
+        statistics:
+        terms_of_reference:
+        welsh_language_scheme: Uels tili rejasi
   date:
     formats:
       default: "%e %B %Y"
       long_ordinal: "%e %B %Y"
-  detailed_guidance:
-    back_to_contents:
-    contents:
-    more:
-    part_of_published_collection:
-    published_related_detailed_guides:
-    related_mainstream_content:
-    see_more_like_this:
   document_filters:
     description: Sizni&nbsp; qiziqtirgan natijalarni ko'rish&nbsp; uchun filtrlarni
       qullaning
@@ -337,6 +349,7 @@ uz:
       access_our_info: Biz haqimizda ma'lumotga ega bo'ling
       foi_how_to: So'z erkinligiga oid so'rovni jo'natish
       foi_releases: So'z erkinligiga oid nashrlar
+      jobs:
       jobs_and_contacts: Ish va shartnomalar
       organisation_chart:
       transparency: Ochiqlikka oid ma'lumotlar
@@ -442,6 +455,7 @@ uz:
     headings:
       about_us: Biz haqimizda
       contact_us: Biz bilan bog'laning
+      contents:
       corporate_information: Korporativ ma'lumot
       follow_us: Bizni qayd eting
       our_people: Bizning odamlar

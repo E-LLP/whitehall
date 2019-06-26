@@ -1,31 +1,35 @@
 require "test_helper"
-require "sidekiq/testing"
 
 class RequestTracingTest < ActionDispatch::IntegrationTest
+  include TaxonomyHelper
+
   setup do
+    @sidekiq_test_mode = Sidekiq::Testing.__test_mode
+    Sidekiq::Testing.inline!
+
     @govuk_request_id = "12345-67890"
     @draft_edition = create(:draft_publication)
     @presenter = PublishingApiPresenters.presenter_for(@draft_edition)
     login_as(create(:gds_admin))
+  end
 
-    # Use the real GovUkDelivery client
-    Whitehall.govuk_delivery_client = GdsApi::GovUkDelivery.new(Plek.find('govuk-delivery'))
-
-    stub_request(:put, /panopticon/)
-    stub_request(:post, /govuk-delivery/)
+  teardown do
+    Sidekiq::Testing.__test_mode = @sidekiq_test_mode
   end
 
   def force_publish(edition, headers = {})
-    post_via_redirect("/government/admin/editions/#{edition.id}/force_publish", {
+    post "/government/admin/editions/#{edition.id}/force_publish", params: {
       reason: "Test",
       lock_version: 0,
-    }, headers)
+    }, headers: headers
+    follow_redirect!
   end
 
   test "govuk_request_id is passed downstream across the worker boundary on publish" do
     inbound_headers = {
       "HTTP_GOVUK_REQUEST_ID" => @govuk_request_id,
     }
+    stub_publishing_api_links_with_taxons(@draft_edition.content_id, ["a-taxon-content-id"])
 
     Sidekiq::Testing.fake! do
       force_publish(@draft_edition, inbound_headers)
@@ -47,21 +51,16 @@ class RequestTracingTest < ActionDispatch::IntegrationTest
       "GOVUK-Request-Id" => @govuk_request_id
     }
 
-    assert_requested(:post, /govuk-delivery/, headers: onward_headers)
-    assert_requested(:put, /panopticon/, headers: onward_headers)
-
     # Main document
     content_id = @draft_edition.content_id
     assert_requested(:put, %r|publishing-api.*content/#{content_id}|, headers: onward_headers)
     assert_requested(:post, %r|publishing-api.*content/#{content_id}/publish|, headers: onward_headers)
-    assert_requested(:patch, %r|publishing-api.*links/#{content_id}|, headers: onward_headers)
 
     # HTML attachments
     @draft_edition.html_attachments.each do |html_attachment|
       attachment_content_id = html_attachment.content_id
       assert_requested(:put, %r|publishing-api.*content/#{attachment_content_id}|, headers: onward_headers)
       assert_requested(:post, %r|publishing-api.*content/#{attachment_content_id}/publish|, headers: onward_headers)
-      assert_requested(:patch, %r|publishing-api.*links/#{attachment_content_id}|, headers: onward_headers)
     end
   end
 

@@ -6,7 +6,8 @@ module Edition::AuditTrail
   end
 
   def self.acting_as(actor)
-    original_actor, Edition::AuditTrail.whodunnit = Edition::AuditTrail.whodunnit, actor
+    original_actor = Edition::AuditTrail.whodunnit
+    Edition::AuditTrail.whodunnit = actor
     yield
   ensure
     Edition::AuditTrail.whodunnit = original_actor
@@ -28,16 +29,33 @@ module Edition::AuditTrail
   end
 
   def record_create
-    versions.create event: 'create', user: Edition::AuditTrail.whodunnit, state: state
+    user = Edition::AuditTrail.whodunnit
+    versions.create event: 'create', user: user, state: state
+    alert!(user)
   end
   private :record_create
 
   def record_update
     if changed.any?
-      versions.build event: 'update', user: Edition::AuditTrail.whodunnit, state: state
+      user = Edition::AuditTrail.whodunnit
+      versions.build event: 'update', user: user, state: state
+      alert!(user)
     end
   end
   private :record_update
+
+  def alert!(user)
+    if user && should_alert_for?(user)
+      Notifications.edition_published_by_monitored_user(user).deliver_now
+    end
+  end
+  private :alert!
+
+  def should_alert_for?(user)
+    ENV['CO_NSS_WATCHKEEPER_EMAIL_ADDRESS'].present? &&
+      user.email == ENV['CO_NSS_WATCHKEEPER_EMAIL_ADDRESS']
+  end
+  private :should_alert_for?
 
   def edition_audit_trail(edition_serial_number = 0)
     versions = edition_version_trail(edition_serial_number)
@@ -58,21 +76,33 @@ module Edition::AuditTrail
   end
 
   def document_audit_trail
-    document.editions.includes(versions: [:user], editorial_remarks: [:author]).order("created_at asc, id asc").map.with_index do |edition, i|
-      edition.edition_audit_trail(i)
-    end.flatten
+    document
+      .editions
+      .includes(versions: [:user], editorial_remarks: [:author])
+      .order("created_at asc, id asc")
+      .map
+      .with_index { |edition, i| edition.edition_audit_trail(i) }
+      .flatten
   end
 
   def document_remarks_trail
-    document.editions.includes(editorial_remarks: [:author]).order("created_at asc, id asc").map.with_index do |edition, i|
-      edition.edition_remarks_trail(i)
-    end.flatten
+    document
+      .editions
+      .includes(editorial_remarks: [:author])
+      .order("created_at asc, id asc")
+      .map
+      .with_index { |edition, i| edition.edition_remarks_trail(i) }
+      .flatten
   end
 
   def document_version_trail
-    document.editions.includes(versions: [:user]).order("created_at asc, id asc").map.with_index do |edition, i|
-      edition.edition_version_trail(i)
-    end.flatten
+    document
+      .editions
+      .includes(versions: [:user])
+      .order("created_at asc, id asc")
+      .map
+      .with_index { |edition, i| edition.edition_version_trail(i) }
+      .flatten
   end
 
   def latest_version_audit_entry_for(state)
@@ -92,7 +122,7 @@ module Edition::AuditTrail
   end
 
   def publication_audit_entry
-    document_version_trail.detect { | audit_entry | audit_entry.version.state == 'published' }
+    document_version_trail.detect { |audit_entry| audit_entry.version.state == 'published' }
   end
 
   class AuditEntry
@@ -114,13 +144,13 @@ module Edition::AuditTrail
 
     def ==(other)
       other.class == self.class &&
-      other.edition_serial_number == edition_serial_number &&
-      other.edition == edition &&
-      other.object == object
+        other.edition_serial_number == edition_serial_number &&
+        other.edition == edition &&
+        other.object == object
     end
 
     def first_edition?
-      edition_serial_number == 0
+      edition_serial_number.zero?
     end
 
     def sort_priority

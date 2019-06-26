@@ -3,55 +3,43 @@ require "govuk-content-schema-test-helpers"
 
 class PublishStaticPagesTest < ActiveSupport::TestCase
   test 'sends static pages to rummager and publishing api' do
-    Whitehall::FakeRummageableIndex.any_instance.expects(:add).twice.with(kind_of(Hash))
+    Whitehall::FakeRummageableIndex.any_instance.expects(:add).at_least_once.with(kind_of(Hash))
     publisher = PublishStaticPages.new
     expect_publishing(publisher.pages)
 
     PublishStaticPages.new.publish
   end
 
-  test 'static pages presented to the publishing api are valid placeholders' do
+  test 'static pages presented to the publishing api are valid according to the relevant schema' do
     publisher = PublishStaticPages.new
-    presented = publisher.present_for_publishing_api(publisher.pages.first)
-    expect_valid_placeholder(presented[:content])
-  end
-
-  test 'base paths do not change' do
-    base_paths = PublishStaticPages.new.pages.map { |page| page[:base_path] }
-    assert_equal(
-      base_paths,
-      ["/government/how-government-works", "/government/get-involved"],
-      "Base paths for static content should not be changed without first setting up a redirect"
-    )
-  end
-
-  def expect_patch_links(pages)
-    pages.each do |page|
-      Whitehall.publishing_api_v2_client.expects(:patch_links)
-        .with(page[:content_id], { links: page[:links] })
+    publisher.pages.each do |page|
+      presented = publisher.present_for_publishing_api(page)
+      expect_valid_for_schema(presented[:content])
     end
   end
 
   def expect_publishing(pages)
     pages.each do |page|
-      Whitehall.publishing_api_v2_client.expects(:put_content)
+      Services.publishing_api.expects(:put_content)
         .with(
           page[:content_id],
           has_entries(
-            format: "placeholder",
+            document_type: page[:document_type],
+            schema_name: (page[:schema_name] || "placeholder"),
             base_path: page[:base_path],
-            title: page[:title]
+            title: page[:title],
+            update_type: "minor",
           )
         )
 
-      Whitehall.publishing_api_v2_client.expects(:publish)
-        .with(page[:content_id], 'minor', locale: "en")
+      Services.publishing_api.expects(:publish)
+        .with(page[:content_id], nil, locale: "en")
     end
   end
 
-  def expect_valid_placeholder(presented_page)
+  def expect_valid_for_schema(presented_page)
     validator = GovukContentSchemaTestHelpers::Validator.new(
-      "placeholder",
+      presented_page[:schema_name],
       "schema",
       presented_page
     )

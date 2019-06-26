@@ -1,10 +1,11 @@
 module Admin
   module AnalyticsHelper
-    def track_analytics_data(type, message)
+    def track_analytics_data(category, action, label)
       {
         'module' => 'auto-track-event',
-        'track-action' => "alert-#{type}",
-        'track-label' => strip_tags(message),
+        'track-category' => category,
+        'track-action' => action,
+        'track-label' => ActionController::Base.helpers.strip_tags(label),
       }
     end
   end

@@ -7,102 +7,83 @@ module ServiceListeners
     end
 
     def push(event:, options: {})
+      # This is done synchronously before the rest of the publishing.
+      # Currently (02/11/2016) publishing-api links
+      # are not recalculated on parent documents when their translations are unpublished.
+      handle_translations
+
       case event
       when "force_publish", "publish"
-        perform_publishing_api_action_on_pushable_items(
-          action: :publish_async
-        )
+        api.publish(edition)
       when "update_draft"
-        perform_publishing_api_action_on_pushable_items(
-          action: :save_draft_async
-        )
+        api.patch_links(edition)
+        api.save_draft(edition)
       when "update_draft_translation"
-        pushable_items.each do |record|
-          api.save_draft_translation_async(record, options.fetch(:locale))
-        end
+        api.patch_links(edition)
+        api.save_draft_translation(edition, options.fetch(:locale))
       when "unpublish"
-        api.publish_async(edition.unpublishing)
-        edition_html_attachments.each do |attachment|
-          redirect_if_required(attachment)
-        end
+        api.unpublish_async(edition.unpublishing)
       when "withdraw"
-        api.publish_withdrawal_async(
-          edition.content_id,
-          edition.unpublishing.explanation,
-          edition.primary_locale
-        )
-        edition_html_attachments.each do |attachment|
-          api.republish_async(attachment)
+        edition.translations.each do |translation|
+          api.publish_withdrawal_async(
+            edition.content_id,
+            edition.unpublishing.explanation,
+            translation.locale.to_s
+          )
         end
       when "force_schedule", "schedule"
         api.schedule_async(edition)
-        #ignore attachments
       when "unschedule"
         api.unschedule_async(edition)
-        #ignore attachments
       when "delete"
-        perform_publishing_api_action_on_pushable_items(
-          action: :discard_draft_async
-        )
+        api.discard_draft_async(edition)
       end
+
+      handle_corporate_information_pages(event)
+      handle_html_attachments(event)
+      handle_publications(event)
     end
 
   private
 
-    def perform_publishing_api_action_on_pushable_items(action:)
-      pushable_items.each do |record|
-        api.send(action, record)
-      end
+    def handle_corporate_information_pages(event)
+      return unless edition.is_a?(CorporateInformationPage)
+
+      PublishingApiCorporateInformationPagesWorker
+        .perform_async(edition.id, event)
     end
 
-    def pushable_items
-      pushable_items = [@edition]
-      pushable_items + edition_html_attachments
+    def handle_html_attachments(event)
+      PublishingApiHtmlAttachmentsWorker.perform_async(
+        edition.id, event, edition.unpublishing.try(:id)
+      )
     end
 
-    def edition_html_attachments
-      @edition.respond_to?(:html_attachments) ? @edition.html_attachments : []
+    def handle_publications(event)
+      return unless edition.is_a?(Publication)
+
+      PublishingApiPublicationsWorker.perform_async(edition.id, event)
     end
 
-    def api
-      Whitehall::PublishingApi
-    end
+    def handle_translations
+      previous_edition = edition.previous_edition
 
-    def redirect_if_required(attachment)
-      if attachment.is_a?(HtmlAttachment)
-        if requires_redirect_to_alternative?(attachment)
-          redirect_to_unpublishing_alternative(attachment)
-        else
-          redirect_to_parent(attachment)
+      if previous_edition
+        edition_url = Whitehall::UrlMaker.new.public_document_url(edition)
+        removed_locales = previous_edition.translations.map(&:locale) - edition.translations.map(&:locale)
+        removed_locales.each do |locale|
+          PublishingApiGoneWorker.new.perform(
+            edition.content_id,
+            "",
+            "This translation is no longer available. You can find the original version of this content at [#{edition_url}](#{edition_url})",
+            locale
+          )
         end
       end
     end
 
-    def requires_redirect_to_alternative?(attachment)
-      unpublishing = attachment.attachable.unpublishing
-      unpublishing.unpublishing_reason_id == UnpublishingReason::Consolidated.id ||
-        unpublishing.redirect
-    end
-
-    def redirect_to_parent(attachment)
-      publish_redirect(
-        attachment.content_id,
-        Whitehall.url_maker.public_document_path(edition)
-      )
-    end
-
-    def redirect_to_unpublishing_alternative(attachment)
-      edition = attachment.attachable
-      publish_redirect(
-        attachment.content_id,
-        Addressable::URI.parse(
-          edition.unpublishing.alternative_url
-        ).path
-      )
-    end
-
-    def publish_redirect(content_id, destination)
-      api.publish_redirect_async(content_id, destination)
+    def api
+      Whitehall::PublishingApi
     end
   end
 end

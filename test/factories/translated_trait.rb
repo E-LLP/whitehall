@@ -1,7 +1,7 @@
-FactoryGirl.define do
+FactoryBot.define do
   trait :translated do
     transient do
-      translated_into nil
+      translated_into { nil }
     end
 
     after(:build) do |object, evaluator|
@@ -13,7 +13,7 @@ FactoryGirl.define do
           when Array
             evaluator.translated_into.inject({}) { |trans, locale| trans[locale] = {}; trans }
           else
-            {evaluator.translated_into => {}}
+            { evaluator.translated_into => {} }
           end
         extra_translations.each do |(locale, locale_attributes)|
           locale_attributes ||= {}

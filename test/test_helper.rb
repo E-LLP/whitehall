@@ -1,9 +1,7 @@
 $:.unshift(File.dirname(__FILE__))
 ENV["RAILS_ENV"] = "test"
-ENV["GOVUK_APP_DOMAIN"] = "test.alphagov.co.uk"
-ENV["GOVUK_ASSET_ROOT"] = "http://static.test.alphagov.co.uk"
 
-require File.expand_path('../../config/environment', __FILE__)
+require File.expand_path('../config/environment', __dir__)
 
 if ENV["TEST_COVERAGE"]
   Bundler.require(:test_coverage)
@@ -19,8 +17,9 @@ require 'factories'
 require 'webmock/minitest'
 require 'whitehall/not_quite_as_fake_search'
 require 'whitehall/search_index'
-require 'sidekiq/testing/inline'
+require 'sidekiq/testing'
 require 'govuk-content-schema-test-helpers/test_unit'
+require 'parallel_tests/test/runtime_logger'
 
 Dir[Rails.root.join('test/support/*.rb')].each { |f| require f }
 
@@ -32,42 +31,68 @@ GovukContentSchemaTestHelpers.configure do |config|
 end
 
 class ActiveSupport::TestCase
-  include FactoryGirl::Syntax::Methods
+  include AssetManagerTestHelpers
+  include FactoryBot::Syntax::Methods
   include ModelHelpers
   include ModelStubbingHelpers
   include HtmlAssertions
   include I18nHelpers
-  include PanopticonTestHelpers
   include PublishingApiTestHelpers
   include PolicyTaggingHelpers
   include GovukContentSchemaTestHelpers::TestUnit
+  include UrlHelpers
   extend GovspeakValidationTestHelper
 
   setup do
     Timecop.freeze(2011, 11, 11, 11, 11, 11)
     Whitehall.search_backend = Whitehall::DocumentFilter::FakeSearch
-    VirusScanHelpers.erase_test_files
     Sidekiq::Worker.clear_all
-    fake_whodunnit = FactoryGirl.build(:user)
+    fake_whodunnit = FactoryBot.build(:user)
     fake_whodunnit.stubs(:id).returns(1000)
     fake_whodunnit.stubs(:persisted?).returns(true)
     Edition::AuditTrail.whodunnit = fake_whodunnit
     stub_any_publishing_api_call
+    stub_publishing_api_publish_intent
     stub_publishing_api_policies
+    Services.stubs(:asset_manager).returns(stub_everything('asset-manager'))
   end
 
   teardown do
     Edition::AuditTrail.whodunnit = nil
     Timecop.return
-    DatabaseCleaner.clean_with(:truncation, pre_count: true, reset_ids: false)
+    Sidekiq::Worker.clear_all
+  end
+
+  def with_stubbed_rummager(stubbed_object, announcements = false)
+    previous_client = Whitehall.search_client
+    previous_government_search_client = Whitehall.government_search_client
+    previous_backend = Whitehall.search_backend
+
+    Whitehall.search_client = stubbed_object
+    Whitehall.government_search_client = stubbed_object
+    Whitehall.search_backend =
+      if announcements
+        Whitehall::DocumentFilter::SearchRummager
+      else
+        Whitehall::DocumentFilter::AdvancedSearchRummager
+      end
+    yield
+
+    Whitehall.search_client = previous_client
+    Whitehall.government_search_client = previous_government_search_client
+    Whitehall.search_backend = previous_backend
   end
 
   def acting_as(actor, &block)
     Edition::AuditTrail.acting_as(actor, &block)
   end
 
-  def assert_same_elements(array1, array2)
-    assert_equal array1.to_set, array2.to_set, "Different elements in #{array1.inspect} and #{array2}.inspect"
+  def assert_same_elements(array_1, array_2)
+    assert_equal array_1.to_set, array_2.to_set, "Different elements in #{array_1.inspect} and #{array_2}.inspect"
+  end
+
+  def assert_hash_includes(hash, should_exist)
+    assert should_exist.to_a.all? { |e| hash.to_a.include?(e) }, "#{hash} doesn't include #{should_exist}"
   end
 
   def assert_all_requested(array)
@@ -76,7 +101,7 @@ class ActiveSupport::TestCase
 
   def count_queries
     count = 0
-    subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |*args|
+    subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |*_args|
       count = count + 1
     end
     yield
@@ -85,16 +110,12 @@ class ActiveSupport::TestCase
     ActiveSupport::Notifications.unsubscribe(subscriber)
   end
 
-  def with_service(service_name, service, &block)
+  def with_service(service_name, service)
     original_service = Whitehall.send(service_name)
     Whitehall.send(:"#{service_name}=", service)
     yield
   ensure
     Whitehall.send(:"#{service_name}=", original_service)
-  end
-
-  def with_content_api(content_api, &block)
-    with_service(:content_api, content_api, &block)
   end
 
   def routes_helper
@@ -144,8 +165,8 @@ class ActiveSupport::TestCase
     File.new(Rails.root.join('test/fixtures', filename))
   end
 
-  def assert_file_content_identical(file1, file2)
-    FileUtils.compare_file(file1.path, file2.path)
+  def assert_file_content_identical(file_1, file_2)
+    FileUtils.compare_file(file_1.path, file_2.path)
   end
 
   def publish(edition)
@@ -160,6 +181,10 @@ class ActiveSupport::TestCase
     unless publisher.perform!
       raise "Could not force publish edition: #{publisher.failure_reason}"
     end
+  end
+
+  def fixture_path
+    Pathname.new(Rails.root.join('test', 'fixtures'))
   end
 end
 
@@ -178,15 +203,21 @@ class ActionController::TestCase
 
   include PublicDocumentRoutesHelper
   include Admin::EditionRoutesHelper
+  include LocalisedUrlPathHelper
 
   attr_reader :current_user
 
   setup do
     request.env['warden'] = stub(authenticate!: false, authenticated?: false, user: nil)
 
-    # In controller tests, assume by default that the resource being rendered
-    # does not have any topic tags.
-    SpecialistTagFinder.stubs(:new).returns(SpecialistTagFinder::Null.new)
+    # In controller tests, stub out all calls to the content store. This
+    # implies that by default we don't care about responses from this endpoint,
+    # which is currently only used to render specialist sector links in the
+    # header.
+    stub_request(:get, %r{.*content-store.*/content/.*}).to_return(status: 404)
+    publishing_api_has_linkables([], document_type: 'topic')
+
+    stub_request(:get, %r{\A#{Plek.find('publishing-api')}/v2/links/}).to_return(body: { links: {} }.to_json)
   end
 
   def login_as(role_or_user)
@@ -211,12 +242,21 @@ class ActionController::TestCase
 end
 
 class ActionDispatch::IntegrationTest
+  include LocalisedUrlPathHelper
+  include Warden::Test::Helpers
+
   def login_as(user)
     GDS::SSO.test_user = user
+    super
   end
 
   def login_as_admin
     login_as(create(:user, name: "user-name", email: "user@example.com"))
+  end
+
+  def logout
+    GDS::SSO.test_user = nil
+    super
   end
 
   teardown do
@@ -225,20 +265,17 @@ class ActionDispatch::IntegrationTest
 end
 
 class ActionMailer::TestCase
-  def self.enable_url_helpers
-    # See http://jakegoulding.com/blog/2011/02/26/using-named-routes-in-actionmailer-tests-with-rails-3/
-    include Rails.application.routes.url_helpers
-    Rails.application.routes.default_url_options[:host] = "example.com"
-    def default_url_options
-      Rails.application.routes.default_url_options
-    end
-  end
+  include UrlHelpers
 end
 
 class ActionView::TestCase
   def setup_view_context
     @view_context = @controller.view_context
   end
+end
+
+class LocalisedUrlTestCase < ActionView::TestCase
+  include LocalisedUrlPathHelper
 end
 
 class PresenterTestCase < ActionView::TestCase

@@ -2,16 +2,28 @@ class HtmlAttachment < Attachment
   extend FriendlyId
   friendly_id :title, use: :scoped, scope: :attachable
 
+  include HasContentId
+
   has_one :govspeak_content,
-    autosave: true, inverse_of: :html_attachment, dependent: :destroy
+          autosave: true,
+          inverse_of: :html_attachment,
+          dependent: :destroy
 
   before_validation :clear_slug_if_non_english_locale
 
   validates :govspeak_content, presence: true
 
   accepts_nested_attributes_for :govspeak_content
-  delegate :body, :body_html, :headers_html,
-            to: :govspeak_content, allow_nil: true, prefix: true
+  delegate :body,
+           :body_html,
+           :headers_html,
+           to: :govspeak_content,
+           allow_nil: true,
+           prefix: true
+
+  def rendering_app
+    Whitehall::RenderingApp::GOVERNMENT_FRONTEND
+  end
 
   def manually_numbered_headings?
     govspeak_content.manually_numbered_headings?
@@ -38,10 +50,6 @@ class HtmlAttachment < Attachment
     false
   end
 
-  def could_contain_viruses?
-    false
-  end
-
   def content_type
     'text/html'
   end
@@ -51,15 +59,21 @@ class HtmlAttachment < Attachment
   end
 
   def url(options = {})
-    options[:preview] = id if options.delete(:preview)
+    preview = options.delete(:preview)
+    full_url = options.delete(:full_url)
 
-    path_helper = case attachable
-                  when Consultation
-                    :consultation_html_attachment_path
-                  else
-                    :publication_html_attachment_path
-                  end
-    Rails.application.routes.url_helpers.send(path_helper, attachable.slug, self, options)
+    if preview
+      options[:preview] = id
+      options[:host] = URI(Plek.new.external_url_for("draft-origin")).host
+    else
+      options[:host] = URI(Plek.new.external_url_for("www-origin")).host
+    end
+
+    type = attachable.class.name.underscore
+    path_or_url = full_url ? "url" : "path"
+    path_helper = "#{type}_html_attachment_#{path_or_url}"
+
+    Whitehall.url_maker.public_send(path_helper, attachable.slug, self, options)
   end
 
   def extracted_text
@@ -68,13 +82,12 @@ class HtmlAttachment < Attachment
 
   def should_generate_new_friendly_id?
     return false unless sluggable_locale?
+
     slug.nil? || attachable.nil? || !attachable.document.published?
   end
 
   def search_index
-    super.merge({
-      content: extracted_text,
-    })
+    super.merge(content: extracted_text)
   end
 
   def deep_clone
@@ -89,18 +102,14 @@ class HtmlAttachment < Attachment
     'HTML'
   end
 
-  def save_and_update_publishing_api
-    save && Whitehall.edition_services.draft_updater(attachable).perform!
-  end
-
   def translated_locales
     [locale || I18n.default_locale.to_s]
   end
 
-  private
+private
 
   def sluggable_locale?
-    locale.blank? or locale == "en"
+    locale.blank? || (locale == "en")
   end
 
   def sluggable_string
@@ -108,7 +117,7 @@ class HtmlAttachment < Attachment
   end
 
   def clear_slug_if_non_english_locale
-    if locale_changed? and !sluggable_locale?
+    if locale_changed? && !sluggable_locale?
       self.slug = nil
     end
   end

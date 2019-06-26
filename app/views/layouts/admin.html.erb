@@ -8,7 +8,7 @@
 <% end %>
 
 <% content_for :head do %>
-  <!--[if gt IE 8]><!--><%= stylesheet_link_tag "admin.css" %><!--<![endif]-->
+  <!--[if gt IE 8]><!--><%= stylesheet_link_tag "admin.css", integrity: true, crossorigin: 'anonymous' %><!--<![endif]-->
   <!--[if IE 7]><%= stylesheet_link_tag "admin-ie7.css" %><script>var ieVersion = 7;</script><![endif]-->
   <!--[if IE 8]><%= stylesheet_link_tag "admin-ie8.css" %><script>var ieVersion = 8;</script><![endif]-->
   <%= csrf_meta_tags %>
@@ -46,6 +46,9 @@
         </ul>
         <div class="navbar-text pull-right remove-bottom-margin">
           <ul class="list-inline">
+              <li>
+                  <%= signon_link %>
+              </li>
             <% if user_signed_in? %>
               <li>
                 <%= link_to current_user.name, admin_user_path(current_user), id: "#user_settings" %>
@@ -113,6 +116,12 @@
   <%= render_mustache_templates if Rails.env.development? %>
   <% initialise_script "GOVUK.adminGlobalInitialiser" %>
   <%= javascript_tag(yield :javascript_initialisers) %>
+<% end %>
+
+<% if user_signed_in? && current_user.has_email? %>
+  <% content_for :before_pageview_js do %>
+    GOVUKAdmin.setDimension(8, "<%= current_user.organisation_slug.present? ? current_user.organisation_slug : '(not set)' %>")
+  <% end %>
 <% end %>
 
 <%# use the govuk_admin_template layout %>

@@ -14,7 +14,9 @@ module PublicDocumentRoutesHelper
     document_path(edition, options.merge(query))
   end
 
-  def document_url(edition, options = {}, builder_options = {})
+  def document_url(edition, options = {}, _builder_options = {})
+    return edition.url if edition.is_a?(RummagerDocumentPresenter)
+
     if edition.non_english_edition?
       options[:locale] = edition.primary_locale
     elsif edition.translatable?
@@ -46,9 +48,10 @@ module PublicDocumentRoutesHelper
 
   def preview_document_url(edition, options = {})
     if edition.rendering_app == Whitehall::RenderingApp::GOVERNMENT_FRONTEND
-      options[:host] = Plek.find_uri("draft-origin").host
+      options[:host] = URI(Plek.new.external_url_for("draft-origin")).host
     else
-      options.merge!(preview: edition.latest_edition.id, cachebust: Time.zone.now.getutc.to_i)
+      options[:preview] = edition.latest_edition.id
+      options[:cachebust] = Time.zone.now.getutc.to_i
     end
 
     document_url(edition, options)
@@ -59,7 +62,7 @@ module PublicDocumentRoutesHelper
                             when String
                               Organisation.find_by(slug: slug_or_organisation)
                             when Organisation
-                              organisation_or_court = slug_or_organisation
+                              slug_or_organisation
                             else
                               raise ArgumentError.new("Must provide a slug or Organisation")
                             end
@@ -80,20 +83,25 @@ module PublicDocumentRoutesHelper
     organisation_url(organisation_or_court_or_slug, options.merge(only_path: true))
   end
 
-  private
+  def organisation_preview_url(organisation, options = {})
+    polymorphic_url(organisation, options.merge(host: URI(Plek.new.external_url_for("draft-origin")).host))
+  end
+
+private
 
   def build_url_for_corporate_information_page(edition, options)
     org = edition.owning_organisation
+
+    decorator = CorporateInfoPageDecorator.new(edition)
+    url = polymorphic_url([org, decorator], options)
+
     # About pages are actually shown on the CIP index for an Organisation.
     # We generate a unique path for them anyway, but this is always redirected.
-    if edition.about_page?
-      if org.is_a?(WorldwideOrganisation)
-        polymorphic_url([org, edition.slug], options)
-      else
-        polymorphic_url([org, CorporateInformationPage], options)
-      end
-    else
-      polymorphic_url([org, 'corporate_information_page'], options.merge(id: edition.slug))
+    case org
+    when Organisation
+      url.gsub("/about/about", "/about")
+    when WorldwideOrganisation
+      url.gsub("/about/about", "")
     end
   end
 
@@ -102,6 +110,20 @@ module PublicDocumentRoutesHelper
       I18n.locale
     else
       I18n.default_locale
+    end
+  end
+
+  # Override #to_s on corporate information pages to return a slug.
+  # We could set the FriendlyId in the model, but this would affect admin.
+  CorporateInfoPageDecorator = Struct.new(:edition) do
+    delegate :slug, :persisted?, :model_name, to: :edition
+
+    def to_s
+      slug
+    end
+
+    def to_model
+      self
     end
   end
 end

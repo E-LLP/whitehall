@@ -69,6 +69,12 @@
         <%= link_to "Cancel statistics release", [:cancel, :admin, @statistics_announcement], class: "btn btn-default pull-right" %>
       <% end %>
     </div>
+
+    <%= render partial: '/admin/shared/tagging/show_topics_box', locals: {
+      path_to_edit_tags: edit_admin_statistics_announcement_tags_path(@statistics_announcement.id),
+      selected_taxon_paths: @edition_taxons.map(&:full_path),
+      no_topics_message: 'No topics - please add a topic'
+    } %>
   </div>
 
   <div class="col-md-4">

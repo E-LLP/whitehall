@@ -6,13 +6,12 @@ class ClassificationFeaturingTest < ActiveSupport::TestCase
   test "should build an image using nested attributes" do
     classification_featuring = build(:classification_featuring)
     classification_featuring.image_attributes = {
-      file: fixture_file_upload('minister-of-funk.960x640.jpg')
+      file: fixture_file_upload('minister-of-funk.960x640.jpg', 'image/jpg')
     }
     classification_featuring.save!
 
     classification_featuring = ClassificationFeaturing.find(classification_featuring.id)
 
-    assert_match /minister-of-funk/, classification_featuring.image.file.url
+    assert_match(/minister-of-funk/, classification_featuring.image.file.url)
   end
-
 end

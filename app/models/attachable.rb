@@ -10,6 +10,11 @@ module Attachable
              -> { not_deleted.order('attachments.ordering, attachments.id') },
              as: :attachable
 
+    has_many :deleted_html_attachments,
+             -> { deleted },
+             class_name: "HtmlAttachment",
+             as: :attachable
+
     if respond_to?(:add_trait)
       add_trait do
         def process_associations_after_save(edition)
@@ -21,19 +26,51 @@ module Attachable
     end
   end
 
+  class Null
+    def publicly_visible?
+      false
+    end
+
+    def accessible_to?(_user)
+      false
+    end
+
+    def access_limited?
+      false
+    end
+
+    def access_limited_object
+      nil
+    end
+
+    def organisations
+      []
+    end
+
+    def unpublished?
+      false
+    end
+
+    def unpublished_edition
+      nil
+    end
+  end
+
+  def attachables
+    [self]
+  end
+
   def build_empty_file_attachment
     attachment = FileAttachment.new
     attachment.build_attachment_data
     attachments << attachment
   end
 
-  def valid_virus_state?
-    attachments.each do |attachment|
-      if attachment.could_contain_viruses? && (attachment.virus_status != :clean)
-        return false
-      end
-    end
-    true
+  def uploaded_to_asset_manager?
+    attachments
+      .map(&:attachment_data)
+      .compact
+      .all?(&:uploaded_to_asset_manager?)
   end
 
   def allows_attachments?
@@ -110,12 +147,12 @@ module Attachable
   end
 
   def next_ordering
-    max = Attachment.where(attachable_id: id, attachable_type: self.class.base_class).maximum(:ordering)
+    max = Attachment.where(attachable_id: id, attachable_type: self.class.base_class.to_s).maximum(:ordering)
     max ? max + 1 : 0
   end
 
   def delete_all_attachments
-    attachments.each { |attachment| attachment.update(deleted: true) }
+    attachments.each(&:destroy)
   end
 
   def reorder_attachments(ordered_attachment_ids)
@@ -129,13 +166,11 @@ module Attachable
 
       # To get around it, we check that we can start at 0 and fit all the
       # ordering values below the current lowest ordering.
-      if ordered_attachment_ids.count < attachments.unscoped.minimum(:ordering)
-        start_at = 0
-
-      # Otherwise, we start reordering at the next available number
-      else
-        start_at = next_ordering
-      end
+      start_at = if ordered_attachment_ids.count < attachments.unscoped.minimum(:ordering)
+                   0
+                 else # Otherwise, we start reordering at the next available number
+                   next_ordering
+                 end
 
       ordered_attachment_ids.each.with_index(start_at) do |attachment_id, ordering|
         attachments.find(attachment_id).update_column(:ordering, ordering)

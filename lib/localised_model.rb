@@ -14,6 +14,9 @@ class LocalisedModel < BasicObject
     end
   end
 
+  # rubocop:disable Style/MethodMissingSuper
+  # rubocop:disable Style/MissingRespondToMissing
+
   def method_missing(method, *args, &block)
     ::I18n.with_locale @fixed_locale do
       response = @model.__send__(method, *args, &block)
@@ -27,6 +30,9 @@ class LocalisedModel < BasicObject
     end
   end
 
+  # rubocop:enable Style/MethodMissingSuper
+  # rubocop:enable Style/MissingRespondToMissing
+
   # Rails calls this a lot in form builder code. By default #to_model will
   # revert our localised model back to the standard model, so we override it
   # to get the behaviour we want.
@@ -35,6 +41,7 @@ class LocalisedModel < BasicObject
   end
 
 private
+
   def translatable_association?(method, response)
     return false unless @model.class.respond_to?(:reflect_on_association)
 
@@ -62,7 +69,6 @@ private
 end
 
 class ErrorsInEnglish < ::ActiveModel::Errors
-
   def generate_message(*args)
     ::I18n.with_locale(:en) do
       super

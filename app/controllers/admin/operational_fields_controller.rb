@@ -1,5 +1,5 @@
 class Admin::OperationalFieldsController < Admin::BaseController
-  before_filter :require_fatality_handling_permission!
+  before_action :require_fatality_handling_permission!
 
   def index
     @operational_fields = OperationalField.order(:name)
@@ -32,6 +32,7 @@ class Admin::OperationalFieldsController < Admin::BaseController
   end
 
 private
+
   def operational_field_params
     params.require(:operational_field).permit(:name, :description)
   end

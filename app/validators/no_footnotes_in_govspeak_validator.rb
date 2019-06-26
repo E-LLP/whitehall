@@ -1,5 +1,5 @@
 class NoFootnotesInGovspeakValidator < ActiveModel::Validator
-  FOOTNOTE_TAG_MATCHER = /(\[\^.*\])/
+  FOOTNOTE_TAG_MATCHER = /(\[\^.*\])/.freeze
 
   def initialize(opts = {})
     @attributes = opts[:attributes] || [opts[:attribute]]
@@ -8,7 +8,7 @@ class NoFootnotesInGovspeakValidator < ActiveModel::Validator
 
   def validate(record)
     @record = record
-    @attributes.each {|attribute_name| validate_attribute_contains_no_footnotes(attribute_name) }
+    @attributes.each { |attribute_name| validate_attribute_contains_no_footnotes(attribute_name) }
   end
 
 private

@@ -1,13 +1,16 @@
 # @abstract
-class Role < ActiveRecord::Base
+class Role < ApplicationRecord
+  include HasContentId
+  include PublishesToPublishingApi
+
   HISTORIC_ROLE_PARAM_MAPPINGS = { 'past-prime-ministers' => 'prime-minister',
                                    'past-chancellors'     => 'chancellor-of-the-exchequer',
-                                   'past-foreign-secretaries' => 'foreign-secretary' }
+                                   'past-foreign-secretaries' => 'foreign-secretary' }.freeze
 
   def self.columns
     # This is here to enable us to gracefully remove the biography column
     # in a future commit, *after* this change has been deployed
-    super.reject { |column| ['name', 'responsibilities'].include?(column.name) }
+    super.reject { |column| %w[name responsibilities].include?(column.name) }
   end
 
   has_many :role_appointments, -> { order(started_at: :desc) }
@@ -15,6 +18,9 @@ class Role < ActiveRecord::Base
 
   has_many :current_role_appointments,
            -> { where(RoleAppointment::CURRENT_CONDITION) },
+           class_name: 'RoleAppointment'
+  has_many :previous_role_appointments,
+           -> { where.not(RoleAppointment::CURRENT_CONDITION) },
            class_name: 'RoleAppointment'
   has_many :current_people, class_name: 'Person', through: :current_role_appointments, source: :person
 
@@ -36,11 +42,13 @@ class Role < ActiveRecord::Base
   scope :military,                   -> { where(type: 'MilitaryRole') }
   scope :special_representative,     -> { where(type: 'SpecialRepresentativeRole') }
   scope :chief_professional_officer, -> { where(type: 'ChiefProfessionalOfficerRole') }
+  scope :occupied,                   -> { where(id: RoleAppointment.current.pluck(:role_id)) }
 
   validates :name, presence: true
   validates :type, presence: true
   validates_with SafeHtmlValidator
 
+  after_save :republish_organisation_to_publishing_api
   before_destroy :prevent_destruction_unless_destroyable
   after_update :touch_role_appointments
 
@@ -49,6 +57,12 @@ class Role < ActiveRecord::Base
 
   include TranslatableModel
   translates :name, :responsibilities
+
+  def republish_organisation_to_publishing_api
+    organisations.each do |organisation|
+      Whitehall::PublishingApi.republish_async(organisation)
+    end
+  end
 
   def self.whip
     where(arel_table[:whip_organisation_id].not_eq(nil))
@@ -72,8 +86,8 @@ class Role < ActiveRecord::Base
       note << attends_cabinet_type.name if attends_cabinet_type_id == 2
       note << role_payment_type.name if role_payment_type
       note.join(". ")
-    else
-      role_payment_type.name if role_payment_type
+    elsif role_payment_type
+      role_payment_type.name
     end
   end
 
@@ -115,7 +129,7 @@ class Role < ActiveRecord::Base
   end
 
   def current_person_biography
-    current_person && current_person.biography_without_markup
+    current_person&.biography_appropriate_for_role_without_markup
   end
 
   def organisation_names
@@ -154,10 +168,10 @@ class Role < ActiveRecord::Base
     HISTORIC_ROLE_PARAM_MAPPINGS.invert[slug]
   end
 
-  private
+private
 
   def prevent_destruction_unless_destroyable
-    return false unless destroyable?
+    throw :abort unless destroyable?
   end
 
   def default_person_name

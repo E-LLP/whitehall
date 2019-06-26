@@ -1,4 +1,4 @@
-class Government < ActiveRecord::Base
+class Government < ApplicationRecord
   validates :name, presence: true, uniqueness: true
   validates :slug, presence: true, uniqueness: true
   validates :start_date, presence: true
@@ -14,7 +14,7 @@ class Government < ActiveRecord::Base
   end
 
   def self.on_date(date)
-    return if date.to_date > Date.today
+    return if date.to_date > Time.zone.today
 
     where('start_date <= ?', date).order(start_date: :asc).last
   end
@@ -65,8 +65,8 @@ private
 
       if self.overlaps?(existing_government)
         errors.add(:base, "overlaps #{existing_government.name}:
-          Your new government: #{self.start_date} -> #{self.end_date || "present"},
-          overlapping government: #{existing_government.start_date} -> #{existing_government.end_date || "present"}
+          Your new government: #{self.start_date} -> #{self.end_date || 'present'},
+          overlapping government: #{existing_government.start_date} -> #{existing_government.end_date || 'present'}
         ")
       end
     end

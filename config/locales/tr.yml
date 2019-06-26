@@ -18,6 +18,8 @@ tr:
         unnumbered_hoc_paper:
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         file:
+      edition:
+        nation_inapplicabilities:
       policy_group/policy_group_attachments/attachment/attachment_data:
         file:
       response/consultation_response_attachments/attachment:
@@ -62,48 +64,50 @@ tr:
     opendocument:
       help_html:
     see_more:
+  broken_links:
+    broken:
+      subheading:
+    caution:
+      subheading:
+    title:
   change_notes:
     page_history:
     published_at:
     see_all_updates:
     updated_at:
   contact:
-    contact_form: "İletişim Formu"
+    contact_form: İletişim Formu
     email: E-posta
   corporate_information_page:
     type:
-      about:
-      about_our_services:
-      access_and_opening:
-      complaints_procedure:
-      equality_and_diversity:
-      media_enquiries:
-      membership:
-      our_energy_use:
-      our_governance:
-      personal_information_charter: Kişisel Bilgiler Tüzüğü
-      petitions_and_campaigns:
-      procurement:
-      publication_scheme: Yayın Programı
-      recruitment:
-      research:
-      social_media_use: 'Sosyal Medya Kullanımı '
-      staff_update:
-      statistics:
-      terms_of_reference:
-      welsh_language_scheme: Galler dili Programı
+      link_text:
+        welsh_language_scheme:
+      title:
+        about:
+        about_our_services:
+        access_and_opening:
+        accessible_documents_policy:
+        complaints_procedure:
+        equality_and_diversity:
+        media_enquiries:
+        membership:
+        our_energy_use:
+        our_governance:
+        personal_information_charter: Kişisel Bilgiler Tüzüğü
+        petitions_and_campaigns:
+        procurement:
+        publication_scheme: Yayın Programı
+        recruitment:
+        research:
+        social_media_use: 'Sosyal Medya Kullanımı '
+        staff_update:
+        statistics:
+        terms_of_reference:
+        welsh_language_scheme: Galler dili Programı
   date:
     formats:
       default: "%d %B %Y"
       long_ordinal: "%e %B %Y"
-  detailed_guidance:
-    back_to_contents:
-    contents:
-    more:
-    part_of_published_collection:
-    published_related_detailed_guides:
-    related_mainstream_content:
-    see_more_like_this:
   document:
     contents:
     footer_meta:
@@ -116,7 +120,6 @@ tr:
       attachments:
         one: Belge
         other: Belgeler
-      field_of_operation: Faaliyet Alanı
       from:
       location:
       part_of:
@@ -138,9 +141,12 @@ tr:
       authored_article:
         one: Yazılan makale
         other: Yazılan makaleler
+      blog_post:
+        one:
+        other:
       case_study:
-        one: "Örnek Olay"
-        other: "Örnek Olaylar"
+        one: Örnek Olay
+        other: Örnek Olaylar
       closed_consultation:
         one: Sona eren çalışmalar
         other: Sona eren çalışmalar
@@ -168,9 +174,6 @@ tr:
       draft_text:
         one: Taslak metin
         other: Taslak metinler
-      fatality_notice:
-        one: "Ölüm ilanı"
-        other: "Ölüm ilanları"
       foi_release:
         one: Bilgi edinme hakkı raporu
         other: Bilgi edinme hakkı raporları
@@ -195,21 +198,30 @@ tr:
       international_treaty:
         one:
         other:
+      manual:
+        one:
+        other:
       map:
         one: Harita
         other: Haritalar
       national_statistics:
-        one: "İstatistikler - ulusal istatistikler"
-        other: "İstatistikler - ulusal istatistikler"
+        one: İstatistikler - ulusal istatistikler
+        other: İstatistikler - ulusal istatistikler
       news_article:
         one: Makale
         other: Makaleler
       news_story:
         one: Haber
         other: Haberler
+      nhs_content:
+        one:
+        other:
       notice:
         one:
         other:
+      official_statistics:
+        one: İstatistikler
+        other: İstatistikler
       open_consultation:
         one: Devam eden çalışma
         other: Devam eden çalışmalar
@@ -244,11 +256,8 @@ tr:
         one: Parlamento'ya yapılan açıklama
         other: Parlamento'ya yapılan açıklamalar
       statistical_data_set:
-        one: "İstatiksel veri setleri"
-        other: "İstatiksel veri setleri"
-      official_statistics:
-        one: "İstatistikler"
-        other: "İstatistikler"
+        one: İstatiksel veri setleri
+        other: İstatiksel veri setleri
       statutory_guidance:
         one:
         other:
@@ -258,6 +267,9 @@ tr:
       transparency:
         one: Veri saydamlığı
         other: Veri saydamlığı
+      world_news_story:
+        one:
+        other:
       written_statement:
         one: Parlamento'ya yapılan yazılı açıklama
         other: Parlamento'ya yapılan yazılı açıklamalar
@@ -272,14 +284,14 @@ tr:
       tna_link:
     world_locations:
       all: Tüm yerler
-      label: "Ülkeler"
+      label: Ülkeler
   feeds:
     email:
     feed:
     get_updates_to_this_list:
     latest_activity: Son etkinlik
   i18n:
-    direction: Itr
+    direction: ltr
   language_names:
     tr: Türkçe
   latest_feed:
@@ -298,13 +310,14 @@ tr:
       access_our_info: Bilgilere erişim
       foi_how_to: Bilgi Edinme Hakkı nasıl kullanılır
       foi_releases: Bilgi Edinme Hakkı Raporu
-      jobs_and_contacts: "İş ve sözleşmeler"
+      jobs:
+      jobs_and_contacts: İş ve sözleşmeler
       organisation_chart:
       transparency: Veri saydamlığı
     foi_exemption_html:
     headings:
-      chief_professional_officers: "Üst düzey uzman "
-      contact: "İletişim %{name}"
+      chief_professional_officers: 'Üst düzey uzman '
+      contact: İletişim %{name}
       corporate_information: Kurumsal bilgi
       corporate_reports: Kurumsal raporlar
       documents:
@@ -319,9 +332,9 @@ tr:
       our_publications: Yayınlarımız
       our_senior_military_officials: Kıdemli askeri görevli
       our_services: Hizmetlerimiz
-      our_statistics: "İstatistikler"
+      our_statistics: İstatistikler
       our_topics: Bu konular üzerine çalışıyoruz
-      special_representatives: "Özel temsilciler"
+      special_representatives: Özel temsilciler
       traffic_commissioners: Trafik Şube Müdürü
       what_we_do: 'Hakkımızda '
       who_we_are:
@@ -412,21 +425,21 @@ tr:
   world_location:
     headings:
       announcements: Duyurularımız
-      country: "Ülke"
+      country: Ülke
       documents: Belgeler
       mission: Misyonumuz
       organisations: Organizasyon
       publications: Yayınlarımız
       quick_links: Kısa Yollar
-      related_policies: "İlgili politikalar"
-      statistics: "İstatistiklerimiz"
+      related_policies: İlgili politikalar
+      statistics: İstatistiklerimiz
     type:
       international_delegation:
         one: Uluslararası heyet
         other: Uluslararası heyetler
       world_location:
-        one: "Ülke "
-        other: "Ülkeler"
+        one: 'Ülke '
+        other: Ülkeler
   worldwide_organisation:
     corporate_information:
       about_our_services_html:
@@ -442,6 +455,7 @@ tr:
     headings:
       about_us: Hakkımızda
       contact_us: Bize ulaşın
+      contents:
       corporate_information: Kurumsal Bilgi
       follow_us: Bizi takip edin
       our_people: Biz Kimiz

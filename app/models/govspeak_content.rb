@@ -1,11 +1,11 @@
-class GovspeakContent < ActiveRecord::Base
+class GovspeakContent < ApplicationRecord
   belongs_to :html_attachment, inverse_of: :govspeak_content
 
   validates :body, :html_attachment, presence: true
   validates_with SafeHtmlValidator
 
   before_save :reset_computed_html, if: :body_or_numbering_scheme_changed?
-  after_save :queue_html_compute_job, if: :body_or_numbering_scheme_changed?
+  after_save :queue_html_compute_job, if: :saved_change_to_body_or_numbering_scheme?
 
   def body_html
     computed_body_html.try(:html_safe)
@@ -37,6 +37,10 @@ private
     body_changed? || manually_numbered_headings_changed?
   end
 
+  def saved_change_to_body_or_numbering_scheme?
+    saved_change_to_body? || saved_change_to_manually_numbered_headings?
+  end
+
   def reset_computed_html
     self.computed_body_html = nil
     self.computed_headers_html = nil
@@ -44,11 +48,11 @@ private
 
   def generate_govspeak
     options = govspeak_options
-    if html_attachment.attachable.respond_to?(:images)
-      images = html_attachment.attachable.images
-    else
-      images = []
-    end
+    images = if html_attachment.attachable.respond_to?(:images)
+               html_attachment.attachable.images
+             else
+               []
+             end
 
     renderer.govspeak_to_html(body, images, options)
   end

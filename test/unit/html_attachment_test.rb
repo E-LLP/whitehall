@@ -4,11 +4,13 @@ require 'test_helper'
 
 class HtmlAttachmentTest < ActiveSupport::TestCase
   test '#govspeak_content_body_html returns the computed HTML as an HTML safe string' do
-    attachment = create(:html_attachment, body: 'Some govspeak')
+    Sidekiq::Testing.inline! do
+      attachment = create(:html_attachment, body: 'Some govspeak')
 
-    assert attachment.reload.govspeak_content_body_html.html_safe?
-    assert_equivalent_html "<div class=\"govspeak\"><p>Some govspeak</p></div>",
-      attachment.govspeak_content_body_html
+      assert attachment.reload.govspeak_content_body_html.html_safe?
+      assert_equivalent_html "<div class=\"govspeak\"><p>Some govspeak</p></div>",
+                             attachment.govspeak_content_body_html
+    end
   end
 
   test 'associated govspeak content is deleted with the html attachment' do
@@ -33,16 +35,49 @@ class HtmlAttachmentTest < ActiveSupport::TestCase
     assert_equal attachment.content_id, clone.content_id
   end
 
-  test '#url returns absolute path' do
+  test '#url returns absolute path to the draft stack when previewing' do
+    edition = create(:draft_publication, :with_html_attachment)
+    attachment = edition.attachments.first
+
+    expected = "https://draft-origin.test.gov.uk/government/publications/"
+    expected += "#{edition.slug}/#{attachment.slug}?preview=#{attachment.id}"
+    actual = attachment.url(preview: true, full_url: true)
+
+    assert_equal expected, actual
+  end
+
+  test '#url returns absolute path to the live site when not previewing' do
     edition = create(:published_publication, :with_html_attachment)
     attachment = edition.attachments.first
-    expected = "/government/publications/#{edition.slug}/#{attachment.slug}"
-    assert_equal expected, attachment.url
+
+    expected = "https://www-origin.test.gov.uk/government/publications/"
+    expected += "#{edition.slug}/#{attachment.slug}"
+    actual = attachment.url(full_url: true)
+
+    assert_equal expected, actual
+  end
+
+  test '#url returns relative path by default' do
+    edition = create(:published_publication, :with_html_attachment)
+    attachment = edition.attachments.first
+    assert_equal "/government/publications/#{edition.slug}/#{attachment.slug}", attachment.url
+  end
+
+  test "#url works with consultation outcomes" do
+    consultation = create(:consultation_with_outcome_html_attachment)
+    attachment = consultation.outcome.attachments.first
+    assert_equal "/government/consultations/#{consultation.slug}/outcome/#{attachment.slug}", attachment.url
+  end
+
+  test "#url works with consultation public feedback" do
+    consultation = create(:consultation_with_public_feedback_html_attachment)
+    attachment = consultation.public_feedback.attachments.first
+    assert_equal "/government/consultations/#{consultation.slug}/public-feedback/#{attachment.slug}", attachment.url
   end
 
   test "slug is copied from previous edition's attachment" do
     edition = create(:published_publication, attachments: [
-      attachment = build(:html_attachment, title: "an-html-attachment")
+      build(:html_attachment, title: "an-html-attachment")
     ])
     draft = edition.create_draft(create(:writer))
 
@@ -50,9 +85,9 @@ class HtmlAttachmentTest < ActiveSupport::TestCase
   end
 
   test "slug is updated when the title is changed if edition is unpublished" do
-    edition = create(:draft_publication, attachments: [
-      attachment = build(:html_attachment, title: "an-html-attachment")
-    ])
+    attachment = build(:html_attachment, title: "an-html-attachment")
+
+    create(:draft_publication, attachments: [attachment])
 
     attachment.title = "a-new-title"
     attachment.save
@@ -120,32 +155,12 @@ class HtmlAttachmentTest < ActiveSupport::TestCase
     assert attachment.slug.blank?
   end
 
-  test "#save_and_update_publishing_api saves the attachment" do
-    build(
-      :draft_publication,
-      html_attachments: [attachment = build(:html_attachment)]
-    )
-    attachment.save_and_update_publishing_api
-    assert attachment.persisted?, "Attachment has not been saved"
-  end
-
-  test "#save_and_udpate_publishing_api sends the attachable to draft_updater" do
-    edition = create(
-      :draft_publication,
-      html_attachments: [attachment = build(:html_attachment)]
-    )
-
-    Whitehall.edition_services
-      .expects(:draft_updater)
-      .with(edition)
-      .returns(draft_updater = stub)
-    draft_updater.expects(:perform!)
-
-    attachment.save_and_update_publishing_api
-  end
-
   test "#translated_locales lists only the attachment's locale" do
-    assert_equal ["en"], HtmlAttachment.new.translated_locales
-    assert_equal ["cy"], HtmlAttachment.new(locale: "cy").translated_locales
+    assert_equal %w[en], HtmlAttachment.new.translated_locales
+    assert_equal %w[cy], HtmlAttachment.new(locale: "cy").translated_locales
+  end
+
+  test "#rendering_app returns government_frontend" do
+    assert_equal "government-frontend", HtmlAttachment.new.rendering_app
   end
 end

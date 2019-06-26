@@ -1,7 +1,7 @@
 require "test_helper"
 
 class Admin::EditionsHelperTest < ActionView::TestCase
-  def govspeak_embedded_contacts(*args)
+  def govspeak_embedded_contacts(*_args)
     []
   end
 
@@ -34,64 +34,20 @@ class Admin::EditionsHelperTest < ActionView::TestCase
     assert_includes default_edition_tabs(document_collection).keys, "Collection documents"
   end
 
-  test 'specialist_sector_options_for_select returns grouped options' do
-    oil_and_gas = OpenStruct.new(
-      slug: 'oil-and-gas',
-      title: 'Oil and Gas',
-      topics: [
-        OpenStruct.new(slug: 'oil-and-gas/wells', title: 'Wells'),
-        OpenStruct.new(slug: 'oil-and-gas/fields', title: 'Fields')
-      ]
-    )
-
-    tax = OpenStruct.new(
-      slug: 'tax',
-      title: 'Tax',
-      topics: [
-        OpenStruct.new(slug: 'tax/income-tax', title: 'Income Tax'),
-        OpenStruct.new(slug: 'tax/capital-gains-tax', title: 'Capital Gains Tax')
-      ]
-    )
-
-    sectors = [oil_and_gas, tax]
-
-    expected_options = [
-      ['Oil and Gas', [['Oil and Gas: Wells', 'oil-and-gas/wells'],
-                       ['Oil and Gas: Fields', 'oil-and-gas/fields']]],
-      ['Tax', [['Tax: Income Tax', 'tax/income-tax'],
-               ['Tax: Capital Gains Tax', 'tax/capital-gains-tax']]]
-    ]
-
-    assert_equal expected_options, specialist_sector_options_for_select(sectors)
-  end
-
-  test 'specialist_sector_fields should pass a list of sectors into a block' do
-    SpecialistSector.stubs(:grouped_sector_topics).returns(:sector_list)
-
-    response = specialist_sector_fields do |sectors|
-      assert_equal :sector_list, sectors
-      'Some string'
-    end
-
-    assert_equal 'Some string', response
-  end
-
-  test 'specialist_sector_fields should return nothing when the list of sectors is unavailable' do
-    SpecialistSector.stubs(:grouped_sector_topics)
-                    .raises(SpecialistSector::DataUnavailable.new)
-
-    response = specialist_sector_fields do |sectors|
-      assert false, 'Block should not be called'
-      'Some string'
-    end
-
-    assert_equal nil, response
-  end
-
   test '#admin_author_filter_options excludes disabled users' do
-    current_user, another_user = *create_list(:user, 2)
+    current_user, _another_user = *create_list(:user, 2)
     disabled_user = create(:disabled_user)
 
     refute_includes admin_author_filter_options(current_user), disabled_user
+  end
+
+  def one_hundred_thousand_words
+    " There are ten words contained in this sentence there are" * 10000
+  end
+
+  test '#show_link_check_report does not execute LinkCheckerApiService#has_links? when the edition is novel length' do
+    edition = stub(body: one_hundred_thousand_words)
+    LinkCheckerApiService.expects(:has_links?).never
+    show_link_check_report?(edition)
   end
 end

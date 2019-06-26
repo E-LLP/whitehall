@@ -5,6 +5,12 @@ Scenario: Creating a new draft consultation
   When I draft a new consultation "Beard Length Review"
   Then I should see the consultation "Beard Length Review" in the list of draft documents
 
+Scenario: Creating a new consultation tagged to policy
+  Given I am a writer
+  When I draft a new consultation "Beard Length Review with Policies"
+  Then I tag it to the policy "Policy 1" and "Policy 2"
+  Then I can see the consultation "Beard Length Review with Policies" tagged to "Policy 1" and "Policy 2"
+
 Scenario: Submitting a draft consultation to a second pair of eyes
   Given I am a writer
   And a draft consultation "Beard Length Review" exists
@@ -15,23 +21,25 @@ Scenario: Submitting a draft consultation to a second pair of eyes
 Scenario: Publishing a submitted consultation
   Given I am an editor
   And a submitted consultation "Beard Length Review" exists
-  When I publish the consultation "Beard Length Review"
+  When I check "Beard Length Review" adheres to the consultation principles
+  And I publish the consultation "Beard Length Review"
   Then I should see the consultation "Beard Length Review" in the list of published documents
-  And the consultation "Beard Length Review" should be visible to the public
 
+@disable-sidekiq-test-mode
 Scenario: Adding an outcome to a closed consultation
   Given I am an editor
   And a closed consultation exists
   When I add an outcome to the consultation
   And I save and publish the amended consultation
-  Then the consultation outcome should be viewable
+  Then I can see that the consultation has been published
 
+@disable-sidekiq-test-mode
 Scenario: Adding public feedback to a closed consultation
   Given I am an editor
   And a closed consultation exists
   When I add public feedback to the consultation
   And I save and publish the amended consultation
-  Then the public feedback should be viewable
+  Then I can see that the consultation has been published
 
 @javascript
 Scenario: Associating an offsite consultation with topical events

@@ -7,10 +7,10 @@ class Admin::SitewideSettingsControllerTest < ActionController::TestCase
 
   should_be_an_admin_controller
 
-  [:edit, :update].each do |action_method|
+  %i[edit update].each do |action_method|
     test "#{action_method} action is not permitted to non-GDS editors" do
       login_as :departmental_editor
-      get action_method, id: 1
+      get action_method, params: { id: 1 }
       assert_response :forbidden
     end
   end
@@ -23,11 +23,10 @@ class Admin::SitewideSettingsControllerTest < ActionController::TestCase
 
   test "PUT on :update updates the sitewide setting" do
     sitewide_setting = create(:sitewide_setting)
-    put :update, id: sitewide_setting, sitewide_setting: {on: true, govspeak: "govspeak text"}
+    put :update, params: { id: sitewide_setting, sitewide_setting: { on: true, govspeak: "govspeak text" } }
 
     assert_equal 'govspeak text', sitewide_setting.reload.govspeak
     assert_equal true, sitewide_setting.reload.on
     assert_redirected_to admin_sitewide_settings_path
   end
-
 end

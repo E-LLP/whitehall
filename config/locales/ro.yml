@@ -6,19 +6,22 @@ ro:
         few:
         other: Documente
       applies_to_nations: Se adresează
-      field_of_operation: Domeniu de activitate
       from:
       location:
       part_of:
     type:
       announcement:
-        one: "Știre"
+        one: Știre
         few:
-        other: "Știri"
+        other: Știri
       authored_article:
         one: 'Articol '
         few:
         other: 'Articol '
+      blog_post:
+        one:
+        few:
+        other:
       case_study:
         one: Studiu de caz
         few:
@@ -59,10 +62,6 @@ ro:
         one: Versiune preliminară
         few:
         other: Versiuni preliminare
-      fatality_notice:
-        one: Anunț privind decesul
-        few:
-        other: Anunțuri privind decese
       foi_release:
         one: 'Acces la informații publice '
         few:
@@ -95,6 +94,10 @@ ro:
         one:
         few:
         other:
+      manual:
+        one:
+        few:
+        other:
       map:
         one: Hartă
         few:
@@ -104,17 +107,25 @@ ro:
         few:
         other: Statistici - statistici naționale
       news_article:
-        one: "Știre"
+        one: Știre
         few:
-        other: "Știri"
+        other: Știri
       news_story:
-        one: "Știre"
+        one: Știre
         few:
-        other: "Știri"
+        other: Știri
+      nhs_content:
+        one:
+        few:
+        other:
       notice:
         one:
         few:
         other:
+      official_statistics:
+        one: Statistici
+        few:
+        other: Statistici
       open_consultation:
         one: Dezbatere
         few:
@@ -128,9 +139,9 @@ ro:
         few:
         other:
       press_release:
-        one: "Știre"
+        one: Știre
         few:
-        other: "Știri"
+        other: Știri
       promotional:
         one: Material promoțional
         few:
@@ -163,10 +174,6 @@ ro:
         one: Date statistice
         few:
         other: Date statistice
-      official_statistics:
-        one: Statistici
-        few:
-        other: Statistici
       statutory_guidance:
         one:
         few:
@@ -176,6 +183,10 @@ ro:
         few:
         other: Transcrieri
       transparency:
+        one:
+        few:
+        other:
+      world_news_story:
         one:
         few:
         other:
@@ -235,8 +246,8 @@ ro:
         few:
         other: Localizare
     headings:
-      announcements: "Știri"
-      country: "Țară"
+      announcements: Știri
+      country: Țară
       documents: Documente
       mission: Obiectiv
       organisations: Organizații
@@ -263,6 +274,8 @@ ro:
         unnumbered_hoc_paper:
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         file:
+      edition:
+        nation_inapplicabilities:
       policy_group/policy_group_attachments/attachment/attachment_data:
         file:
       response/consultation_response_attachments/attachment:
@@ -288,12 +301,16 @@ ro:
       unique_reference:
       unnumbered_hoc_paper:
   announcements:
-    heading: "Știri"
+    heading: Știri
     view_all:
   attachment:
     accessibility:
-      full_help_html: |
-        Pentru a solicita acest document într-un format alternativ (braille, audio, etc.) vă rugăm să transmiteți o solicitare pe email către %{email}, specificând adresa de corespondență, numărul dumneavoastră  de telefon, precum și titlul publicației ("%{title}")%{references}.
+      full_help_html: 'Pentru a solicita acest document într-un format alternativ
+        (braille, audio, etc.) vă rugăm să transmiteți o solicitare pe email către
+        %{email}, specificând adresa de corespondență, numărul dumneavoastră  de telefon,
+        precum și titlul publicației ("%{title}")%{references}.
+
+'
       heading: Este posibil ca acest fișier să nu fie adecvat utilizatorilor de  tehnologii
         de asistare
       request_a_different_format: 'Solicită un format diferit '
@@ -307,6 +324,12 @@ ro:
     opendocument:
       help_html:
     see_more:
+  broken_links:
+    broken:
+      subheading:
+    caution:
+      subheading:
+    title:
   change_notes:
     page_history:
     published_at:
@@ -317,38 +340,34 @@ ro:
     email: Email
   corporate_information_page:
     type:
-      about:
-      about_our_services:
-      access_and_opening:
-      complaints_procedure:
-      equality_and_diversity:
-      media_enquiries:
-      membership:
-      our_energy_use:
-      our_governance:
-      personal_information_charter: Organigramă
-      petitions_and_campaigns:
-      procurement:
-      publication_scheme:
-      recruitment:
-      research:
-      social_media_use: 'Utilizarea rețelelor sociale online '
-      staff_update:
-      statistics:
-      terms_of_reference:
-      welsh_language_scheme:
+      link_text:
+        welsh_language_scheme:
+      title:
+        about:
+        about_our_services:
+        access_and_opening:
+        accessible_documents_policy:
+        complaints_procedure:
+        equality_and_diversity:
+        media_enquiries:
+        membership:
+        our_energy_use:
+        our_governance:
+        personal_information_charter: Organigramă
+        petitions_and_campaigns:
+        procurement:
+        publication_scheme:
+        recruitment:
+        research:
+        social_media_use: 'Utilizarea rețelelor sociale online '
+        staff_update:
+        statistics:
+        terms_of_reference:
+        welsh_language_scheme:
   date:
     formats:
       default:
       long_ordinal:
-  detailed_guidance:
-    back_to_contents:
-    contents:
-    more:
-    part_of_published_collection:
-    published_related_detailed_guides:
-    related_mainstream_content:
-    see_more_like_this:
   document_filters:
     description: Personalizează căutarea
     no_results:
@@ -365,7 +384,7 @@ ro:
     get_updates_to_this_list:
     latest_activity: Activiţăti recente
   i18n:
-    direction:
+    direction: ltr
   language_names:
     ro: Română
   latest_feed:
@@ -385,6 +404,7 @@ ro:
       foi_how_to: 'Cum  se face o cerere pentru accesul la informațiile cu caracter
         public '
       foi_releases: 'Informații cu caracter public '
+      jobs:
       jobs_and_contacts: 'Oportunități de angajare '
       organisation_chart:
       transparency:
@@ -397,7 +417,7 @@ ro:
       documents:
       freedom_of_information_act:
       making_foi_requests:
-      our_announcements: "Știri "
+      our_announcements: 'Știri '
       our_consultations:
       our_judges:
       our_management: 'Echipa ambasadei '
@@ -472,7 +492,7 @@ ro:
     follow_us:
   support:
     array:
-      last_word_connector: "și"
+      last_word_connector: și
   time:
     formats:
       long_ordinal:
@@ -490,9 +510,10 @@ ro:
     headings:
       about_us: Despre noi
       contact_us: Contactează-ne
+      contents:
       corporate_information: Informaţii despre ambasadă
       follow_us: Ne găsești și pe
       our_people: Echipa noastră
       our_services: 'Servicii '
-    location: "Țară"
+    location: Țară
     part_of: Parte din

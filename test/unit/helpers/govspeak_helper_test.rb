@@ -1,4 +1,5 @@
 # encoding: UTF-8
+
 require 'test_helper'
 
 class GovspeakHelperTest < ActionView::TestCase
@@ -95,9 +96,8 @@ class GovspeakHelperTest < ActionView::TestCase
 
   test "#html_attachment_govspeak_headers add number markup for manually numbered HTML attachments" do
     attachment = build(:html_attachment,
-      body: "## 1. First\n\n## 2. Second\n\n### 2.1 Sub",
-      manually_numbered_headings: true
-    )
+                       body: "## 1. First\n\n## 2. Second\n\n### 2.1 Sub",
+                       manually_numbered_headings: true)
     expected_headings = [Govspeak::Header.new("<span class=\"heading-number\">1.</span> First", 2, "first"),
                          Govspeak::Header.new("<span class=\"heading-number\">2.</span> Second", 2, "second")]
 
@@ -119,7 +119,7 @@ class GovspeakHelperTest < ActionView::TestCase
           <a href=\"#second\"><span class=\"heading-number\">2.</span> Second</a>
         </li>
       </ol>
-      HTML
+    HTML
 
     rendered_attachment_headers = html_attachment_govspeak_headers_html(attachment)
     assert_equivalent_html expected, rendered_attachment_headers
@@ -250,10 +250,9 @@ class GovspeakHelperTest < ActionView::TestCase
     assert_select_within_html html, ".attachment.embedded"
   end
 
-  test "prefixes embedded image urls with asset host if present" do
-    Whitehall.stubs(:public_asset_host).returns("https://some.cdn.com")
+  test "embeds image urls" do
     edition = build(:published_news_article, body: "!!1")
-    edition.stubs(:images).returns([OpenStruct.new(alt_text: "My Alt", url: "/image.jpg")])
+    edition.stubs(:images).returns([OpenStruct.new(alt_text: "My Alt", url: "https://some.cdn.com/image.jpg")])
     html = govspeak_edition_to_html(edition)
     assert_select_within_html html, ".govspeak figure.image.embedded img[src='https://some.cdn.com/image.jpg']"
   end
@@ -270,7 +269,7 @@ class GovspeakHelperTest < ActionView::TestCase
     remover.expects(:remove).returns("remover return value")
     Whitehall::ExtraQuoteRemover.stubs(:new).returns(remover)
     edition = build(:published_publication, body: %{He said:\n> "I'm not sure what you mean!"\nOr so we thought.})
-    assert_match /remover return value/, govspeak_edition_to_html(edition)
+    assert_match %r[remover return value], govspeak_edition_to_html(edition)
   end
 
   test "should add class to last paragraph of blockquote" do
@@ -308,7 +307,7 @@ class GovspeakHelperTest < ActionView::TestCase
 
   test "leaves heading numbers not occuring at the start of the heading text alone when using manual heading numbering" do
     input = "## Number 8"
-    result =  Nokogiri::HTML::DocumentFragment.parse(govspeak_to_html(input, [], heading_numbering: :manual))
+    result = Nokogiri::HTML::DocumentFragment.parse(govspeak_to_html(input, [], heading_numbering: :manual))
     assert_equal "Number 8", result.css('h2').first.text
   end
 
@@ -348,53 +347,54 @@ class GovspeakHelperTest < ActionView::TestCase
     Contact.stubs(:find_by).with(id: '1').returns(contact)
     input = '[Contact:1]'
     contact_html = render('contacts/contact', contact: contact, heading_tag: 'h3')
-    @controller.lookup_context.formats = ['atom']
-    assert_nothing_raised(ActionView::MissingTemplate) do
+    @controller.lookup_context.formats = %w[atom]
+    assert_nothing_raised do
       assert_equivalent_html "<div class=\"govspeak\">#{contact_html}</div>", govspeak_to_html(input)
     end
   end
 
   test 'will add a barchart class to a marked table' do
-    input = '
-|col|
-|---|
-|val|
-{barchart}
-'
+    input = <<~INPUT
+      |col|
+      |---|
+      |val|
+      {barchart}
+    INPUT
     html = govspeak_to_html(input)
     assert_select_within_html html, "table.js-barchart-table"
   end
 
   test 'will add a stacked, compact, negative barchart class to a marked table' do
-        input = '
-|col|
-|---|
-|val|
-{barchart stacked compact negative}
-'
+    input = <<~INPUT
+      |col|
+      |---|
+      |val|
+      {barchart stacked compact negative}
+    INPUT
     html = govspeak_to_html(input)
     assert_select_within_html html, "table.mc-stacked.js-barchart-table.mc-negative.compact"
   end
 
   test 'will make a marked table sortable' do
-    input = '
-|col|
-|---|
-|val|
-{sortable}
-    '
+    input = <<~INPUT
+      |col|
+      |---|
+      |val|
+      {sortable}
+    INPUT
     html = govspeak_to_html(input)
     assert_select_within_html html, "table.sortable"
   end
 
   test 'will make a marked table sortable and a barchart' do
-    input = '
-|col|
-|---|
-|val|
-{sortable}
-{barchart}
-    '
+    input = <<~INPUT
+      |col|
+      |---|
+      |val|
+      {sortable}
+      {barchart}
+    INPUT
+
     html = govspeak_to_html(input)
     assert_select_within_html html, "table.sortable.js-barchart-table"
   end

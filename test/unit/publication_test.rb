@@ -9,7 +9,9 @@ class PublicationTest < ActiveSupport::TestCase
   should_allow_external_attachments
 
   test 'imported publications are valid when the publication_type is imported-awaiting-type' do
-    publication = build(:publication, state: 'imported', publication_type: PublicationType.find_by_slug('imported-awaiting-type'))
+    publication = build(:publication, state: 'imported',
+                        publication_type: PublicationType.find_by_slug('imported-awaiting-type'),
+                        first_published_at: 1.year.ago)
     assert publication.valid?
   end
 
@@ -27,7 +29,7 @@ class PublicationTest < ActiveSupport::TestCase
     test "A #{state} publication is not valid without an attachment" do
       publication = build("#{state}_publication", attachments: [])
       refute publication.valid?
-      assert_match /an attachment or HTML version before being #{state}/, publication.errors[:base].first
+      assert_match %r[an attachment or HTML version before being #{state}], publication.errors[:base].first
     end
   end
 
@@ -40,17 +42,16 @@ class PublicationTest < ActiveSupport::TestCase
   end
 
   test "should build a draft copy of the existing publication" do
-    published = create(:published_publication, :with_file_attachment, {
-      first_published_at: Date.parse("2010-01-01"),
-      publication_type_id: PublicationType::ResearchAndAnalysis.id
-    })
+    published = create(:published_publication, :with_file_attachment,
+                       first_published_at: Date.parse("2010-01-01"),
+                       publication_type_id: PublicationType::ResearchAndAnalysis.id)
 
     draft = published.create_draft(create(:writer))
 
     assert_kind_of Attachment, published.attachments.first
     assert_not_equal published.attachments, draft.attachments
     assert_equal published.attachments.first.attachment_data,
-        draft.attachments.first.attachment_data
+                 draft.attachments.first.attachment_data
     assert_equal published.first_published_at, draft.first_published_at
     assert_equal published.publication_type, draft.publication_type
   end
@@ -86,18 +87,18 @@ class PublicationTest < ActiveSupport::TestCase
 
   test ".published_before returns editions whose first_published_at is before the given date" do
     jan = create(:publication, first_published_at: Date.parse("2011-01-01"))
-    feb = create(:publication, first_published_at: Date.parse("2011-02-01"))
+    _feb = create(:publication, first_published_at: Date.parse("2011-02-01"))
     assert_equal [jan], Publication.published_before("2011-01-29").to_a
   end
 
   test ".published_after returns editions whose first_published_at is after the given date" do
-    jan = create(:publication, first_published_at: Date.parse("2011-01-01"))
+    _jan = create(:publication, first_published_at: Date.parse("2011-01-01"))
     feb = create(:publication, first_published_at: Date.parse("2011-02-01"))
     assert_equal [feb], Publication.published_after("2011-01-29").to_a
   end
 
   test "new instances are access_limited based on their publication_type" do
-    limit_by_default, dont_limit_by_default = PublicationType.all.partition {|pt| pt.access_limited_by_default? }.map {|pts| pts.first }
+    limit_by_default, dont_limit_by_default = PublicationType.all.partition(&:access_limited_by_default?).map(&:first)
     e = build(:draft_publication, publication_type: limit_by_default)
     assert e.access_limited?
     e = build(:draft_publication, publication_type: dont_limit_by_default)
@@ -105,7 +106,7 @@ class PublicationTest < ActiveSupport::TestCase
   end
 
   test "new instances respect local access_limited over their publication_type" do
-    limit_by_default, dont_limit_by_default = PublicationType.all.partition {|pt| pt.access_limited_by_default? }.map {|pts| pts.first }
+    limit_by_default, dont_limit_by_default = PublicationType.all.partition(&:access_limited_by_default?).map(&:first)
     e = build(:draft_publication, publication_type: limit_by_default, access_limited: false)
     refute e.access_limited?
     e = build(:draft_publication, publication_type: dont_limit_by_default, access_limited: true)
@@ -113,7 +114,7 @@ class PublicationTest < ActiveSupport::TestCase
   end
 
   test 'existing instances don\'t change access_limit when their publication_type does' do
-    limit_by_default, dont_limit_by_default = PublicationType.all.partition {|pt| pt.access_limited_by_default? }.map {|pts| pts.first }
+    limit_by_default, dont_limit_by_default = PublicationType.all.partition(&:access_limited_by_default?).map(&:first)
     e = create(:draft_publication, access_limited: false)
     e.publication_type = limit_by_default
     refute e.access_limited?
@@ -201,7 +202,7 @@ class PublicationsInTopicsTest < ActiveSupport::TestCase
   test 'search_format_types includes search_format_types of the publication_type' do
     publication_type = mock
     publication_type.responds_like(SpeechType.new)
-    publication_type.stubs(:search_format_types).returns (['stuff-innit', 'other-thing'])
+    publication_type.stubs(:search_format_types).returns(['stuff-innit', 'other-thing'])
     publication = build(:publication)
     publication.stubs(:publication_type).returns(publication_type)
     assert publication.search_format_types.include?('stuff-innit')
@@ -226,6 +227,13 @@ class PublicationsInTopicsTest < ActiveSupport::TestCase
   test "it doesn't touch the statistics_announcement if it's in draft" do
     statistics_announcement = create(:statistics_announcement)
     publication = build(:draft_statistics, statistics_announcement: statistics_announcement)
+    statistics_announcement.expects(:touch).never
+    publication.save!
+  end
+
+  test "it doesn't touch the statistics_announcement if it's superseded" do
+    statistics_announcement = create(:statistics_announcement)
+    publication = build(:superseded_statistics, statistics_announcement: statistics_announcement)
     statistics_announcement.expects(:touch).never
     publication.save!
   end

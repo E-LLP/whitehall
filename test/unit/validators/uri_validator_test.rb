@@ -33,7 +33,7 @@ class UriValidatorTest < ActiveSupport::TestCase
 
   test "invalid urls get an error, with http" do
     feature_link = validate(PromotionalFeatureLink.new(url: 'http ://example.com'))
-    assert_equal ['is not valid. Make sure it starts with http(s)'], feature_link.errors[:url]
+    assert_equal ['is not valid.'], feature_link.errors[:url]
   end
 
   test "invalid urls get an error, with http without a space" do
@@ -41,7 +41,7 @@ class UriValidatorTest < ActiveSupport::TestCase
     assert_equal ['is not valid.'], feature_link.errors[:url]
   end
 
-  private
+private
 
   def validate(record)
     @validator.validate(record)

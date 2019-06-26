@@ -3,9 +3,8 @@ class Admin::BaseController < ApplicationController
   include PermissionsChecker
 
   layout 'admin'
-  prepend_before_filter :skip_slimmer
-  prepend_before_filter :authenticate_user!
-  before_filter :require_signin_permission!
+  prepend_before_action :skip_slimmer
+  prepend_before_action :authenticate_user!
 
   def limit_edition_access!
     enforce_permission!(:see, @edition)
@@ -42,7 +41,7 @@ class Admin::BaseController < ApplicationController
     end
   end
 
-  private
+private
 
   def forbidden!
     render "admin/editions/forbidden", status: 403

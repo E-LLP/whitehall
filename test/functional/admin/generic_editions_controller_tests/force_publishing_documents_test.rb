@@ -1,33 +1,42 @@
 require 'test_helper'
 
 class Admin::GenericEditionsController::ForcePublishingDocumentsTest < ActionController::TestCase
+  include TaxonomyHelper
   tests Admin::GenericEditionsController
 
   view_test "should not display the force publish form if edition is publishable" do
     login_as :departmental_editor
     edition = create(:submitted_edition)
-    get :show, id: edition
+    stub_publishing_api_expanded_links_with_taxons(edition.content_id, [])
+
+    get :show, params: { id: edition }
     refute_select force_publish_button_selector(edition)
   end
 
   view_test "should display the force publish form if edition is not publishable but is force-publishable" do
     login_as :departmental_editor
     edition = create(:draft_edition)
-    get :show, id: edition
+    stub_publishing_api_expanded_links_with_taxons(edition.content_id, [])
+
+    get :show, params: { id: edition }
     assert_select force_publish_button_selector(edition), count: 1
   end
 
   view_test "should not display the force publish form if edition is neither publishable nor force-publishable" do
     login_as :writer
     edition = create(:draft_edition)
-    get :show, id: edition
+    stub_publishing_api_expanded_links_with_taxons(edition.content_id, [])
+
+    get :show, params: { id: edition }
     refute_select force_publish_button_selector(edition)
   end
 
   view_test "show should indicate a force-published document" do
     login_as :writer
     edition = create(:published_edition, force_published: true)
-    get :show, id: edition
+    stub_publishing_api_expanded_links_with_taxons(edition.content_id, [])
+
+    get :show, params: { id: edition }
     assert_select ".force_published"
   end
 
@@ -35,7 +44,9 @@ class Admin::GenericEditionsController::ForcePublishingDocumentsTest < ActionCon
     creator = create(:departmental_editor, name: "Fred")
     login_as(creator)
     edition = create(:published_edition, force_published: true, creator: creator)
-    get :show, id: edition
+    stub_publishing_api_expanded_links_with_taxons(edition.content_id, [])
+
+    get :show, params: { id: edition }
     refute_select ".force_published form input"
   end
 
@@ -43,8 +54,10 @@ class Admin::GenericEditionsController::ForcePublishingDocumentsTest < ActionCon
     creator = create(:departmental_editor, name: "Fred")
     login_as(creator)
     edition = create(:published_edition, force_published: true, creator: creator)
+    stub_publishing_api_expanded_links_with_taxons(edition.content_id, [])
+
     login_as(create(:departmental_editor, name: "Another Editor"))
-    get :show, id: edition
+    get :show, params: { id: edition }
     assert_select ".force_published form input"
   end
 end

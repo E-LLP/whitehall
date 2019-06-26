@@ -1,4 +1,4 @@
-class Version < ActiveRecord::Base
+class Version < ApplicationRecord
   belongs_to :item, polymorphic: true
   validates_presence_of :event
   belongs_to :user, foreign_key: 'whodunnit'
@@ -7,7 +7,7 @@ class Version < ActiveRecord::Base
     where(item_type: item_type, item_id: item_id)
   end
 
-  scope :preceding, -> version { where(["id < ?", version.id]).order("id DESC") }
+  scope :preceding, ->(version) { where(["id < ?", version.id]).order("id DESC") }
 
   def sibling_versions
     self.class.with_item_keys(item_type, item_id)

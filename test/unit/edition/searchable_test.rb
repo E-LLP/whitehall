@@ -10,14 +10,13 @@ class Edition::SearchableTest < ActiveSupport::TestCase
     assert_equal "generic_edition", edition.search_index["format"]
     assert_equal edition.summary, edition.search_index["description"]
     assert_equal edition.id, edition.search_index["id"]
-    assert_equal edition.live_specialist_sector_tags, edition.search_index["specialist_sectors"]
-    assert_equal edition.most_recent_change_note, edition.search_index["latest_change_note"]
-    assert_equal nil, edition.search_index["organisations"]
-    assert_equal nil, edition.search_index["people"]
-    assert_equal nil, edition.search_index["publication_type"]
-    assert_equal nil, edition.search_index["speech_type"]
+    assert_nil edition.search_index["latest_change_note"]
+    assert_nil edition.search_index["organisations"]
+    assert_nil edition.search_index["people"]
+    assert_nil edition.search_index["publication_type"]
+    assert_nil edition.search_index["speech_type"]
     assert_equal edition.public_timestamp, edition.search_index["public_timestamp"]
-    assert_equal nil, edition.search_index["topics"]
+    assert_nil edition.search_index["topics"]
     assert_equal false, edition.search_index["is_withdrawn"]
   end
 
@@ -30,14 +29,13 @@ class Edition::SearchableTest < ActiveSupport::TestCase
     assert_equal "generic_edition", edition.search_index["format"]
     assert_equal edition.summary, edition.search_index["description"]
     assert_equal edition.id, edition.search_index["id"]
-    assert_equal edition.live_specialist_sector_tags, edition.search_index["specialist_sectors"]
-    assert_equal edition.most_recent_change_note, edition.search_index["latest_change_note"]
-    assert_equal nil, edition.search_index["organisations"]
-    assert_equal nil, edition.search_index["people"]
-    assert_equal nil, edition.search_index["publication_type"]
-    assert_equal nil, edition.search_index["speech_type"]
-    assert_equal edition.public_timestamp, edition.search_index["public_timestamp"]
-    assert_equal nil, edition.search_index["topics"]
+    assert_nil edition.search_index["latest_change_note"]
+    assert_nil edition.search_index["organisations"]
+    assert_nil edition.search_index["people"]
+    assert_nil edition.search_index["publication_type"]
+    assert_nil edition.search_index["speech_type"]
+    assert_nil edition.search_index["public_timestamp"]
+    assert_nil edition.search_index["topics"]
     assert_equal true, edition.search_index["is_withdrawn"]
   end
 
@@ -54,9 +52,8 @@ class Edition::SearchableTest < ActiveSupport::TestCase
 
   test "should add edition to search index on publishing" do
     edition = create(:submitted_edition)
-    stub_panopticon_registration(edition)
     stub_publishing_api_registration_for(edition)
-    Whitehall.stubs(:searchable_classes).returns([edition.class])
+    RummagerPresenters.stubs(:searchable_classes).returns([edition.class])
     Whitehall::SearchIndex.expects(:add).with(edition)
 
     Whitehall.edition_services.publisher(edition).perform!
@@ -65,20 +62,14 @@ class Edition::SearchableTest < ActiveSupport::TestCase
   test "should add edition to search index on withdrawing" do
     edition = create(:published_edition)
 
-    stub_panopticon_registration(edition)
-    withdrawal_request = stub_publishing_api_unpublish(
-      edition.content_id,
-      body: { type: "withdrawal", explanation: "Old policy", locale: "en" }
-    )
+    Whitehall::PublishingApi.stubs(:publish_withdrawal_async)
 
     edition.build_unpublishing(explanation: 'Old policy', unpublishing_reason_id: UnpublishingReason::Withdrawn.id)
 
-    Whitehall.stubs(:searchable_classes).returns([edition.class])
+    RummagerPresenters.stubs(:searchable_classes).returns([edition.class])
     Whitehall::SearchIndex.expects(:add).with(edition)
 
     Whitehall.edition_services.withdrawer(edition).perform!
-
-    assert_requested withdrawal_request
   end
 
   test "should add latest change note to search index" do
@@ -97,8 +88,7 @@ class Edition::SearchableTest < ActiveSupport::TestCase
     french_edition = create(:submitted_edition, title: 'French Title', body: 'French Body', primary_locale: :fr)
     stub_publishing_api_registration_for(french_edition)
     I18n.locale = I18n.default_locale
-    stub_panopticon_registration(french_edition)
-    Whitehall.stubs(:searchable_classes).returns([french_edition.class])
+    RummagerPresenters.stubs(:searchable_classes).returns([french_edition.class])
     Whitehall::SearchIndex.expects(:add).with(french_edition).never
 
     Whitehall.edition_services.publisher(french_edition).perform!
@@ -127,7 +117,6 @@ class Edition::SearchableTest < ActiveSupport::TestCase
   test "should remove published edition from search index when it's unpublished" do
     edition = create(:published_edition)
     create(:unpublishing, edition: edition)
-    stub_panopticon_registration(edition)
 
     Whitehall::SearchIndex.expects(:delete).with(edition)
     Whitehall.edition_services.unpublisher(edition).perform!

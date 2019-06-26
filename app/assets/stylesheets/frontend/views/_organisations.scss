@@ -266,16 +266,22 @@
       }
       .heading-extra {
         @include grid-column( 2/3 );
-        ul {
+        .featured-links {
           margin: 0;
           padding: 0;
         }
-        li a,
+
+        .featured-links li a,
         .see-all{
           @include bold-24;
         }
+
         .see-all {
           padding-top: $gutter-one-third;
+          margin-left: 0;
+        }
+
+        .available-languages {
           margin-left: 0;
         }
       }
@@ -681,6 +687,10 @@
   #freedom-of-information {
     p {
       padding: 0 $gutter-half;
+
+      &.contact_form_url, &.tel {
+        padding: 0;
+      }
     }
 
     // dupe from static
@@ -755,7 +765,7 @@
   #special_representatives h1,
   #judges h1,
   #org-contacts h2,
-  #what-we-do h1, #who-we-are h1 {
+  #what-we-do-article h1, #who-we-are h1 {
     border-bottom-width: 5px;
     border-bottom-style: solid;
   }
@@ -997,9 +1007,6 @@
         }
         ul {
           margin-top: $gutter-one-third;
-        }
-        a[rel=external] {
-          @include external-link-16-bold-no-hover;
         }
       }
       .large {

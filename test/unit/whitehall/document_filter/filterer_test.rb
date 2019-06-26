@@ -2,7 +2,6 @@ require 'test_helper'
 
 module Whitehall::DocumentFilter
   class FiltererTest < ActiveSupport::TestCase
-
     test "parses a valid from_date" do
       assert_equal Date.new(2008, 2, 28), build_filter(from_date: '28th February 2008').from_date
     end
@@ -12,11 +11,11 @@ module Whitehall::DocumentFilter
     end
 
     test "invalid date params are ignored" do
-      assert_equal nil, build_filter(from_date: "invalid-date").from_date
+      assert_nil build_filter(from_date: "invalid-date").from_date
     end
 
     test "dates before 1900 are ignored" do
-      assert_equal nil, build_filter(from_date: "2 February 200").from_date
+      assert_nil build_filter(from_date: "2 February 200").from_date
     end
 
     test "page defaults to the first page" do
@@ -26,12 +25,12 @@ module Whitehall::DocumentFilter
 
     test "per_page defaults to 40" do
       assert_equal 10, build_filter(per_page: 10).per_page
-      assert_equal 40, build_filter().per_page
+      assert_equal 40, build_filter.per_page
     end
 
     test "parses keywords, stripping leading and trailing spaces" do
       filter = build_filter(keywords: " alpha   beta ")
-      assert_equal ['alpha', 'beta'], filter.keywords
+      assert_equal %w[alpha beta], filter.keywords
     end
 
     test "publication_filter_option param sets the filter option with a slug" do

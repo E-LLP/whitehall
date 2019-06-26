@@ -1,5 +1,4 @@
 class PersonPresenter < Whitehall::Decorators::Decorator
-
   delegate_instance_methods_of Person
 
   def available_in_multiple_languages?
@@ -15,7 +14,7 @@ class PersonPresenter < Whitehall::Decorators::Decorator
   end
 
   def current_role_appointments
-    model.current_role_appointments.map {|ra| RoleAppointmentPresenter.new(ra, context) }
+    model.current_role_appointments.map { |ra| RoleAppointmentPresenter.new(ra, context) }
   end
 
   def previous_role_appointments
@@ -31,10 +30,33 @@ class PersonPresenter < Whitehall::Decorators::Decorator
   end
 
   def announcements
-    announcements =
-      model.published_speeches.with_translations(I18n.locale).limit(10).map { |s| SpeechPresenter.new(s, context) } +
-      model.published_news_articles.with_translations(I18n.locale).limit(10).map { |na| NewsArticlePresenter.new(na, context) }
-    announcements.sort_by { |a| a.public_timestamp.to_datetime }.reverse[0..9]
+    search_results = Whitehall.search_client.search(
+      filter_people: model.slug,
+      count: 10,
+      order: "-public_timestamp",
+      reject_content_purpose_supergroup: "other",
+      fields: %w[title link content_store_document_type public_timestamp]
+    )["results"]
+
+    search_results.map do |item|
+      metadata = {}
+
+      if item["public_timestamp"]
+        metadata[:public_updated_at] = Date.parse(item["public_timestamp"])
+      end
+
+      if item["content_store_document_type"]
+        metadata[:document_type] = item["content_store_document_type"].humanize
+      end
+
+      {
+        link: {
+          text: item["title"],
+          path: item["link"]
+        },
+        metadata: metadata
+      }
+    end
   end
 
   def speeches
@@ -42,11 +64,7 @@ class PersonPresenter < Whitehall::Decorators::Decorator
   end
 
   def biography
-    if in_current_role?
-      context.govspeak_to_html model.biography
-    else
-      context.govspeak_to_html truncated_biography if model.biography
-    end
+    context.govspeak_to_html(model.biography_appropriate_for_role)
   end
 
   def link(options = {})
@@ -61,18 +79,8 @@ class PersonPresenter < Whitehall::Decorators::Decorator
   end
 
   def image
-    if img = image_url(:s216)
-     context.image_tag img, alt: name
-   end
-  end
-
-  def in_current_role?
-    current_role_appointments.any?
-  end
-
-private
-
-  def truncated_biography
-    model.biography.split(/\n/).first
+    if (img = image_url(:s216))
+      context.image_tag img, alt: name
+    end
   end
 end

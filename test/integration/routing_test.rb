@@ -1,18 +1,28 @@
 require 'test_helper'
+require "gds_api/test_helpers/content_store"
 
 class RoutingTest < ActionDispatch::IntegrationTest
+  include GdsApi::TestHelpers::ContentStore
+  include TaxonomyHelper
+
   test "visiting #{Whitehall.router_prefix}/policy-topics redirects to #{Whitehall.router_prefix}/topics" do
     get "#{Whitehall.router_prefix}/policy-topics"
     assert_redirected_to "#{Whitehall.router_prefix}/topics"
   end
 
   test "assets are served under the #{Whitehall.router_prefix} prefix" do
-    get topics_path
-    assert_select "script[src=?]", "#{Whitehall.router_prefix}/assets/application.js"
+    content_store_has_item('/courts-tribunals', {})
+    stub_taxonomy_with_all_taxons
+    rummager = stub
+
+    with_stubbed_rummager(rummager) do
+      get organisations_path
+      assert_select "script[src=?]", "#{Whitehall.router_prefix}/assets/application.js"
+    end
   end
 
   test "visiting #{Whitehall.router_prefix} when not in frontend redirects to /" do
-    get "#{Whitehall.router_prefix}"
+    get Whitehall.router_prefix
     assert_redirected_to "/"
   end
 
@@ -26,17 +36,6 @@ class RoutingTest < ActionDispatch::IntegrationTest
     assert_raise(ActionController::RoutingError) do
       get "/government/path-unknown-to-application"
     end
-  end
-
-  test "should allow access to admin URLs for non-single-domain requests" do
-    login_as_admin
-    get_via_redirect "/government/admin"
-    assert_response :success
-  end
-
-  test "should allow access to non-admin URLs for requests through the single domain router" do
-    get_via_redirect "/government/how-government-works", {}, "HTTP_X_GOVUK_ROUTER_REQUEST" => true
-    assert_response :success
   end
 
   test "should redirect from old tour page to mainstream tour page in case the URL has escaped into the wild" do
@@ -72,20 +71,28 @@ class RoutingTest < ActionDispatch::IntegrationTest
     assert_redirected_to organisation_path(organisation)
   end
 
-  test "atom feed responds with atom to both /government/feed and /government/feed.atom requests" do
-    get "/government/feed"
-    assert_equal 200, response.status
-    assert_equal Mime::ATOM, response.content_type
-
-    get "/government/feed.atom"
-    assert_equal 200, response.status
-    assert_equal Mime::ATOM, response.content_type
+  test "redirects organisation groups show URL to organisation page" do
+    organisation = create(:organisation)
+    get "/government/organisations/#{organisation.to_param}/groups/some-group"
+    assert_redirected_to organisation_path(organisation)
   end
 
-  test "atom feed returns 404s for other content types" do
-    assert_raise ActionController::RoutingError do
-      get "/government/feed.json"
-    end
+  test "redirects organisation chiefs-of-staff URL to organisation page" do
+    organisation = create(:organisation)
+    get "/government/organisations/#{organisation.to_param}/chiefs-of-staff"
+    assert_redirected_to organisation_path(organisation)
+  end
+
+  test "redirects organisation consultations URL to organisation page" do
+    organisation = create(:organisation)
+    get "/government/organisations/#{organisation.to_param}/consultations"
+    assert_redirected_to organisation_path(organisation)
+  end
+
+  test "redirects organisation series URL to publications page" do
+    organisation = create(:organisation)
+    get "/government/organisations/#{organisation.to_param}/series"
+    assert_redirected_to publications_path
   end
 
   test "routing to editions#show will redirect to correct edition type" do
@@ -93,5 +100,12 @@ class RoutingTest < ActionDispatch::IntegrationTest
     publication = create(:publication)
     get "/government/admin/editions/#{publication.id}"
     assert_redirected_to "/government/admin/publications/#{publication.id}"
+  end
+
+  test "routing to world location news" do
+    create(:world_location, slug: "france", translated_into: [:fr])
+
+    get "/world/france/news.fr"
+    assert_response :success
   end
 end

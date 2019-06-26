@@ -1,4 +1,4 @@
-class PolicyGroup < ActiveRecord::Base
+class PolicyGroup < ApplicationRecord
   include Searchable
   include ::Attachable
   include PublishesToPublishingApi
@@ -9,12 +9,36 @@ class PolicyGroup < ActiveRecord::Base
   validates_with SafeHtmlValidator
   validates_with NoFootnotesInGovspeakValidator, attribute: :description
 
+  def access_limited_object
+    nil
+  end
+
+  def access_limited?
+    false
+  end
+
+  def publicly_visible?
+    true
+  end
+
+  def accessible_to?(*)
+    true
+  end
+
+  def unpublished?
+    false
+  end
+
+  def unpublished_edition
+    nil
+  end
+
   def published_policies
-    Whitehall.unified_search_client.unified_search(
+    Whitehall.search_client.search(
       filter_policy_groups: [slug],
       filter_format: "policy",
       order: "-public_timestamp"
-    ).results
+    )["results"]
   end
 
   def has_summary?

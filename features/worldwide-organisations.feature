@@ -45,7 +45,6 @@ Feature: Administering worldwide organisation
   Scenario: Creating a worldwide organisation in a particular world location
     Given that the world location "France" exists
     When I create a new worldwide organisation "Department of Beards in France" in "France"
-    Then I should see the worldwide organisation "Department of Beards in France" on the "France" world location page
     Then I should see the worldwide location name "France" on the worldwide organisation page
 
   Scenario: Choosing the main office for a worldwide organisation with multiple offices
@@ -54,13 +53,6 @@ Feature: Administering worldwide organisation
     Then the "Branch office" should be shown as the main office on the public website
     When I choose "Head office" to be the main office
     Then the "Head office" should be shown as the main office on the public website
-
-  Scenario: Creating a worldwide organisation in particular world location with a sponsor
-    Given the organisation "Department of Beards" exists
-    Given that the world location "France" exists
-    When I create a new worldwide organisation "Department of Beards in France" in  "France" sponsored by the "Department of Beards"
-    Then I should see the worldwide organisation "Department of Beards in France" on the "France" world location page
-    And I should see that it is part of the "Department of Beards"
 
   Scenario: Adding default access information to a worldwide organisation
     Given a worldwide organisation "Department of Beards in France" with offices "Head office" and "Branch office"
@@ -87,18 +79,18 @@ Feature: Administering worldwide organisation
     Then I should see the corporate information on the public worldwide organisation page
 
   Scenario: Adding a new translation
-    Given a worldwide organisation "Department of Beards in France" exists for the world location "France" with translations into "fr"
+    Given a worldwide organisation "Department of Beards in France" exists for the world location "France" with translations into "Français"
     When I add a new translation to the worldwide organisation "Department of Beards in France" with:
       | locale      | Français                                          |
       | name        | Département des barbes en France                  |
-    Then when viewing the worldwide organisation "Department of Beards in France" with the locale "Français" I should see:
+    Then when viewing the worldwide organisation "Department of Beards in France" with the locale "fr" I should see:
       | name        | Département des barbes en France                  |
 
   Scenario: Editing an existing translation
     Given a worldwide organisation "Department of Beards in France" exists with a translation for the locale "Français"
     When I edit the "Français" translation for the worldwide organisation "Department of Beards in France" setting:
       | name        | Le super département des barbes en France         |
-    Then when viewing the worldwide organisation "Department of Beards in France" with the locale "Français" I should see:
+    Then when viewing the worldwide organisation "Department of Beards in France" with the locale "fr" I should see:
       | name        | Le super département des barbes en France         |
 
   Scenario: Translating a corporate information page for a worldwide organisation
@@ -107,9 +99,3 @@ Feature: Administering worldwide organisation
     When I translate the "Terms of reference" corporate information page for the worldwide organisation "Department of Beards in France"
     And I force-publish the "Terms of reference" corporate information page for the worldwide organisation "Department of Beards in France"
     Then I should be able to read the translated "Terms of reference" corporate information page for the worldwide organisation "Department of Beards in France" on the site
-
-  Scenario: Viewing a list of worldwide organisations
-    Given two worldwide organisations "UK Trade & Investment Australia" and "British Embassy Manama"
-    When I visit the worldwide organisations index page
-    Then I should see an alphabetical list containing "British Embassy Manama" and "UK Trade & Investment Australia"
-

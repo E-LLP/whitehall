@@ -1,7 +1,17 @@
 class DocumentCollection < Edition
   include Edition::Organisations
+  include Edition::TaggableOrganisations
   include Edition::RelatedPolicies
+
+  # DID YOU MEAN: Policy Area?
+  # "Policy area" is the newer name for "topic"
+  # (https://www.gov.uk/government/topics)
+  # "Topic" is the newer name for "specialist sector"
+  # (https://www.gov.uk/topic)
+  # You can help improve this code by renaming all usages of this field to use
+  # the new terminology.
   include Edition::Topics
+
   include Edition::TopicalEvents
 
   has_many :groups,
@@ -51,7 +61,11 @@ class DocumentCollection < Edition
     editions.scheduled
   end
 
-  private
+  def rendering_app
+    Whitehall::RenderingApp::GOVERNMENT_FRONTEND
+  end
+
+private
 
   def create_default_group
     if groups.empty?

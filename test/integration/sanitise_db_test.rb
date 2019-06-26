@@ -1,19 +1,19 @@
 require 'test_helper'
 
 class SanitiseDBTest < ActiveSupport::TestCase
-  self.use_transactional_fixtures = false
+  self.use_transactional_tests = false
 
   setup do
-    DatabaseCleaner.clean_with :truncation
+    DatabaseCleaner.clean_with :truncation, pre_count: true
   end
 
   teardown do
-    DatabaseCleaner.clean_with :truncation
+    DatabaseCleaner.clean_with :truncation, pre_count: true
   end
 
   test 'scrub script runs' do
     run_script
-    assert $?.to_i == 0, "Script exited non-zero"
+    assert Integer($?).zero?, "Script exited non-zero"
   end
 
   test "scrub script sanitises access limited editions" do
@@ -81,11 +81,17 @@ class SanitiseDBTest < ActiveSupport::TestCase
   end
 
 private
+
   def run_script
-    database, username, password = %w(database username password).map do |key|
+    database, host, port, username, password = %w(database host port username password).map do |key|
       ActiveRecord::Base.configurations[Rails.env][key]
     end
 
-    `./script/scrub-database --no-copy -D #{database} -U #{username} -P #{password}`
+    # Use the right port, if one is specified in the Rails
+    # configuration
+    ENV['MYSQL_TCP_PORT'] = port.to_s if port
+    host_arg = "-H #{host}" if host
+
+    `./script/scrub-database --no-copy #{host_arg} -D #{database} -U #{username} -P #{password}`
   end
 end

@@ -5,7 +5,6 @@ es:
         one: Documento
         other: Documentos
       applies_to_nations: Sirve para
-      field_of_operation: "Ãmbito de actuación"
       from:
       location:
       part_of:
@@ -16,6 +15,9 @@ es:
       authored_article:
         one: Artículo de autor
         other: Artículos de autor
+      blog_post:
+        one:
+        other:
       case_study:
         one: Caso de estudio práctico
         other: Casos de estudio práctico
@@ -46,9 +48,6 @@ es:
       draft_text:
         one: Borrador
         other: Borradores
-      fatality_notice:
-        one: Aviso de defunción
-        other: Avisos de defunción
       foi_release:
         one: Nota de prensa de Freedom of Information
         other: Boletines de FOI
@@ -73,6 +72,9 @@ es:
       international_treaty:
         one:
         other:
+      manual:
+        one:
+        other:
       map:
         one: Mapa
         other: Mapas
@@ -85,9 +87,15 @@ es:
       news_story:
         one: Noticia
         other: Noticias
+      nhs_content:
+        one:
+        other:
       notice:
         one:
         other:
+      official_statistics:
+        one: Estadísticas
+        other: Estadísticas
       open_consultation:
         one: Consulta abierta
         other: Consultas abiertas
@@ -124,9 +132,6 @@ es:
       statistical_data_set:
         one: Conjunto de datos estadísticos
         other: Conjuntos de datos estadísticos
-      official_statistics:
-        one: Estadísticas
-        other: Estadísticas
       statutory_guidance:
         one:
         other:
@@ -136,6 +141,9 @@ es:
       transparency:
         one: Datos sobre transparencia
         other: Datos sobre transparencia
+      world_news_story:
+        one:
+        other:
       written_statement:
         one: Declaración escrita
         other: Declaraciones escritas
@@ -215,6 +223,8 @@ es:
         unnumbered_hoc_paper:
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         file:
+      edition:
+        nation_inapplicabilities:
       policy_group/policy_group_attachments/attachment/attachment_data:
         file:
       response/consultation_response_attachments/attachment:
@@ -260,6 +270,12 @@ es:
     opendocument:
       help_html:
     see_more:
+  broken_links:
+    broken:
+      subheading:
+    caution:
+      subheading:
+    title:
   change_notes:
     page_history:
     published_at:
@@ -270,38 +286,34 @@ es:
     email: Email
   corporate_information_page:
     type:
-      about:
-      about_our_services:
-      access_and_opening:
-      complaints_procedure:
-      equality_and_diversity:
-      media_enquiries:
-      membership:
-      our_energy_use:
-      our_governance:
-      personal_information_charter: Cédula de información personal
-      petitions_and_campaigns:
-      procurement:
-      publication_scheme: Esquema de publicación
-      recruitment:
-      research:
-      social_media_use: Uso de medios sociales
-      staff_update:
-      statistics:
-      terms_of_reference:
-      welsh_language_scheme: Esquema de gales
+      link_text:
+        welsh_language_scheme:
+      title:
+        about:
+        about_our_services:
+        access_and_opening:
+        accessible_documents_policy:
+        complaints_procedure:
+        equality_and_diversity:
+        media_enquiries:
+        membership:
+        our_energy_use:
+        our_governance:
+        personal_information_charter: Cédula de información personal
+        petitions_and_campaigns:
+        procurement:
+        publication_scheme: Esquema de publicación
+        recruitment:
+        research:
+        social_media_use: Uso de medios sociales
+        staff_update:
+        statistics:
+        terms_of_reference:
+        welsh_language_scheme: Esquema de gales
   date:
     formats:
       default: "%e %B %Y"
       long_ordinal: "%e %B %Y"
-  detailed_guidance:
-    back_to_contents:
-    contents:
-    more:
-    part_of_published_collection:
-    published_related_detailed_guides:
-    related_mainstream_content:
-    see_more_like_this:
   document_filters:
     description: Puedes utilizar los filtros para ver sólo los resultados que te interesen
     no_results:
@@ -337,6 +349,7 @@ es:
       access_our_info: Acceda a nuestra información
       foi_how_to: Cómo hacer una petición bajo la ley de libertad de información
       foi_releases: Comunicados de la ley de libertad de información
+      jobs:
       jobs_and_contacts: Trabajos y contratos
       organisation_chart:
       transparency: Datos de transparencia
@@ -442,6 +455,7 @@ es:
     headings:
       about_us: Nosotros
       contact_us: Contáctenos
+      contents:
       corporate_information: Información corporativa
       follow_us: Síguenos
       our_people: Nuestro equipo

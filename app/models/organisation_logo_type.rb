@@ -4,7 +4,7 @@ class OrganisationLogoType
   attr_accessor :id, :title, :class_name
 
   def self.find(class_name)
-    all.detect { |type| type.class_name == class_name } or raise ActiveRecord::RecordNotFound
+    all.detect { |type| type.class_name == class_name } || raise(ActiveRecord::RecordNotFound)
   end
 
   NoIdentity = create(
@@ -48,5 +48,8 @@ class OrganisationLogoType
   )
   CustomLogo = create(
     id: 14, title: "Use custom logo for organisations exempt from the single identity", class_name: "custom"
+  )
+  DepartmentInternationalTrade = create(
+    id: 15, title: "Department for International Trade", class_name: "dit"
   )
 end

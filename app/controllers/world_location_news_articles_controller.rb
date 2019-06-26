@@ -1,5 +1,5 @@
 class WorldLocationNewsArticlesController < DocumentsController
-  before_filter :set_analytics_format, only: :show
+  before_action :set_analytics_format, only: :show
 
   def show
     # so it can pretend to have orgs
@@ -11,7 +11,7 @@ class WorldLocationNewsArticlesController < DocumentsController
     redirect_to announcements_path(include_world_location_news: "1")
   end
 
-  private
+private
 
   def document_class
     WorldLocationNewsArticle

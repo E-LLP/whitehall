@@ -95,21 +95,21 @@ module OrganisationHelper
     parents = organisation.parent_organisations.map { |parent| organisation_relationship_html(parent) }
 
     description = if parents.any?
-      case type_name
-      when 'other'
-        "#{name} works with #{parents.to_sentence}."
-      when 'non-ministerial department'
-        "#{name} is #{relationship}."
-      when 'sub-organisation'
-        "#{name} is part of #{parents.to_sentence}."
-      when 'executive non-departmental public body', 'advisory non-departmental public body', 'tribunal non-departmental public body', 'executive agency'
-        "#{name} is #{relationship}, sponsored by #{parents.to_sentence}."
-      else
-        "#{name} is #{relationship} of #{parents.to_sentence}."
-      end
-    else
-      (type_name != 'other') ? "#{name} is #{relationship}." : "#{name}"
-    end
+                    case type_name
+                    when 'other'
+                      "#{name} works with #{parents.to_sentence}."
+                    when 'non-ministerial department'
+                      "#{name} is #{relationship}."
+                    when 'sub-organisation'
+                      "#{name} is part of #{parents.to_sentence}."
+                    when 'executive non-departmental public body', 'advisory non-departmental public body', 'tribunal non-departmental public body', 'executive agency'
+                      "#{name} is #{relationship}, sponsored by #{parents.to_sentence}."
+                    else
+                      "#{name} is #{relationship} of #{parents.to_sentence}."
+                    end
+                  else
+                    type_name != 'other' ? "#{name} is #{relationship}." : name.to_s
+                  end
 
     description.html_safe
   end
@@ -120,12 +120,12 @@ module OrganisationHelper
 
     if child_organisations.any?
       organisation_name.chomp!('.')
-      organisation_name += (organisation_type_name(organisation) != 'other') ? ", supported by " : " is supported by "
+      organisation_name += organisation_type_name(organisation) != 'other' ? ", supported by " : " is supported by "
 
-      child_relationships_link_text = "#{child_organisations.size}"
-      child_relationships_link_text += (child_organisations.size == 1) ? " public body" : " agencies and public bodies"
+      child_relationships_link_text = child_organisations.size.to_s
+      child_relationships_link_text += child_organisations.size == 1 ? " public body" : " agencies and public bodies"
 
-      organisation_name += link_to(child_relationships_link_text, organisations_path(anchor: organisation.slug))
+      organisation_name += link_to(child_relationships_link_text, organisations_path(anchor: organisation.slug), class: 'brand__color')
       organisation_name += "."
     end
 
@@ -134,7 +134,7 @@ module OrganisationHelper
 
   def organisation_relationship_html(organisation)
     prefix = needs_definite_article?(organisation.name) ? "the " : ""
-    (prefix + link_to(organisation.name, organisation_path(organisation)))
+    (prefix + link_to(organisation.name, organisation_path(organisation), class: 'brand__color'))
   end
 
   def needs_definite_article?(phrase)
@@ -155,11 +155,11 @@ module OrganisationHelper
     'aeiou'.include?(word_or_phrase.downcase[0])
   end
 
-  def organisation_wrapper(organisation, options = {}, &block)
+  def organisation_wrapper(organisation, _options = {})
     classes = [organisation.slug, organisation_brand_colour_class(organisation)]
     classes << organisation.organisation_type.name.parameterize if organisation.respond_to?(:organisation_type)
     content_tag_for :div, organisation, class: classes.join(" ") do
-      block.call
+      yield
     end
   end
 
@@ -193,15 +193,15 @@ module OrganisationHelper
   end
 
   def organisations_grouped_by_type(organisations)
-    organisations.group_by(&:organisation_type).sort_by { |type, department| type.listing_position }
+    organisations.group_by(&:organisation_type).sort_by { |type, _department| type.listing_position }
   end
 
-  def extra_board_member_class(organisation, i)
+  def extra_board_member_class(organisation, index)
     clear_number = 3
     if organisation.important_board_members > 1
       clear_number = 4
     end
-    (i % clear_number == 0) ? 'clear-person' : ''
+    (index % clear_number).zero? ? 'clear-person' : ''
   end
 
   def array_of_links_to_organisations(organisations)

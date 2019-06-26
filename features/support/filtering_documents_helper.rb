@@ -1,5 +1,4 @@
 module FilteringDocumentsHelper
-
   def assert_listed_document_count(expected_number)
     selector = 'ol.document-list li.document-row'
 
@@ -27,7 +26,7 @@ module FilteringDocumentsHelper
     within '#document-filter' do
       page.fill_in "Contains", with: ""
       page.select "All publication types", from: "Publication type" if page.has_selector?('label', text: "Publication type", wait: false)
-      page.select "All policy areas", from: "Policy area"
+      page.select "All topics", from: "Topic"
       page.select "All departments", from: "Department"
       page.select "All documents", from: "Official document status" if page.has_selector?('label', text: "Official document status", wait: false)
       page.select "All locations", from: "World locations"

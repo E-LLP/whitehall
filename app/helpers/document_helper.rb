@@ -23,7 +23,7 @@ module DocumentHelper
   end
 
   def edition_organisation_class(edition)
-    if organisation = edition.sorted_organisations.first
+    if (organisation = edition.sorted_organisations.first)
       organisation.slug
     else
       'unknown_organisation'
@@ -69,9 +69,9 @@ module DocumentHelper
     data_sets.map { |data_set| link_to data_set.title, public_document_path(data_set), class: 'statistical-data-set-link' }
   end
 
-  MS_WORD_DOCUMENT_HUMANIZED_CONTENT_TYPE = "MS Word Document"
-  MS_EXCEL_SPREADSHEET_HUMANIZED_CONTENT_TYPE = "MS Excel Spreadsheet"
-  MS_POWERPOINT_PRESENTATION_HUMANIZED_CONTENT_TYPE = "MS Powerpoint Presentation"
+  MS_WORD_DOCUMENT_HUMANIZED_CONTENT_TYPE = "MS Word Document".freeze
+  MS_EXCEL_SPREADSHEET_HUMANIZED_CONTENT_TYPE = "MS Excel Spreadsheet".freeze
+  MS_POWERPOINT_PRESENTATION_HUMANIZED_CONTENT_TYPE = "MS Powerpoint Presentation".freeze
 
   def file_abbr_tag(abbr, title)
     content_tag(:abbr, abbr, title: title)
@@ -104,11 +104,13 @@ module DocumentHelper
       "rtf"  => file_abbr_tag('RTF', 'Rich Text Format'),
       "sch"  => file_abbr_tag('SCH', 'XML based Schematic'),
       "txt"  => "Plain text",
+      "vcf"  => "vCard file",
       "wsdl" => file_abbr_tag('WSDL', 'Web Services Description Language'),
       "xls"  => MS_EXCEL_SPREADSHEET_HUMANIZED_CONTENT_TYPE,
       "xlsm" => file_abbr_tag('XLSM', 'MS Excel Macro-Enabled Workbook'),
       "xlsx" => MS_EXCEL_SPREADSHEET_HUMANIZED_CONTENT_TYPE,
       "xlt"  => file_abbr_tag('XLT', 'MS Excel Spreadsheet Template'),
+      "xml"  => file_abbr_tag('XML', 'XML document'),
       "xsd"  => file_abbr_tag('XSD', 'XML Schema'),
       "xslt" => file_abbr_tag('XSLT', 'Extensible Stylesheet Language Transformation'),
       "zip"  => file_abbr_tag('ZIP', 'Zip archive'),
@@ -125,7 +127,7 @@ module DocumentHelper
     end
     if attachment.hoc_paper_number.present?
       ref << content_tag(:span, "HC #{attachment.hoc_paper_number}", class: 'house_of_commons_paper_number') + ' ' +
-          content_tag(:span, attachment.parliamentary_session, class: 'parliamentary_session')
+        content_tag(:span, attachment.parliamentary_session, class: 'parliamentary_session')
     end
 
     ref.join(', ').html_safe
@@ -138,7 +140,7 @@ module DocumentHelper
       image_tag('pub-cover-html.png', alt: '')
     elsif %w{doc docx odt}.include? attachment.file_extension
       image_tag('pub-cover-doc.png', alt: '')
-    elsif %w{xls xlsx ods csv}.include? attachment.file_extension
+    elsif %w{xls xlsx ods csv}.include? attachment.file_extension.downcase
       image_tag('pub-cover-spreadsheet.png', alt: '')
     else
       image_tag('pub-cover.png', alt: '')
@@ -157,9 +159,10 @@ module DocumentHelper
       attachment_info << "  Parliamentary session: #{attachment.parliamentary_session}"
     end
 
-    mail_to alternative_format_contact_email, alternative_format_contact_email,
-      subject: "Request for '#{attachment.title}' in an alternative format",
-      body: %(Details of document required:
+    mail_to alternative_format_contact_email,
+            alternative_format_contact_email,
+            subject: "Request for '#{attachment.title}' in an alternative format",
+            body: %(Details of document required:
 
 #{attachment_info.join("\n")}
 
@@ -189,7 +192,7 @@ Please tell us:
     else
       attributes << content_tag(:span, humanized_content_type(attachment.file_extension), class: 'type')
       attributes << content_tag(:span, number_to_human_size(attachment.file_size), class: 'file-size')
-      attributes << content_tag(:span, pluralize(attachment.number_of_pages, "page") , class: 'page-length') if attachment.number_of_pages.present?
+      attributes << content_tag(:span, pluralize(attachment.number_of_pages, "page"), class: 'page-length') if attachment.number_of_pages.present?
     end
     attributes.join(', ').html_safe
   end
@@ -199,7 +202,12 @@ Please tell us:
   end
 
   def link_to_translation(locale)
-    link_to native_language_name_for(locale), locale: locale
+    options = {}
+
+    options[:locale] = locale
+    options[:locale] = nil if locale.to_s == "en"
+
+    link_to native_language_name_for(locale), options, lang: locale
   end
 
   def part_of_metadata(document, policies = [], sector_tag_finder = SpecialistTagFinder::Null.new)
@@ -218,7 +226,7 @@ Please tell us:
     end
 
     links_to_topics = sector_tag_finder.topics.map do |topic|
-      link_to topic.title, topic.web_url, class: 'sector-link'
+      link_to topic['title'], topic['web_url'], class: 'sector-link'
     end
     part_of += links_to_topics
 
@@ -271,19 +279,21 @@ Please tell us:
 
   def political_state_analytics_tag(edition)
     tag :meta,
-      name: 'govuk:political-status',
-      content: political_state_analytics_value(edition)
+        name: 'govuk:political-status',
+        content: political_state_analytics_value(edition)
   end
 
   def political_state_analytics_value(edition)
     return 'non-political' unless edition.political?
+
     edition.historic? ? 'historic' : 'political'
   end
 
   def publishing_government_analytics_tag(edition)
     return unless edition.government
+
     tag :meta,
-      name: 'govuk:publishing-government',
-      content: edition.government.slug
+        name: 'govuk:publishing-government',
+        content: edition.government.slug
   end
 end

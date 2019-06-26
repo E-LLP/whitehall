@@ -10,6 +10,9 @@ Given(/^we are (not )?during a reshuffle$/) do |negate|
 end
 
 When(/^I visit the How Government Works page$/) do
+  pm_person = create(:person, forename: 'Firstname', surname: 'Lastname')
+  pm_role = create(:ministerial_role_without_organisation, name: 'Prime Minister', cabinet_member: true)
+  create(:ministerial_role_appointment, role: pm_role, person: pm_person)
   visit "/government/how-government-works"
 end
 
@@ -27,4 +30,10 @@ Then(/^I should (not )?see a reshuffle warning message$/) do |negate|
   else
     assert page.has_content?("Test minister reshuffle message")
   end
+end
+
+Then(/^I should not see the ministers and cabinet$/) do
+  refute page.has_css?("h2", text: "Cabinet ministers")
+  refute page.has_css?("h2", text: "Also attends Cabinet")
+  refute page.has_css?("h2", text: "Ministers by department")
 end

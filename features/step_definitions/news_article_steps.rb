@@ -1,20 +1,19 @@
-Given /^a published news article "([^"]*)" with related published policies "([^"]*)" and "([^"]*)"$/ do |news_article_title, policy_title_1, policy_title_2|
+Given(/^a published news article "([^"]*)" with related published policies "([^"]*)" and "([^"]*)"$/) do |news_article_title, policy_title_1, policy_title_2|
   policies = publishing_api_has_policies([policy_title_1, policy_title_2])
 
-  create(:published_news_article, title: news_article_title, policy_content_ids: policies.map {|p| p['content_id']})
+  create(:published_news_article, title: news_article_title, policy_content_ids: policies.map { |p| p['content_id'] })
 end
 
-Given /^a published news article "([^"]*)" associated with "([^"]*)"$/ do |title, appointee|
-  person = find_person(appointee)
+Given(/^a published news article "([^"]*)" associated with "([^"]*)"$/) do |title, appointee|
   appointment = find_person(appointee).current_role_appointments.last
   create(:published_news_article, title: title, role_appointments: [appointment])
 end
 
-Given /^a published news article "([^"]*)" which isn't explicitly associated with "([^"]*)"$/ do |title, thing|
+Given(/^a published news article "([^"]*)" which isn't explicitly associated with "([^"]*)"$/) do |title, _thing|
   create(:published_news_article, title: title)
 end
 
-When /^I draft a new news article "([^"]*)"$/ do |title|
+When(/^I draft a new news article "([^"]*)"$/) do |title|
   begin_drafting_news_article title: title, summary: "here's a simple summary"
   within ".images" do
     attach_file "File", jpg_image, match: :first
@@ -23,16 +22,7 @@ When /^I draft a new news article "([^"]*)"$/ do |title|
   click_button "Save"
 end
 
-When /^I draft a new news article "([^"]*)" relating it to the policies "([^"]*)" and "([^"]*)"$/ do |title, first_policy, second_policy|
-  publishing_api_has_policies([first_policy, second_policy])
-
-  begin_drafting_news_article title: title
-  select first_policy, from: "Policies"
-  select second_policy, from: "Policies"
-  click_button "Save"
-end
-
-When /^I publish a news article "([^"]*)" associated with "([^"]*)"$/ do |title, person_name|
+When(/^I publish a news article "([^"]*)" associated with "([^"]*)"$/) do |title, person_name|
   begin_drafting_news_article title: title
   fill_in_news_article_fields(first_published: Date.today.to_s)
   select person_name, from: "Ministers"
@@ -40,7 +30,7 @@ When /^I publish a news article "([^"]*)" associated with "([^"]*)"$/ do |title,
   publish(force: true)
 end
 
-When /^I publish a news article "([^"]*)" associated with the (topic|topical event) "([^"]*)"$/ do |title, type, topic_name|
+When(/^I publish a news article "([^"]*)" associated with the (topic|topical event) "([^"]*)"$/) do |title, type, topic_name|
   begin_drafting_news_article title: title, skip_topic_selection: (type == 'topic')
 
   if type == 'topic'
@@ -64,52 +54,44 @@ When(/^I publish a news article "(.*?)" associated with the organisation "(.*?)"
   publish(force: true)
 end
 
-When /^I attempt to add the article image into the markdown$/ do
+When(/^I attempt to add the article image into the markdown$/) do
   fill_in "Body", with: "body copy\n!!1\nmore body"
 end
 
-Then /^the article mentions "([^"]*)" and links to their bio page$/ do |person_name|
-  visit document_path(NewsArticle.last)
-  assert has_css?(".meta a[href*='#{person_path(find_person(person_name))}']", text: person_name)
-end
-
-Then /^the news article tag is the same as the person in the text$/ do
+Then(/^the news article tag is the same as the person in the text$/) do
   visit admin_edition_path(NewsArticle.last)
   click_button "Create new edition"
   appointment = NewsArticle.last.role_appointments.first
   assert has_css?("select#edition_role_appointment_ids option[value='#{appointment.id}'][selected=selected]")
 end
 
-Then /^I should see both the news articles for the Deputy Prime Minister role$/ do
+Then(/^I should see both the news articles for the Deputy Prime Minister role$/) do
   assert has_css?(".news_article", text: "News from Don, Deputy PM")
   assert has_css?(".news_article", text: "News from Harriet, Deputy PM")
 end
 
-Then /^I should see both the news articles for Harriet Home$/ do
-  assert has_css?(".news_article", text: "News from Harriet, Deputy PM")
-  assert has_css?(".news_article", text: "News from Harriet, Home Sec")
+Given(/^"([^"]*)" has news associated with her$/) do |arg1|
+  stub_any_search.to_return(
+    body: {
+      results: [
+        { link: "/foo", title: "First article" },
+        { link: "/foo", title: "Second article" }
+      ]
+    }.to_json)
 end
 
-Then /^I should be informed I shouldn't use this image in the markdown$/ do
+Then(/^I should see both the news articles for Harriet Home$/) do
+  assert has_content?("First article")
+  assert has_content?("Second article")
+end
+
+Then(/^I should be informed I shouldn't use this image in the markdown$/) do
   click_on "Edit draft"
   assert has_no_css?("fieldset#image_fields .image input[value='!!1']")
 end
 
-Then /^I should see the first uploaded image used as the lead image$/ do
-  article = NewsArticle.last
-  publish force: true
-  visit document_path(article)
-  assert page.has_css?("aside.sidebar img[src*='#{article.images.first.url(:s300)}']")
-end
-
-Then /^if no image is uploaded a default image is shown$/ do
-  article = NewsArticle.last
-  article.images.first.destroy
-  visit document_path(article)
-  assert page.has_css?("aside.sidebar img[src*='placeholder']")
-end
-
-When /^I browse to the announcements index$/ do
+When(/^I browse to the announcements index$/) do
+  stub_content_item_from_content_store_for(announcements_path)
   visit announcements_path
 end
 
@@ -119,8 +101,81 @@ When(/^I publish a new news article of the type "(.*?)" called "(.*?)"$/) do |an
   publish(force: true)
 end
 
-When(/^I filter the announcements list by "(.*?)"$/) do |announcement_type|
-  visit announcements_path
-  select announcement_type, from: "Announcement type"
-  click_on "Refresh results"
+When(/^I draft a French\-only "World news story" news article associated with "([^"]*)"$/) do |location_name|
+  create(:worldwide_organisation, name: "French embassy")
+
+  begin_drafting_news_article title: "French-only news article", body: 'test-body', summary: 'test-summary', announcement_type: "World news story"
+  select "Français", from: "Document language"
+  select location_name, from: "Select the world locations this news article is about"
+  select "French embassy", from: "Select the worldwide organisations associated with this news article"
+  select "", from: "edition_lead_organisation_ids_1"
+  click_button "Save and continue"
+  click_button "Save topic changes"
+  @news_article = find_news_article_in_locale!(:fr, 'French-only news article')
+end
+
+When(/^I publish the French-only news article$/) do
+  stub_publishing_api_links_with_taxons(@news_article.content_id, ["a-taxon-content-id"])
+  visit admin_edition_path(@news_article)
+  publish(force: true)
+end
+
+When(/^I publish a news article "(.*?)" for "(.*?)"$/) do |title, location_name|
+  begin_drafting_news_article(title: title, first_published: Time.zone.today.to_s)
+  select location_name, from: "Select the world locations this news article is about"
+  click_button "Save"
+  publish(force: true)
+end
+
+Then(/^I should see the news article listed in admin with an indication that it is in French$/) do
+  assert_path admin_edition_path(@news_article)
+  assert page.has_content?("This document is French-only")
+end
+
+Then(/^I should only see the news article on the French version of the public "([^"]*)" location page$/) do |world_location_name|
+  world_location = WorldLocation.find_by!(name: world_location_name)
+  visit world_location_path(world_location, locale: :fr)
+  within record_css_selector(@news_article) do
+    assert page.has_content?(@news_article.title)
+  end
+  visit world_location_path(world_location)
+  assert page.has_no_css?(record_css_selector(@news_article))
+end
+
+When(/^I draft a valid news article of type "([^"]*)" with title "([^"]*)"$/) do |news_type, title|
+  if news_type == "World news story"
+    create(:worldwide_organisation, name: "Afghanistan embassy")
+    create(:world_location, name: "Afghanistan", active: true)
+    begin_drafting_news_article(title: title, first_published: Date.today.to_s, announcement_type: news_type)
+    select "Afghanistan embassy", from: "Select the worldwide organisations associated with this news article"
+    select "Afghanistan", from: "Select the world locations this news article is about"
+    select "", from: "edition_lead_organisation_ids_1"
+  else
+    begin_drafting_news_article(title: title, first_published: Date.today.to_s, announcement_type: news_type)
+  end
+
+  click_button "Save"
+end
+
+When(/^I tag the article to a policy "([^"]*)"$/) do |policy|
+  policies = publishing_api_has_policies([policy])
+
+  click_button "Save and continue"
+  click_button "Save and review legacy tagging"
+
+  select policy, from: "Policies"
+  click_button "Save"
+end
+
+Then(/^the news article "([^"]*)" should have been created$/) do |title|
+  refute NewsArticle.find_by(title: title).nil?
+end
+
+And(/^the news article is tagged to policy "([^"]*)"$/) do |policy|
+  assert has_css?(".flash.notice", text: "The associations have been saved")
+
+  click_on 'Edit draft'
+  click_on "Save and continue"
+  click_on "Save and review legacy tagging"
+  assert has_css?(".policies option[selected]", text: policy)
 end

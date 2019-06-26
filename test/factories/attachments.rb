@@ -1,4 +1,4 @@
-FactoryGirl.define do
+FactoryBot.define do
   sequence(:attachment_ordering)
 
   trait :abstract_attachment do
@@ -25,8 +25,8 @@ FactoryGirl.define do
     sequence(:title) { |index| "html-attachment-title-#{index}" }
 
     transient do
-      body "Attachment body"
-      manually_numbered_headings false
+      body { "Attachment body" }
+      manually_numbered_headings { false }
     end
 
     attachable { build :edition }
@@ -34,15 +34,16 @@ FactoryGirl.define do
     # body and numbering method boolean can be passed directly into the factory
     # and is automatically set on the internal GovspeakContent instance.
     after :build do |attachment, evaluator|
-      attachment.build_govspeak_content(
-                   body: evaluator.body,
-                   manually_numbered_headings: evaluator.manually_numbered_headings
-                 )
+      attachment
+        .build_govspeak_content(
+          body: evaluator.body,
+          manually_numbered_headings: evaluator.manually_numbered_headings
+        )
     end
   end
 
   factory :external_attachment, traits: [:abstract_attachment] do
     sequence(:title) { |index| "external-attachment-title-#{index}" }
-    external_url "http://www.google.com"
+    external_url { "http://www.google.com" }
   end
 end

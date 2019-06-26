@@ -6,7 +6,6 @@ lt:
         few:
         other: Dokumentai
       applies_to_nations: Susiję su
-      field_of_operation: Veiklos laukas
       from:
       location:
       part_of:
@@ -19,6 +18,10 @@ lt:
         one: Autoriaus straipsnis
         few:
         other: Autorių straipsniai
+      blog_post:
+        one:
+        few:
+        other:
       case_study:
         one: Atvejo analizė
         few:
@@ -59,10 +62,6 @@ lt:
         one: Pirminis teksto variantas
         few:
         other: Pirminiai teksto variantai
-      fatality_notice:
-        one: Pranešimas apie nelaimę
-        few:
-        other: Pranešimas apie nelaimes
       foi_release:
         one: 'Informacijos laisvė: pranešimas'
         few:
@@ -95,10 +94,14 @@ lt:
         one:
         few:
         other:
-      map:
-        one: "Žemėlapis"
+      manual:
+        one:
         few:
-        other: "Žemėlapiai"
+        other:
+      map:
+        one: Žemėlapis
+        few:
+        other: Žemėlapiai
       national_statistics:
         one: 'Statistika - nacionalinė statistika '
         few:
@@ -111,18 +114,26 @@ lt:
         one: Naujiena
         few:
         other: Naujienos
+      nhs_content:
+        one:
+        few:
+        other:
       notice:
         one:
         few:
         other:
+      official_statistics:
+        one: Statistika
+        few:
+        other: Statistika
       open_consultation:
         one: Atvira konsultacija
         few:
         other: 'Atviros konsultacijos '
       oral_statement:
-        one: "Žodinis kreipimasis į parlamentą"
+        one: Žodinis kreipimasis į parlamentą
         few:
-        other: "Žodiniai kreipimaisi į parlamentą"
+        other: Žodiniai kreipimaisi į parlamentą
       policy_paper:
         one: Strategijos dokumentas
         few:
@@ -163,10 +174,6 @@ lt:
         one: Statistiniai duomenys
         few:
         other: Statistiniai duomenys
-      official_statistics:
-        one: Statistika
-        few:
-        other: Statistika
       statutory_guidance:
         one:
         few:
@@ -179,6 +186,10 @@ lt:
         one: Skaidrumo informacija
         few:
         other: Skaidrumo informacija
+      world_news_story:
+        one:
+        few:
+        other:
       written_statement:
         one: Rašytinis kreipimasis į parlamentą
         few:
@@ -201,7 +212,7 @@ lt:
         speaker: Pranešėjas
       written_on: Parašyta
     updated: atnaujinta
-    view: "Žiūrėkite '%{title}'"
+    view: Žiūrėkite '%{title}'
   people:
     heading:
       one:
@@ -236,7 +247,7 @@ lt:
         other: Geografinės vietos
     headings:
       announcements: Mūsų skelbimai
-      country: "Šalis"
+      country: Šalis
       documents: Dokumentai
       mission: Mūsų misija
       organisations: Organizacijos
@@ -263,6 +274,8 @@ lt:
         unnumbered_hoc_paper:
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         file:
+      edition:
+        nation_inapplicabilities:
       policy_group/policy_group_attachments/attachment/attachment_data:
         file:
       response/consultation_response_attachments/attachment:
@@ -295,7 +308,7 @@ lt:
       full_help_html: Jei norėtumėte gauti šį dokumentą kitokiu formatu (brailio,
         audio ar pan.), siųskite el. paštą %{email}, parašydami savo adresą, telefoną
         bei leidinio pavadinimą ("%{title}")%{references}.
-      heading: "Šis failas gali būti netinkamas, naudojantiems pagalbines technologijas."
+      heading: Šis failas gali būti netinkamas, naudojantiems pagalbines technologijas.
       request_a_different_format: Paprašykite kito formato
     headings:
       order_a_copy: Užsisakykite leidinį
@@ -307,6 +320,12 @@ lt:
     opendocument:
       help_html:
     see_more:
+  broken_links:
+    broken:
+      subheading:
+    caution:
+      subheading:
+    title:
   change_notes:
     page_history:
     published_at:
@@ -317,38 +336,34 @@ lt:
     email: El.paštas
   corporate_information_page:
     type:
-      about:
-      about_our_services:
-      access_and_opening:
-      complaints_procedure:
-      equality_and_diversity:
-      media_enquiries:
-      membership:
-      our_energy_use:
-      our_governance:
-      personal_information_charter: Asmeninės informacijos apsauga
-      petitions_and_campaigns:
-      procurement:
-      publication_scheme: Publikavimo schema
-      recruitment:
-      research:
-      social_media_use: Socialinės medijos naudojimas
-      staff_update:
-      statistics:
-      terms_of_reference:
-      welsh_language_scheme: Valų kalbos schema
+      link_text:
+        welsh_language_scheme:
+      title:
+        about:
+        about_our_services:
+        access_and_opening:
+        accessible_documents_policy:
+        complaints_procedure:
+        equality_and_diversity:
+        media_enquiries:
+        membership:
+        our_energy_use:
+        our_governance:
+        personal_information_charter: Asmeninės informacijos apsauga
+        petitions_and_campaigns:
+        procurement:
+        publication_scheme: Publikavimo schema
+        recruitment:
+        research:
+        social_media_use: Socialinės medijos naudojimas
+        staff_update:
+        statistics:
+        terms_of_reference:
+        welsh_language_scheme: Valų kalbos schema
   date:
     formats:
       default: "%Y %B %d"
       long_ordinal: "%Y %B %e"
-  detailed_guidance:
-    back_to_contents:
-    contents:
-    more:
-    part_of_published_collection:
-    published_related_detailed_guides:
-    related_mainstream_content:
-    see_more_like_this:
   document_filters:
     description: Galite naudoti filtrus &nbsp; kad būtų pateikiami tik jus dominantys&nbsp;
       rezultatai
@@ -385,6 +400,7 @@ lt:
       access_our_info: Prieiga prie mūsų informacijos
       foi_how_to: Kaip pateikti užklausymą informacijai gauti
       foi_releases: 'Informacijos laisvė: pranešimai'
+      jobs:
       jobs_and_contacts: Darbai ir sutartys
       organisation_chart:
       transparency: Skaidrumo informacija
@@ -479,8 +495,8 @@ lt:
   worldwide_organisation:
     corporate_information:
       about_our_services_html:
-      personal_information_charter_html: "Čia %{link} rasite paaiškinimą, kaip tvarkoma
-        Jūsų asmeninė informacija"
+      personal_information_charter_html: Čia %{link} rasite paaiškinimą, kaip tvarkoma
+        Jūsų asmeninė informacija
       publication_scheme_html: Sužinokite, kokią informaciją mes pastoviai pateikiame
         puslapyje %{link}.
       social_media_use_html: Perskaitykite mūsų strategiją %{link}.
@@ -489,6 +505,7 @@ lt:
     headings:
       about_us: Apie mus
       contact_us: Parašykite mums
+      contents:
       corporate_information: Korporatyvinė informacija
       follow_us: Sekite mus
       our_people: Mūsų darbuotojai

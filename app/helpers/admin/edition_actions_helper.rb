@@ -7,14 +7,34 @@ module Admin::EditionActionsHelper
     button_to 'Create new edition to edit', revise_admin_edition_path(edition), title: "Create new edition to edit", class: "btn btn-default btn-lg"
   end
 
+  def content_data_button(edition)
+    url = content_data_page_data_url(edition)
+
+    link_to 'View data about page',
+            url,
+            class: 'btn btn-default btn-lg pull-right',
+            data: {
+              track_category: 'external-link-clicked',
+              track_action: url,
+              track_label:  'View data about page',
+            }
+  end
+
+  def custom_track_dimensions(edition)
+    {
+      1 => public_document_path(edition),
+      2 => edition.type.underscore,
+      3 => root_taxon_paths,
+      4 => edition.document.content_id
+    }
+  end
+
   def approve_retrospectively_edition_button(edition)
     confirmation_prompt = "Are you sure you want to retrospectively approve this document?"
     content_tag(:div, class: "approve_retrospectively_button") do
       capture do
-        form_for [:admin, edition], {
-          url: approve_retrospectively_admin_edition_path(edition, lock_version: edition.lock_version),
-          method: :post} do |form|
-          concat(form.submit "Looks good", data: { confirm: confirmation_prompt }, class: "btn btn-success")
+        form_for [:admin, edition], url: approve_retrospectively_admin_edition_path(edition, lock_version: edition.lock_version), method: :post do |form|
+          concat(form.submit("Looks good", data: { confirm: confirmation_prompt }, class: "btn btn-success"))
         end
       end
     end
@@ -30,8 +50,8 @@ module Admin::EditionActionsHelper
 
   def convert_to_draft_edition_form(edition)
     url = convert_to_draft_admin_edition_path(edition, lock_version: edition.lock_version)
-    options = { title: "Convert to draft #{edition.title}", class: 'btn btn-success'}
-    options.merge!(disabled: 'disabled') unless edition.valid_as_draft?
+    options = { title: "Convert to draft #{edition.title}", class: 'btn btn-success' }
+    options[:disabled] = 'disabled' unless edition.valid_as_draft?
     button_to 'Convert to draft', url, options
   end
 
@@ -73,10 +93,10 @@ module Admin::EditionActionsHelper
   def unschedule_edition_button(edition)
     confirm = "Are you sure you want to unschedule this edition and return it to the submitted state?"
     button_to "Unschedule",
-      unschedule_admin_edition_path(edition, lock_version: edition.lock_version),
-      title: "Unschedule this edition to allow changes or prevent automatic publication on #{l edition.scheduled_publication, format: :long}",
-      class: "btn btn-warning",
-      data: { confirm: confirm }
+              unschedule_admin_edition_path(edition, lock_version: edition.lock_version),
+              title: "Unschedule this edition to allow changes or prevent automatic publication on #{l edition.scheduled_publication, format: :long}",
+              class: "btn btn-warning",
+              data: { confirm: confirm }
   end
 
   def delete_edition_button(edition)
@@ -86,23 +106,33 @@ module Admin::EditionActionsHelper
   # If adding new models also update filter_options_for_edition
   def document_creation_dropdown
     content_tag(:ul,
-      class: "masthead-menu list-unstyled js-hidden",
-      id: 'new-document-menu',
-      role: 'menu',
-      'aria-labelledby' => 'new-document-label'
-    ) do
-      [Consultation, Publication, NewsArticle,
-        Speech, DetailedGuide, DocumentCollection, FatalityNotice,
-        CaseStudy, StatisticalDataSet,
-        WorldLocationNewsArticle].map do |edition_type|
-        content_tag(:li, class: 'masthead-menu-item') do
-          link_to(edition_type.model_name.human,
-            polymorphic_path([:new, :admin, edition_type.name.underscore]),
-            title: "Create #{edition_type.model_name.human.titleize}",
-            role: 'menuitem'
-          )
-        end if can?(:create, edition_type)
-      end.compact.join.html_safe
+                class: "masthead-menu list-unstyled js-hidden",
+                id: 'new-document-menu',
+                role: 'menu',
+                'aria-labelledby' => 'new-document-label') do
+      edition_types = [
+        Consultation,
+        Publication,
+        NewsArticle,
+        Speech,
+        DetailedGuide,
+        DocumentCollection,
+        FatalityNotice,
+        CaseStudy,
+        StatisticalDataSet,
+      ]
+      edition_types
+        .select { |edition_type| can?(:create, edition_type) }
+        .map { |edition_type|
+          content_tag(:li, class: 'masthead-menu-item') do
+            link_to(edition_type.model_name.human,
+                    polymorphic_path([:new, :admin, edition_type.name.underscore]),
+                    title: "Create #{edition_type.model_name.human.titleize}",
+                    role: 'menuitem')
+          end
+        }
+        .join
+        .html_safe
     end
   end
 
@@ -110,7 +140,7 @@ module Admin::EditionActionsHelper
     options_for_select([["All types", ""]]) + edition_type_options_for_select(user, selected) + edition_sub_type_options_for_select(selected)
   end
 
-  private
+private
 
   def edition_type_options_for_select(user, selected)
     type_options_container = Whitehall.edition_classes.map do |edition_type|
@@ -118,16 +148,35 @@ module Admin::EditionActionsHelper
         [edition_type.model_name.human.pluralize, edition_type.model_name.singular]
       end
     end
-ActiveModel::Name
+
     options_for_select(type_options_container, selected)
   end
 
   def edition_sub_type_options_for_select(selected)
     subtype_options_hash = {
       'Publication sub-types' => PublicationType.ordered_by_prevalence.map { |sub_type| [sub_type.plural_name, "publication_#{sub_type.id}"] },
-      'News article sub-types' => NewsArticleType.ordered_by_prevalence.map { |sub_type| [sub_type.plural_name, "news_article_#{sub_type.id}"] },
+      'News article sub-types' => NewsArticleType.all.map { |sub_type| [sub_type.plural_name, "news_article_#{sub_type.id}"] },
       'Speech sub-types' => SpeechType.all.map { |sub_type| [sub_type.plural_name, "speech_#{sub_type.id}"] }
     }
     grouped_options_for_select(subtype_options_hash, selected)
+  end
+
+  def root_taxon_paths
+    @edition_taxons
+      .map(&method(:get_root))
+      .map(&:base_path)
+      .uniq
+      .map(&method(:delete_leading_slash))
+      .sort.join(', ')
+  end
+
+  def delete_leading_slash(str)
+    str.delete_prefix('/')
+  end
+
+  def get_root(taxon)
+    return taxon if taxon.parent_node.nil?
+
+    get_root(taxon.parent_node)
   end
 end

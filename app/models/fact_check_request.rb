@@ -1,4 +1,4 @@
-class FactCheckRequest < ActiveRecord::Base
+class FactCheckRequest < ApplicationRecord
   include Whitehall::RandomKey
   self.random_key_length = 16
 
@@ -6,7 +6,7 @@ class FactCheckRequest < ActiveRecord::Base
   belongs_to :requestor, class_name: "User"
 
   validates :edition, :email_address, :requestor, presence: true
-  validates :email_address, email_format: {allow_blank: true}
+  validates :email_address, email_format: { allow_blank: true }
 
   scope :completed, -> { where('comments IS NOT NULL') }
   scope :pending,   -> { where('comments IS NULL') }

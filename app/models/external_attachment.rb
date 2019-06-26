@@ -1,4 +1,6 @@
 class ExternalAttachment < Attachment
+  include HasContentId
+
   validates :external_url, presence: true, uri: true, length: { maximum: 255 }
 
   def accessible?
@@ -30,10 +32,6 @@ class ExternalAttachment < Attachment
     external_url
   end
 
-  def could_contain_viruses?
-    false
-  end
-
   def external?
     true
   end
@@ -42,7 +40,7 @@ class ExternalAttachment < Attachment
     'text/html'
   end
 
-  def url(options = {})
+  def url(_options = {})
     external_url
   end
 
@@ -55,5 +53,4 @@ class ExternalAttachment < Attachment
   def readable_type
     'external'
   end
-
 end

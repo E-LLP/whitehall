@@ -49,7 +49,7 @@ module Whitehall::DocumentFilter
     test "topics param does not filter if topic is 'all'" do
       document_scope.expects(:published_in_topic).never
 
-      filter = create_filter(document_scope, topics: ['all'])
+      filter = create_filter(document_scope, topics: %w[all])
 
       assert_equal document_scope, filter.documents
     end
@@ -80,7 +80,7 @@ module Whitehall::DocumentFilter
 
     test "does not filter if departments is 'all'" do
       document_scope.expects(:in_organisation).never
-      create_filter(document_scope, departments: ['all'])
+      create_filter(document_scope, departments: %w[all])
     end
 
     test "keywords param filters by content containing each keyword" do
@@ -100,7 +100,7 @@ module Whitehall::DocumentFilter
     test "locale param filters content by locale" do
       filtered_scope = stub_document_scope('filtered scope')
       document_scope.expects(:with_translations).with("fr").returns(filtered_scope)
-      filter = create_filter(document_scope, locale: "fr")
+      create_filter(document_scope, locale: "fr")
     end
 
     test "locale param does not filter if no locale given" do
@@ -129,7 +129,7 @@ module Whitehall::DocumentFilter
     end
 
     test "publication_type param can also filter by publication edition type" do
-      publication_filter_option = stub_publication_filter_option("testing filter - statistics", publication_types: [stub('type', id: 123), stub('other type', id: 234)], edition_types: ["EditionType"])
+      publication_filter_option = stub_publication_filter_option("testing filter - statistics", publication_types: [stub('type', id: 123), stub('other type', id: 234)], edition_types: %w[EditionType])
 
       filtered_scope = stub_document_scope('filtered_scope')
       expected_query = "(`editions`.`publication_type_id` IN (123, 234) OR `editions`.`type` IN ('EditionType'))"
@@ -166,7 +166,7 @@ module Whitehall::DocumentFilter
     end
 
     test "can filter consultations" do
-      publication  = create(:published_publication)
+      _publication = create(:published_publication)
       consultation = create(:published_consultation)
       filter = Whitehall::DocumentFilter::Mysql.new(publication_filter_option: 'consultations')
       filter.publications_search
@@ -178,10 +178,10 @@ module Whitehall::DocumentFilter
       world_location = create(:world_location)
       other_world_location = create(:world_location)
 
-      news_article = create(:published_news_article, news_article_type: NewsArticleType::NewsStory, world_locations: [world_location])
-      fatality_notice = create(:published_fatality_notice, world_locations: [world_location])
-      transcript = create(:published_speech, speech_type: SpeechType::Transcript, world_locations: [world_location])
-      statement = create(:published_speech, speech_type: SpeechType::WrittenStatement, world_locations: [other_world_location])
+      create(:published_news_article, news_article_type: NewsArticleType::NewsStory, world_locations: [world_location])
+      create(:published_fatality_notice, world_locations: [world_location])
+      create(:published_speech, speech_type: SpeechType::Transcript, world_locations: [world_location])
+      create(:published_speech, speech_type: SpeechType::WrittenStatement, world_locations: [other_world_location])
 
       assert_equal 4, create_filter(Announcement.published, world_locations: [world_location.slug, other_world_location.slug]).documents.count
       assert_equal 3, create_filter(Announcement.published, world_locations: [world_location.slug]).documents.count
@@ -224,9 +224,9 @@ module Whitehall::DocumentFilter
       document_scope.expects(:page).with(2).returns(document_scope)
 
       filter = create_filter(document_scope,
-        departments: [organisation.slug],
-        topics: [topic.slug],
-        page: 2)
+                             departments: [organisation.slug],
+                             topics: [topic.slug],
+                             page: 2)
 
       assert_equal [organisation], filter.selected_organisations
       assert_equal [topic], filter.selected_topics
@@ -286,10 +286,9 @@ module Whitehall::DocumentFilter
 
     def stub_document_scope(name)
       document_scope = stub(name,
-        count: stub_everything,
-        current_page: stub_everything,
-        total_pages: stub_everything
-      )
+                            count: stub_everything,
+                            current_page: stub_everything,
+                            total_pages: stub_everything)
       document_scope.stubs(:arel_table).returns(Edition.arel_table)
       document_scope.stubs(:without_editions_of_type).returns(document_scope)
       document_scope.stubs(:in_reverse_chronological_order).returns(document_scope)
@@ -317,7 +316,7 @@ module Whitehall::DocumentFilter
     end
 
     def stub_publication_type(slug, attributes = {})
-      publication_type = stub("publication-type-#{slug}", {id: slug, slug: slug, pluralized_name: slug.humanize.pluralize}.merge(attributes))
+      publication_type = stub("publication-type-#{slug}", { id: slug, slug: slug, pluralized_name: slug.humanize.pluralize }.merge(attributes))
       PublicationType.stubs(:find_by_slug).with(slug).returns(publication_type)
       publication_type
     end

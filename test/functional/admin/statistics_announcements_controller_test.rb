@@ -1,10 +1,13 @@
 require 'test_helper'
 
 class Admin::StatisticsAnnouncementsControllerTest < ActionController::TestCase
+  include TaxonomyHelper
+
   setup do
     @organisation = create(:organisation)
     @user = login_as create(:gds_editor, organisation: @organisation)
     @topic = create(:topic)
+    stub_taxonomy_with_world_taxons
   end
 
   view_test "GET :new renders a new announcement form" do
@@ -16,11 +19,11 @@ class Admin::StatisticsAnnouncementsControllerTest < ActionController::TestCase
 
   test "GET :index defaults to future-dated announcements by the current user's organisation" do
     @future_announcement = create(:statistics_announcement,
-                            organisation_ids: [@organisation.id],
-                            current_release_date: create(:statistics_announcement_date, release_date: 1.week.from_now))
+                                  organisation_ids: [@organisation.id],
+                                  current_release_date: create(:statistics_announcement_date, release_date: 1.week.from_now))
     @past_announcement   = create(:statistics_announcement,
-                             organisation_ids: [@organisation.id],
-                             current_release_date: create(:statistics_announcement_date, release_date: 1.day.ago))
+                                  organisation_ids: [@organisation.id],
+                                  current_release_date: create(:statistics_announcement_date, release_date: 1.day.ago))
     @other_announcement  = create(:statistics_announcement)
 
     get :index
@@ -36,18 +39,20 @@ class Admin::StatisticsAnnouncementsControllerTest < ActionController::TestCase
   end
 
   test "POST :create saves the announcement to the database and redirects to the dashboard" do
-    post :create, statistics_announcement: {
-                    title: 'Beard stats 2014',
-                    summary: 'Summary text',
-                    publication_type_id: PublicationType::OfficialStatistics.id,
-                    organisation_ids: [@organisation.id],
-                    topic_ids: [@topic.id],
-                    current_release_date_attributes: {
-                      release_date: 1.year.from_now,
-                      precision: StatisticsAnnouncementDate::PRECISION[:one_month],
-                      confirmed: '0'
-                    }
-                  }
+    post :create, params: {
+                    statistics_announcement: {
+                                    title: 'Beard stats 2014',
+                                    summary: 'Summary text',
+                                    publication_type_id: PublicationType::OfficialStatistics.id,
+                                    organisation_ids: [@organisation.id],
+                                    topic_ids: [@topic.id],
+                                    current_release_date_attributes: {
+                                      release_date: 1.year.from_now,
+                                      precision: StatisticsAnnouncementDate::PRECISION[:one_month],
+                                      confirmed: '0'
+                                    }
+                                  }
+    }
 
     assert_response :redirect
     assert announcement = StatisticsAnnouncement.last
@@ -59,16 +64,17 @@ class Admin::StatisticsAnnouncementsControllerTest < ActionController::TestCase
   end
 
   view_test "POST :create re-renders the form if the announcement is invalid" do
-    post :create, statistics_announcement: { title: '', summary: 'Summary text' }
+    post :create, params: { statistics_announcement: { title: '', summary: 'Summary text' } }
 
     assert_response :success
-    assert_select "ul.errors li", text: "Title can't be blank"
+    assert_select "ul.errors li[data-track-action='statistics-announcement-error'][data-track-label=\"Title can't be blank\"]", text: "Title can't be blank"
     refute StatisticsAnnouncement.any?
   end
 
   view_test "GET :show renders the details of the announcement" do
     announcement = create(:statistics_announcement)
-    get :show, id: announcement
+    stub_publishing_api_expanded_links_with_taxons(announcement.content_id, [])
+    get :show, params: { id: announcement }
 
     assert_response :success
     assert_select 'h1 .stats-heading', text: announcement.title
@@ -76,7 +82,7 @@ class Admin::StatisticsAnnouncementsControllerTest < ActionController::TestCase
 
   view_test "GET :edit renders the edit form for the  announcement" do
     announcement = create(:statistics_announcement)
-    get :edit, id: announcement.id
+    get :edit, params: { id: announcement.id }
 
     assert_response :success
     assert_select "input[name='statistics_announcement[title]'][value='#{announcement.title}']"
@@ -84,7 +90,7 @@ class Admin::StatisticsAnnouncementsControllerTest < ActionController::TestCase
 
   test "PUT :update saves changes to the announcement" do
     announcement = create(:statistics_announcement)
-    put :update, id: announcement.id, statistics_announcement: { title: "New announcement title" }
+    put :update, params: { id: announcement.id, statistics_announcement: { title: "New announcement title" } }
 
     assert_response :redirect
     assert_equal 'New announcement title', announcement.reload.title
@@ -92,17 +98,19 @@ class Admin::StatisticsAnnouncementsControllerTest < ActionController::TestCase
 
   view_test "PUT :update re-renders edit form if changes are not valid" do
     announcement = create(:statistics_announcement)
-    put :update, id: announcement.id, statistics_announcement: { title: '' }
+    put :update, params: { id: announcement.id, statistics_announcement: { title: '' } }
 
     assert_response :success
-    assert_select "ul.errors li", text: "Title can't be blank"
+    assert_select "ul.errors li[data-track-action='statistics-announcement-error'][data-track-label=\"Title can't be blank\"]", text: "Title can't be blank"
   end
 
   test "POST :publish_cancellation cancels the announcement" do
     announcement = create(:statistics_announcement)
     post :publish_cancellation,
-          id: announcement.id,
-          statistics_announcement: { cancellation_reason: "Reason" }
+         params: {
+           id: announcement.id,
+           statistics_announcement: { cancellation_reason: "Reason" }
+         }
 
     assert_redirected_to [:admin, announcement]
     assert announcement.reload.cancelled?
@@ -113,12 +121,102 @@ class Admin::StatisticsAnnouncementsControllerTest < ActionController::TestCase
   test "cancelled announcements cannot be cancelled" do
     announcement = create(:cancelled_statistics_announcement)
 
-    get :cancel, id: announcement
+    get :cancel, params: { id: announcement }
     assert_redirected_to [:admin, announcement]
 
     post :publish_cancellation,
-          id: announcement.id,
-          statistics_announcement: { cancellation_reason: "Reason" }
+         params: {
+           id: announcement.id,
+           statistics_announcement: { cancellation_reason: "Reason" }
+         }
     assert_redirected_to [:admin, announcement]
+  end
+
+  view_test "show a button to tag to the new taxonomy" do
+    dfe_organisation = create(:organisation, content_id: "ebd15ade-73b2-4eaf-b1c3-43034a42eb37")
+
+    announcement = create(
+      :statistics_announcement,
+      organisations: [dfe_organisation]
+    )
+
+    login_as(create(:user, organisation: dfe_organisation))
+
+    announcement_has_no_expanded_links(announcement.content_id)
+    get :show, params: { id: announcement }
+
+    assert_select '.taxonomy-topics .btn', "Add topic"
+  end
+
+  view_test "when announcement is not tagged to the new taxonomy" do
+    sfa_organisation = create(:organisation, content_id: "3e5a6924-b369-4eb3-8b06-3c0814701de4")
+
+    announcement = create(
+      :statistics_announcement,
+      organisations: [sfa_organisation]
+    )
+
+    login_as(create(:user, organisation: sfa_organisation))
+
+    announcement_has_no_expanded_links(announcement.content_id)
+    get :show, params: { id: announcement }
+
+    refute_select '.taxonomy-topics .content'
+    assert_select '.taxonomy-topics .no-content', "No topics - please add a topic"
+  end
+
+  view_test "when announcement is tagged to the new taxonomy" do
+    sfa_organisation = create(:organisation, content_id: "3e5a6924-b369-4eb3-8b06-3c0814701de4")
+
+    announcement = create(
+      :statistics_announcement,
+      organisations: [sfa_organisation]
+    )
+
+    login_as(create(:user, organisation: sfa_organisation))
+
+    announcement_has_expanded_links(announcement.content_id)
+
+    get :show, params: { id: announcement }
+
+    refute_select '.taxonomy-topics .no-content'
+    assert_select '.taxonomy-topics .content li', "Education, Training and Skills"
+    assert_select '.taxonomy-topics .content li', "Primary Education"
+  end
+
+private
+
+  def announcement_has_no_expanded_links(content_id)
+    publishing_api_has_expanded_links(
+      content_id:  content_id,
+      expanded_links:  {}
+    )
+  end
+
+  def announcement_has_expanded_links(content_id)
+    publishing_api_has_expanded_links(
+      content_id:  content_id,
+      expanded_links:  {
+        "taxons" => [
+          {
+            "title" => "Primary Education",
+            "content_id" => "aaaa",
+            "base_path" => "i-am-a-taxon",
+            "details" => { "visible_to_departmental_editors" => true },
+            "links" => {
+              "parent_taxons" => [
+                {
+                  "title" => "Education, Training and Skills",
+                  "content_id" => "bbbb",
+                  "base_path" => "i-am-a-parent-taxon",
+                  "details" => { "visible_to_departmental_editors" => true },
+                  "links" => {}
+                }
+              ]
+            }
+          }
+        ]
+      }
+    )
   end
 end

@@ -6,6 +6,36 @@ class Api::OrganisationsControllerTest < ActionController::TestCase
   disable_database_queries
   should_be_a_public_facing_controller
 
+  test "sets cache expiry to 30 minutes" do
+    presenter = Api::PagePresenter.new(Kaminari.paginate_array([]).page(1).per(1), controller.view_context)
+    presenter.stubs(:as_json).returns(paged: :representation)
+
+    orgs_includes = stub
+    orgs_includes.stubs(:order).returns([])
+    Organisation.stubs(:includes).returns(orgs_includes)
+
+    Api::OrganisationPresenter.stubs(:paginate).with(Organisation.includes(:parent_organisations, :child_organisations, :translations).order(:id), anything).returns(presenter)
+
+    get :index, format: 'json'
+
+    assert_cache_control("max-age=#{Whitehall.default_api_cache_max_age}")
+  end
+
+  test "sets Access-Control-Allow-Origin to *" do
+    presenter = Api::PagePresenter.new(Kaminari.paginate_array([]).page(1).per(1), controller.view_context)
+    presenter.stubs(:as_json).returns(paged: :representation)
+
+    orgs_includes = stub
+    orgs_includes.stubs(:order).returns([])
+    Organisation.stubs(:includes).returns(orgs_includes)
+
+    Api::OrganisationPresenter.stubs(:paginate).with(Organisation.includes(:parent_organisations, :child_organisations, :translations).order(:id), anything).returns(presenter)
+
+    get :index, format: 'json'
+
+    assert response.headers['Access-Control-Allow-Origin'] == '*'
+  end
+
   view_test "show responds with JSON representation of found organisation" do
     organisation = stub_record(:organisation, slug: 'meh')
     organisation.stubs(:to_param).returns('meh')
@@ -16,7 +46,7 @@ class Api::OrganisationsControllerTest < ActionController::TestCase
     presenter.stubs(:as_json).returns(foo: :bar)
     Api::OrganisationPresenter.stubs(:new).with(organisation, anything).returns(presenter)
 
-    get :show, id: organisation.slug, format: 'json'
+    get :show, params: { id: organisation.slug }, format: 'json'
     assert_equal 'bar', json_response['foo']
   end
 
@@ -30,7 +60,7 @@ class Api::OrganisationsControllerTest < ActionController::TestCase
     presenter.stubs(:as_json).returns(foo: :bar)
     Api::OrganisationPresenter.stubs(:new).with(organisation, anything).returns(presenter)
 
-    get :show, id: organisation.slug, format: 'json'
+    get :show, params: { id: organisation.slug }, format: 'json'
     assert_equal 'ok', json_response['_response_info']['status']
   end
 
@@ -38,7 +68,7 @@ class Api::OrganisationsControllerTest < ActionController::TestCase
     friendly = stub
     Organisation.stubs(:friendly).returns(friendly)
     friendly.stubs(:find).with('unknown').returns(nil)
-    get :show, id: 'unknown', format: 'json'
+    get :show, params: { id: 'unknown' }, format: 'json'
     assert_response :not_found
     assert_equal 'not found', json_response['_response_info']['status']
   end

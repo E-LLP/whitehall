@@ -1,38 +1,9 @@
-When(/^I make unsaved changes to the news article$/) do
-  @news_article = NewsArticle.last
-  visit edit_admin_news_article_path(@news_article)
-  fill_in 'Title', with: 'An unsaved change'
-end
-
-When(/^I attempt to visit the attachments page$/) do
+When(/^I visit the attachments page$/) do
   first(:link, 'Attachments').click
 end
 
-Then(/^I should stay on the edit screen for the news article$/) do
-  assert_path edit_admin_news_article_path(@news_article)
-end
-
-When(/^I save my changes$/) do
-  click_on 'Save and continue editing'
-end
-
-Then(/^I can visit the attachments page$/) do
-  first(:link, 'Attachments').click
-  assert_path admin_edition_attachments_path(@news_article)
-end
-
-When /^the (?:attachment|image)s? (?:has|have) been virus\-checked$/ do
-  FileUtils.cp_r(Whitehall.incoming_uploads_root + '/.', Whitehall.clean_uploads_root + "/")
-  FileUtils.rm_rf(Whitehall.incoming_uploads_root)
-  FileUtils.mkdir(Whitehall.incoming_uploads_root)
-end
-
-Then /^the image will be quarantined for virus checking$/ do
-  assert_final_path(person_image_path, "thumbnail-placeholder.png")
-end
-
-Then /^the virus checked image will be available for viewing$/ do
-  assert_final_path(person_image_path, person_image_path)
+When(/^the attachment has been uploaded to the asset\-manager$/) do
+  Attachment.last.attachment_data.uploaded_to_asset_manager!
 end
 
 When(/^I start editing the attachments from the .*? page$/) do
@@ -87,8 +58,7 @@ When(/^I set the order of attachments to:$/) do |attachment_order|
 end
 
 Then(/^the attachments should be in the following order:$/) do |attachment_list|
-
-  attachment_ids = page.all('.existing-attachments > li').map {|element| element[:id] }
+  attachment_ids = page.all('.existing-attachments > li').map { |element| element[:id] }
 
   attachment_list.hashes.each_with_index do |attachment_info, index|
     attachment = Attachment.find_by(title: attachment_info[:title])
@@ -111,15 +81,40 @@ Then(/^the outcome for the consultation should have the attachment "(.*?)"$/) do
   assert page.has_content?(attachment_title)
 end
 
-Given(/^the publication "(.*?)" has an html attachment "(.*?)" with the body "(.*?)"$/) do |publication_title, attachment_title, attachment_body|
-  publication = Publication.find_by(title: publication_title)
-  create(:html_attachment, attachable: publication, title: attachment_title, body: attachment_body)
+Then(/^I can see the attachment title "([^"]*)"$/) do |text|
+  assert page.has_css?('li.attachment', text: text)
 end
 
-When(/^I preview the attachment "(.*?)"$/) do |attachment_title|
-  click_on attachment_title
+Then(/^I can see the preview link to the attachment "(.*?)"$/) do |attachment_title|
+  assert page.has_link?("a", href: /draft-origin/, text: attachment_title)
 end
 
-Then(/^I should see the html attachment body "(.*?)"$/) do |attachment_body|
-  assert page.has_content?(attachment_body)
+When(/^I upload an html attachment with the title "(.*?)" and the isbn "(.*?)" and the web isbn "(.*?)" and the contact address "(.*?)"$/) do |title, isbn, web_isbn, contact_address|
+  click_on "Add new HTML attachment"
+  fill_in "Title", with: title
+  fill_in "Print ISBN", with: isbn
+  fill_in "Web ISBN", with: web_isbn
+  fill_in "Organisation's Contact Details", with: contact_address
+  fill_in "Body", with: "Body"
+  check "Manually numbered headings"
+  click_on "Save"
+end
+
+When(/^I publish the draft edition for publication "(.*?)"$/) do |publication_title|
+  publication = Publication.find_by title: publication_title
+  publication.update!(state: 'published', major_change_published_at: Date.today)
+end
+
+Then(/^the html attachment "(.*?)" includes the contact address "(.*?)" and the isbn "(.*?)" and the web isbn "(.*?)"$/) do |attachment_title, contact_address, isbn, web_isbn|
+  html_attachment = HtmlAttachment.find_by title: attachment_title
+
+  assert_equal attachment_title, html_attachment.title
+  assert_equal contact_address, html_attachment.print_meta_data_contact_address
+  assert_equal isbn, html_attachment.isbn
+  assert_equal web_isbn, html_attachment.web_isbn
+end
+
+Then(/^I see a validation error for uploading attachments$/) do
+  assert page.has_content?("must have finished uploading"),
+    "Uploading attachment validation message not found"
 end

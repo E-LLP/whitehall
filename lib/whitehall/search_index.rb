@@ -1,26 +1,8 @@
 module Whitehall
+  # Whitehall::SearchIndex.add indexes content asynchronously.
+  # Whitehall::SearchIndex.for returns a class that indexes content synchronously.
+  #
   class SearchIndex
-    def self.for(type)
-      method = {
-        government: :government_search_index_path,
-        detailed_guides: :detailed_guidance_search_index_path
-      }.fetch(type)
-      path = Whitehall.send(method)
-      indexer_class.new(rummager_host, path, logger: Rails.logger)
-    end
-
-    def self.indexer_class
-      if Rails.env.test?
-        FakeRummageableIndex
-      else
-        Rummageable::Index
-      end
-    end
-
-    def self.rummager_host
-      Plek.find('search')
-    end
-
     def self.add(instance)
       # Note We delay the search index job to ensure that any transactions
       # around publishing will have had time to complete. Specifically,
@@ -33,6 +15,34 @@ module Whitehall
 
     def self.delete(instance)
       SearchIndexDeleteWorker.perform_async(instance.search_index['link'], instance.rummager_index)
+    end
+
+    def self.for(type, options = {})
+      path = {
+        government: government_search_index_path,
+        detailed_guides: detailed_search_index_path
+      }.fetch(type)
+      indexer_class.new(rummager_host, path, { logger: Rails.logger }.merge(options))
+    end
+
+    def self.government_search_index_path
+      '/government'
+    end
+
+    def self.detailed_search_index_path
+      '/detailed'
+    end
+
+    def self.indexer_class
+      if Rails.env.test?
+        FakeRummageableIndex
+      else
+        Rummageable::Index
+      end
+    end
+
+    def self.rummager_host
+      Plek.find('search')
     end
   end
 
@@ -59,13 +69,14 @@ module Whitehall
       store.delete(link, @index_name) if store.present?
     end
 
-    def make_request(method, *args)
+    def make_request(_method, *_args)
       raise RuntimeError.new("Use the in memory index (rather than rummager) in tests")
     end
 
-    private
-      def store
-        self.class.store
-      end
+  private
+
+    def store
+      self.class.store
+    end
   end
 end

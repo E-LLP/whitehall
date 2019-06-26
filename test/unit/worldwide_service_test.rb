@@ -11,5 +11,4 @@ class WorldwideOfficeTest < ActiveSupport::TestCase
     worldwide_service = build(:worldwide_service, service_type: WorldwideServiceType::OtherServices)
     assert worldwide_service.valid?
   end
-
 end

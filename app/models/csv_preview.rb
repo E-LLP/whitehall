@@ -10,7 +10,7 @@ class CsvPreview
     @maximum_rows = maximum_rows
     @maximum_columns = maximum_columns
     @file_path = file_path
-    @csv = CSV.open(file_path, encoding: encoding)
+    @csv = open_csv
     @headings = @csv.shift
     if @headings.size > maximum_columns
       @truncated_columns = true
@@ -18,7 +18,7 @@ class CsvPreview
     end
     ensure_csv_data_is_well_formed
   rescue ArgumentError => e
-    if e.message =~ /invalid byte sequence/
+    if e.message.match?(/invalid byte sequence/)
       raise_encoding_error
     else
       raise
@@ -29,7 +29,7 @@ class CsvPreview
 
   def each_row
     (0...maximum_rows).each do
-      if row = @csv.shift
+      if (row = @csv.shift)
         if row.size > maximum_columns
           @truncated_columns = true
           yield row[0..maximum_columns]
@@ -56,18 +56,38 @@ class CsvPreview
 
 private
 
+  def open_csv
+    original_error = nil
+    row_sep = :auto
+    csv = nil
+    begin
+      csv = CSV.open(file_path, encoding: encoding, row_sep: row_sep)
+      csv.shift
+      csv.rewind
+    rescue CSV::MalformedCSVError => e
+      if original_error.nil?
+        original_error = e
+        row_sep = "\r\n"
+        retry
+      else
+        raise original_error
+      end
+    end
+    csv
+  end
+
   def preview_rows
-    @preview ||= File.foreach(file_path).take(maximum_rows + 1).join
+    @preview_rows ||= File.foreach(file_path).take(maximum_rows + 1).join
   end
 
   def encoding
     @encoding ||= if utf_8_encoding?
-      'UTF-8'
-    elsif windows_1252_encoding?
-      'windows-1252'
-    else
-      raise FileEncodingError, 'File encoding not recognised'
-    end
+                    'UTF-8'
+                  elsif windows_1252_encoding?
+                    'windows-1252'
+                  else
+                    raise FileEncodingError, 'File encoding not recognised'
+                  end
   end
 
   def utf_8_encoding?
@@ -78,7 +98,7 @@ private
     preview_rows.force_encoding('windows-1252')
     # This regexp checks for the presence of ASCII control characters, which
     # would indicate we have the wrong encoding.
-    preview_rows.valid_encoding? && !preview_rows.match(/[\x00-\x09\x0b\x0c\x0e-\x1f]/)
+    preview_rows.valid_encoding? && !preview_rows.match(/[\x00-\x08\x0b\x0c\x0e-\x1f]/)
   end
 
   def ensure_csv_data_is_well_formed

@@ -41,4 +41,48 @@ class TopicalEventTest < ActiveSupport::TestCase
     topical_event = build(:topical_event, start_date: Date.today, end_date: Date.today)
     refute topical_event.valid?
   end
+
+  test "for edition returns topical events related to supplied edition" do
+    topical_event = create(:topical_event)
+    publication = build(:publication)
+    topical_event.publications << publication
+    topical_event.save!
+    assert_equal [topical_event], TopicalEvent.for_edition(publication.id)
+  end
+
+  test "start and end dates are considered indexable for search" do
+    start_date = Date.new(2016, 1, 1)
+    end_date = Date.new(2017, 1, 1)
+    topical_event = create(:topical_event, start_date: start_date, end_date: end_date)
+    rummager_payload = topical_event.search_index
+
+    assert_equal start_date, rummager_payload["start_date"]
+    assert_equal end_date, rummager_payload["end_date"]
+  end
+
+  test "#destroy also destroys 'featured topical event' associations" do
+    topical_event = create(:topical_event)
+    feature = create(:feature, topical_event: topical_event)
+    feature_list = create(:feature_list, features: [feature])
+
+    feature_list.reload
+    assert_equal 1, feature_list.features.size
+
+    topical_event.destroy
+
+    feature_list.reload
+    assert_equal 0, feature_list.features.size
+  end
+
+  test '#save republishes any organisations that feature the topical event' do
+    topical_event = create(:topical_event)
+    organisation = create(:organisation, :with_feature_list)
+
+    create(:feature, feature_list: organisation.feature_lists.first, topical_event: topical_event)
+
+    Whitehall::PublishingApi.expects(:publish).with(topical_event).once
+    Whitehall::PublishingApi.expects(:republish_async).with(organisation).once
+
+    topical_event.save
+  end
 end

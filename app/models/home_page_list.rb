@@ -1,15 +1,15 @@
-class HomePageList < ActiveRecord::Base
+class HomePageList < ApplicationRecord
   belongs_to :owner,
              polymorphic: true
   validates :owner, presence: true
   validates :name, presence: true,
-                   uniqueness: { scope: [:owner_id, :owner_type] },
+                   uniqueness: { scope: %i[owner_id owner_type] },
                    length: { maximum: 255 }
 
   has_many :home_page_list_items,
-    -> { order(:ordering) },
-     dependent: :destroy,
-     before_add: :ensure_ordering!
+           -> { order(:ordering) },
+           dependent: :destroy,
+           before_add: :ensure_ordering!
 
   def items
     home_page_list_items.includes(:item).map(&:item)
@@ -19,9 +19,10 @@ class HomePageList < ActiveRecord::Base
     owner = opts[:owned_by]
     name = opts[:called]
     build_if_missing = opts.has_key?(:build_if_missing) ? opts[:build_if_missing] : true
-    raise ArgumentError, "Must supply owned_by: and called: options" if (owner.nil? || name.nil?)
-    scoping = where(owner_id: owner.id, owner_type: owner.class, name: name)
-    if list = scoping.first
+    raise ArgumentError, "Must supply owned_by: and called: options" if owner.nil? || name.nil?
+
+    scoping = where(owner_id: owner.id, owner_type: owner.class.to_s, name: name)
+    if (list = scoping.first)
       list
     elsif build_if_missing
       scoping.build
@@ -43,12 +44,13 @@ class HomePageList < ActiveRecord::Base
 
   def remove_item(item)
     persist_if_required
-    home_page_list_items.where(item_id: item.id, item_type: item.class).destroy_all
+    home_page_list_items.where(item_id: item.id, item_type: item.class.to_s).destroy_all
   end
 
   def reorder_items!(items_in_order)
     persist_if_required
     return if items_in_order.empty?
+
     HomePageListItem.transaction do
       home_page_list_items.each do |home_page_list_item|
         new_ordering = items_in_order.index(home_page_list_item.item)
@@ -61,10 +63,11 @@ class HomePageList < ActiveRecord::Base
   end
 
   def self.remove_from_all_lists(item)
-    HomePageListItem.where(item_id: item.id, item_type: item.class).destroy_all
+    HomePageListItem.where(item_id: item.id, item_type: item.class.to_s).destroy_all
   end
 
-  protected
+protected
+
   def next_ordering
     (home_page_list_items.map(&:ordering).max || 0) + 1
   end
@@ -73,7 +76,6 @@ class HomePageList < ActiveRecord::Base
     new_item.ordering = next_ordering unless new_item.ordering
   end
 
-  public
   module Container
     # Given:
     #   has_home_page_list_of :contacts
@@ -93,11 +95,14 @@ class HomePageList < ActiveRecord::Base
       plural_name = list_type.to_s
       list_name = list_type.to_s
       home_page_list_methods = Module.new do
-        protected
+      protected
+
         define_method(:"home_page_#{plural_name}_list") do
           HomePageList.get(owned_by: self, called: list_name)
         end
-        public
+
+      public
+
         define_method(:"has_home_page_#{plural_name}_list?") do
           HomePageList.get(owned_by: self, called: list_name, build_if_missing: false).present?
         end

@@ -10,7 +10,6 @@ class ScheduledPublishingWorkerTest < ActiveSupport::TestCase
   test '#perform publishes a scheduled edition as the publishing robot' do
     edition = create(:scheduled_edition, scheduled_publication: 1.second.ago)
 
-    stub_panopticon_registration(edition)
     stub_publishing_api_registration_for(edition)
     ScheduledPublishingWorker.new.perform(edition.id)
 
@@ -21,11 +20,10 @@ class ScheduledPublishingWorkerTest < ActiveSupport::TestCase
   test '#perform raises an error if the edition cannot be published' do
     edition = create(:superseded_edition)
 
-    exception = assert_raise(ScheduledPublishingWorker::ScheduledPublishingFailure) do
-      ScheduledPublishingWorker.new.perform(edition.id)
-    end
+    Whitehall.edition_services.expects(:scheduled_publisher).never
 
-    assert_equal 'Only scheduled editions can be published with ScheduledEditionPublisher', exception.message
+    ScheduledPublishingWorker.new.perform(edition.id)
+
     assert edition.reload.superseded?
   end
 
@@ -37,13 +35,11 @@ class ScheduledPublishingWorkerTest < ActiveSupport::TestCase
   test '.queue queues a job for a scheduled edition' do
     edition = create(:scheduled_edition)
 
-    Sidekiq::Testing.fake! do
-      ScheduledPublishingWorker.queue(edition)
+    ScheduledPublishingWorker.queue(edition)
 
-      assert job = ScheduledPublishingWorker.jobs.last
-      assert_equal edition.id, job["args"].first
-      assert_equal edition.scheduled_publication.to_i, job["at"].to_i
-    end
+    assert job = ScheduledPublishingWorker.jobs.last
+    assert_equal edition.id, job["args"].first
+    assert_equal edition.scheduled_publication.to_i, job["at"].to_i
   end
 
   test '.dequeue removes a job for a scheduled edition' do
@@ -60,20 +56,20 @@ class ScheduledPublishingWorkerTest < ActiveSupport::TestCase
 
       assert_equal 1, Sidekiq::ScheduledSet.new.size
 
-      assert Sidekiq::ScheduledSet.new.detect { |job|
+      assert Sidekiq::ScheduledSet.new.detect do |job|
         control.id == job['args'].first &&
-        control.scheduled_publication.to_i == job.at.to_i
-      }
+          control.scheduled_publication.to_i == job.at.to_i
+      end
     end
   end
 
   test '.dequeue_all removes all scheduled publishing jobs' do
-    edition1 = create(:scheduled_edition)
-    edition2 = create(:scheduled_edition)
+    edition_1 = create(:scheduled_edition)
+    edition_2 = create(:scheduled_edition)
 
     with_real_sidekiq do
-      ScheduledPublishingWorker.queue(edition1)
-      ScheduledPublishingWorker.queue(edition2)
+      ScheduledPublishingWorker.queue(edition_1)
+      ScheduledPublishingWorker.queue(edition_2)
 
       assert_equal 2, Sidekiq::ScheduledSet.new.size
 
@@ -98,7 +94,7 @@ class ScheduledPublishingWorkerTest < ActiveSupport::TestCase
       ScheduledPublishingWorker.perform_at(1.day.from_now, '3')
       ScheduledPublishingWorker.perform_at(2.days.from_now, '6')
 
-      assert_equal ['3', '6'], ScheduledPublishingWorker.queued_edition_ids
+      assert_same_elements %w[3 6], ScheduledPublishingWorker.queued_edition_ids
     end
   end
 end

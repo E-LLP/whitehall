@@ -41,19 +41,18 @@ module Edition::RelatedPolicies
     parent_ids = Set.new
 
     content_ids.each do |policy_content_id|
-      link_response = publishing_api.get_links(policy_content_id)
-      next unless link_response
+      begin
+        link_response = Services.publishing_api.get_links(policy_content_id)
+      rescue GdsApi::HTTPNotFound
+        next
+      end
 
-      if (pa_links = publishing_api.get_links(policy_content_id)["links"]["policy_areas"])
+      if (pa_links = link_response["links"]["policy_areas"])
         parent_ids += pa_links
       end
     end
 
     parent_ids
-  end
-
-  def publishing_api
-    @publishing_api ||= Whitehall.publishing_api_v2_client
   end
 
   def policies
@@ -68,5 +67,9 @@ module Edition::RelatedPolicies
 
   def can_be_related_to_policies?
     true
+  end
+
+  def has_policies?
+    policies.any?
   end
 end

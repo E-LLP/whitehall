@@ -1,8 +1,10 @@
+require 'rails/generators'
+
 class DataMigrationGenerator < Rails::Generators::NamedBase
   include Rails::Generators::Migration
-  source_root File.expand_path('../templates', __FILE__)
+  source_root File.expand_path('templates', __dir__)
 
-  def self.next_migration_number(path)
+  def self.next_migration_number(_path)
     Time.zone.now.utc.strftime("%Y%m%d%H%M%S")
   end
 

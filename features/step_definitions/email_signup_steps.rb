@@ -1,35 +1,16 @@
-Given(/^govuk delivery exists$/) do
-  mock_govuk_delivery_client
+Given(/^email alert api exists$/) do
+  Services.stubs(:email_alert_api).returns(mock_email_alert_api)
 end
 
 When(/^I sign up for emails$/) do
-  within '.feeds' do
-    click_on 'email'
-  end
-
   # There is a bug which is causes external urls to get requested from the
   # server. So catch the routing error and handle it so we can continue to
   # assert that the right things have happened to generate the redirect.
   begin
+    click_on 'email'
     click_on 'Create subscription'
-  rescue ActionController::RoutingError
+  rescue ActionController::RoutingError # rubocop:disable Lint/HandleExceptions
   end
-end
-
-Then(/^I should be signed up for the all publications mailing list$/) do
-  assert_signed_up_to_mailing_list("/government/publications.atom", "publications")
-end
-
-Then(/^I should be signed up to the correspondence publications mailing list$/) do
-  assert_signed_up_to_mailing_list("/government/publications.atom?publication_filter_option=correspondence", "correspondence")
-end
-
-Then(/^I should be signed up for the all announcements mailing list$/) do
-  assert_signed_up_to_mailing_list("/government/announcements.atom", "announcements")
-end
-
-Then(/^I should be signed up for the news stories mailing list$/) do
-  assert_signed_up_to_mailing_list("/government/announcements.atom?announcement_filter_option=news-stories", "news stories")
 end
 
 Then(/^I should be signed up for the "(.*?)" organisation mailing list$/) do |org_name|
@@ -58,19 +39,9 @@ Then(/^I should be signed up for the "(.*?)" topic mailing list$/) do |topic_nam
   assert_signed_up_to_mailing_list("/government/topics/#{topic_slug}.atom", topic_name)
 end
 
-Then(/^I should be signed up for the "(.*?)" world location mailing list$/) do |world_location_name|
+Then(/^I should be signed up for the "(.*?)" international delegation mailing list$/) do |world_location_name|
   world_location_slug = WorldLocation.find_by!(name: world_location_name).slug
-  assert_signed_up_to_mailing_list("/government/world/#{world_location_slug}.atom", world_location_name)
-end
-
-Then(/^a govuk_delivery notification should have been sent to the mailing list I signed up for$/) do
-  mock_govuk_delivery_client.assert_method_called(:notify, with: ->(feed_urls, _subject, _body) {
-    feed_urls.include?(@feed_signed_up_to)
-  })
-end
-
-Then(/^no govuk_delivery notifications should have been sent yet$/) do
-  mock_govuk_delivery_client.refute_method_called(:notify)
+  assert_signed_up_to_mailing_list("/world/#{world_location_slug}.atom", world_location_name)
 end
 
 When(/^click the link for the latest email alerts$/) do
@@ -79,25 +50,33 @@ When(/^click the link for the latest email alerts$/) do
   end
 end
 
-Then(/^I should see email signup information for "(.*?)"$/) do |organisation_name|
+Then(/^I should see email signup information for "(.*?)"$/) do |_organisation_name|
   assert(page.has_link?("MHRA's alerts and recalls for drugs and medical devices", href: "/drug-device-alerts/email-signup"))
   assert(page.has_link?("Drug Safety Update", href: "/drug-safety-update/email-signup"))
   assert(page.has_link?("MHRA's new publications, statistics, consultations and announcements",
-    href: "/government/email-signup/new?email_signup%5Bfeed%5D=https%3A%2F%2Fwww.gov.uk%2Fgovernment%2Forganisations%2Fmedicines-and-healthcare-products-regulatory-agency.atom")
-  )
+    href: "/government/email-signup/new?email_signup%5Bfeed%5D=https%3A%2F%2Fwww.gov.uk%2Fgovernment%2Forganisations%2Fmedicines-and-healthcare-products-regulatory-agency.atom"))
 end
 
-def mock_govuk_delivery_client
-  @mock_client ||= RetrospectiveStub.new.tap { |mock_client|
-    mock_client.stub :topic
-    mock_client.stub :signup_url, returns: 'http://govdelivery.url'
-    mock_client.stub :notify
-    Whitehall.stubs(govuk_delivery_client: mock_client)
-  }
+def mock_email_alert_api
+  @email_mock_client ||= RetrospectiveStub.new.tap do |mock|
+    mock.stub(
+      :find_or_create_subscriber_list,
+      returns: {
+        'subscriber_list' => {
+          'topic_id' => 'TOPIC_123',
+          'subscription_url' => 'http://example.com',
+        },
+      },
+    )
+  end
 end
 
-def assert_signed_up_to_mailing_list(feed_path, description)
-  @feed_signed_up_to = public_url(feed_path)
-  mock_govuk_delivery_client.assert_method_called(:topic, with: [@feed_signed_up_to, description])
-  mock_govuk_delivery_client.assert_method_called(:signup_url, with: [@feed_signed_up_to])
+def assert_signed_up_to_mailing_list(feed_path, expected_title)
+  feed_signed_up_to = public_url(feed_path)
+  expected_links = UrlToSubscriberListCriteria.new(feed_signed_up_to).convert
+
+  lambda do |args|
+    assert_equal expected_links, args.fetch("links")
+    assert_equal expected_title, args.fetch("title")
+  end
 end

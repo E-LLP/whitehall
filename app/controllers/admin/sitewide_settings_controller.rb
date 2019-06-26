@@ -1,5 +1,5 @@
-class Admin::SitewideSettingsController <  Admin::BaseController
-  before_filter :enforce_permissions!
+class Admin::SitewideSettingsController < Admin::BaseController
+  before_action :enforce_permissions!
 
   def enforce_permissions!
     enforce_permission!(:administer, :sitewide_settings_section)
@@ -22,7 +22,7 @@ class Admin::SitewideSettingsController <  Admin::BaseController
     end
   end
 
-  private
+private
 
   def sitewide_settings_params
     params.require(:sitewide_setting).permit(:on, :govspeak)

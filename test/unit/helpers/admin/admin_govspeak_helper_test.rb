@@ -1,4 +1,5 @@
 # encoding: UTF-8
+
 require 'test_helper'
 
 class Admin::AdminGovspeakHelperTest < ActionView::TestCase
@@ -39,7 +40,7 @@ class Admin::AdminGovspeakHelperTest < ActionView::TestCase
   test "should not alter unicode when replacing links" do
     publication = create(:published_publication)
     html = govspeak_to_admin_html("the [☃](#{admin_publication_path(publication)})")
-    assert_select_within_html html, "a[href=?]", public_document_url(publication), text: "☃"
+    assert_select_within_html html, "a[href=?]", routes_helper.public_document_url(publication), text: "☃"
   end
 
   test "should rewrite link to deleted edition in admin preview" do
@@ -61,7 +62,7 @@ class Admin::AdminGovspeakHelperTest < ActionView::TestCase
   test "should rewrite link to published edition in admin preview" do
     publication = create(:published_publication)
     html = govspeak_to_admin_html("this and [that](#{admin_publication_path(publication)})")
-    assert_select_within_html html, "a[href=?]", public_document_url(publication), text: "that"
+    assert_select_within_html html, "a[href=?]", routes_helper.public_document_url(publication), text: "that"
   end
 
   test "should rewrite link to published edition with a newer draft in admin preview" do
@@ -92,15 +93,14 @@ class Admin::AdminGovspeakHelperTest < ActionView::TestCase
   end
 
   test "should allow attached images to be embedded in admin html" do
-    images = [OpenStruct.new(alt_text: "My Alt", url: "/image.jpg")]
+    images = [OpenStruct.new(alt_text: "My Alt", url: "https://some.cdn.com/image.jpg")]
     html = govspeak_to_admin_html("!!1", images)
-    assert_select_within_html html, ".govspeak figure.image.embedded img[src=?]", Whitehall.public_asset_host + "/image.jpg"
+    assert_select_within_html html, ".govspeak figure.image.embedded img[src=?]", "https://some.cdn.com/image.jpg"
   end
 
-  test "prefixes embedded image urls with asset host if present" do
-    Whitehall.stubs(:public_asset_host).returns("https://some.cdn.com")
+  test "should allow attached images to be embedded in edition body" do
     edition = build(:published_news_article, body: "!!1")
-    edition.stubs(:images).returns([OpenStruct.new(alt_text: "My Alt", url: "/image.jpg")])
+    edition.stubs(:images).returns([OpenStruct.new(alt_text: "My Alt", url: "https://some.cdn.com/image.jpg")])
     html = govspeak_edition_to_admin_html(edition)
     assert_select_within_html html, ".govspeak figure.image.embedded img[src=?]", "https://some.cdn.com/image.jpg"
   end
@@ -119,8 +119,8 @@ class Admin::AdminGovspeakHelperTest < ActionView::TestCase
     Contact.stubs(:find_by).with(id: '1').returns(contact)
     input = '[Contact:1]'
     contact_html = render('contacts/contact', contact: contact, heading_tag: 'h3')
-    @controller.lookup_context.formats = ['atom']
-    assert_nothing_raised(ActionView::MissingTemplate) do
+    @controller.lookup_context.formats = %w[atom]
+    assert_nothing_raised do
       assert_equivalent_html "<div class=\"govspeak\">#{contact_html}</div>", govspeak_to_admin_html(input)
     end
   end

@@ -1,15 +1,17 @@
-Feature: World location news for people local to countries
+Feature: World location news
   As a citizen,
   I want news articles which are only relevant in a specific world location to be excluded from the main list of announcements on inside government unless I choose to see them,
   So that I can ignore this niche interest content unless I want it
 
   ---
 
-  A way of creating a 'world location specific' news article
+  World Location News Articles are being replaced by News Articles of type
+  'World news story' and it is not possible to create these anymore. They can
+  still be viewed though.
 
   Include these on the location page's list of recent announcements,
   latest feed etc, and allow them to be featured on a world location
-  page
+  page.
 
   Omit these from the /announcements list unless a frontend user
   selects to reveal them (needs UX input, but something like a
@@ -18,64 +20,28 @@ Feature: World location news for people local to countries
 
   Users can still see any standard news articles that are tagged to
   countries (eg FCO news about Syria) - only the location-specific
-  stuff should be filtered out
+  stuff should be filtered out.
 
   'See all our announcements' link from the location goes to filtered
-  announcements list including the location specific stuff
+  announcements list including the location specific stuff.
 
   World location-specific news articles should be associated to
   Worldwide organisations, as well as to locations, so the world
-  organisation logos are shown as the producing orgs
+  organisation logos are shown as the producing orgs.
 
   Background:
     Given I am an GDS editor
 
-  Scenario: Create a world location news article
-    When I draft a valid world location news article "Beirut News"
-    Then the world location news article "Beirut News" should have been created
+  Scenario: View news articles relating to an international delegation
+    Given an international delegation "UK and the World Government" exists
+    And a published news article "World Government publishes fishing statistics for the Atlantic Ocean" exists relating to the international delegation "UK and the World Government"
+    When I view the international delegation "UK and the World Government"
+    Then I should see the news article "World Government publishes fishing statistics for the Atlantic Ocean"
 
-  Scenario: Associate a world location news article with a worldwide organisation
-    Given the worldwide organisation "Spanish Department" exists
-    When I draft a valid world location news article "Spanish News"
-    Then I should be able to associate "Spanish News" with the worldwide organisation "Spanish Department"
-    When I force publish the world location news article "Spanish News"
-    Then the worldwide organisation "Spanish Department" is listed as a producing org on the world location news article "Spanish News"
-
-  Scenario: Associate a world location news article with a topical event
-    Given the topical event "French Topical Event" exists
-    When I draft a valid world location news article "French News"
-    Then I should be able to associate "French News" with the topical event "French Topical Event"
-    When I force publish the world location news article "French News"
-    Then the topical event "French Topical Event" is listed as a topical event on the world location news article "French News"
-
-  @not-quite-as-fake-search
-  Scenario: Associate a world location news article with a world location
-    Given a world location "Indonesia" exists
-    When I draft a valid world location news article "Indonesian Beer"
-    Then I should be able to associate "Indonesian Beer" with the world location "Indonesia"
-    When I force publish the world location news article "Indonesian Beer"
-    Then the world location news article "Indonesian Beer" appears on the world location "Indonesia"
-    When I click through to see all the announcements for world location "Indonesia"
-    Then I should see the world location news article "Indonesian Beer"
-
-  @not-quite-as-fake-search
-  Scenario: World location news on the announcements index
-    Given there is a world location news article
-    When I browse to the announcements index
-    Then I should not be able to see the world location news article
-    When I explicitly ask for world location news to be included
-    Then I should be able to see the world location news article
-
-  Scenario: View news articles relating to an world location
-    Given a world location "British Antarctic Territory" exists
-    And a published news article "Larsen ice sheet disintegrates" exists relating to the world location "British Antarctic Territory"
-    When I view the world location "British Antarctic Territory"
-    Then I should see the news article "Larsen ice sheet disintegrates"
-
-  Scenario: The publication is about a world location
-    Given a world location "British Antarctic Territory" exists
-    And a published publication "Penguins have rights too" exists that is about "British Antarctic Territory"
-    When I view the world location "British Antarctic Territory"
+  Scenario: The publication is about an international delegation
+    Given an international delegation "UK and the World Government" exists
+    And a published publication "Penguins have rights too" exists that is about "UK and the World Government"
+    When I view the international delegation "UK and the World Government"
     Then I should see the publication "Penguins have rights too"
 
   Scenario: Inactive world locations are listed but not linked
@@ -83,13 +49,3 @@ Feature: World location news for people local to countries
     When I visit the world locations page
     Then I should see a world location called "Democratic People's Republic of South London"
     But I should not see a link to the world location called "Democratic People's Republic of South London"
-
-  Scenario: World locations tell me what type they are
-    Given a world location "Spain" exists
-    And an international delegation "United Nations" exists
-
-    When I view the world location "Spain"
-    Then I should see that it is a world location
-
-    When I view the world location "United Nations"
-    Then I should see that it is an international delegation

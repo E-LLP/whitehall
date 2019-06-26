@@ -18,11 +18,6 @@ module Whitehall
       assert_equal 'http://gov.uk/government/get-involved/take-part/woo', maker.take_part_page_url('woo', host: 'gov.uk')
     end
 
-    test 'has an empty set of params (for the url helpers that need it)' do
-      expected_params = {}
-      assert_equal expected_params, Whitehall::UrlMaker.new.params
-    end
-
     test 'the default format can be overridden for a localised resource' do
       maker = Whitehall::UrlMaker.new(host: 'gov.uk', format: 'atom')
       role  = create(:ministerial_role)
@@ -32,7 +27,7 @@ module Whitehall
 
     test 'the default format can be overridden for a non-localised resource' do
       maker = Whitehall::UrlMaker.new(host: 'gov.uk', format: 'atom')
-      topic  = create(:topic)
+      topic = create(:topic)
 
       assert_equal "http://gov.uk/government/topics/#{topic.slug}.atom", maker.url_for(topic)
     end

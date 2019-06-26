@@ -1,24 +1,22 @@
 class PublicFacingController < ApplicationController
   helper :all
 
-  before_filter :set_cache_control_headers
-  before_filter :restrict_request_formats
-  before_filter :set_x_frame_options
+  before_action :set_cache_control_headers
+  before_action :restrict_request_formats
+  before_action :set_x_frame_options
 
-  around_filter :set_locale
-
-  include LocalisedUrlPathHelper
+  around_action :set_locale
 
   rescue_from GdsApi::TimedOutException do |exception|
     log_error_and_render_500 exception
   end
 
-  rescue_from GdsApi::HTTPErrorResponse do |exception|
-    if exception.code == 502
-      log_error_and_render_500 exception
-    else
-      raise
-    end
+  rescue_from GdsApi::HTTPServerError do |exception|
+    log_error_and_render_500 exception
+  end
+
+  rescue_from GdsApi::HTTPClientError do |exception|
+    log_error_and_render_400 exception
   end
 
   # Allows additional request formats to be enabled.
@@ -42,14 +40,19 @@ class PublicFacingController < ApplicationController
   end
 
   def render_not_found
-    render text: "Not found", status: :not_found
+    render plain: "Not found", status: :not_found
   end
 
-  private
+private
+
+  def log_error_and_render_400(exception)
+    logger.error "\n#{exception.class} (#{exception.message}):\n#{exception.backtrace.join("\n")}\n\n"
+    render plain: 'Bad API request', status: :bad_request
+  end
 
   def log_error_and_render_500(exception)
     logger.error "\n#{exception.class} (#{exception.message}):\n#{exception.backtrace.join("\n")}\n\n"
-    render text: 'API Timed Out', status: :internal_server_error
+    render plain: 'API error', status: :internal_server_error
   end
 
   def set_locale(&block)
@@ -60,14 +63,23 @@ class PublicFacingController < ApplicationController
     expires_in Whitehall.default_cache_max_age, public: true
   end
 
+  def set_api_cache_control_headers
+    expires_in Whitehall.default_api_cache_max_age, public: true
+  end
+
+  def set_api_access_control_allow_origin_headers
+    response.headers['Access-Control-Allow-Origin'] = '*'
+  end
+
   def restrict_request_formats
     unless can_handle_format?(request.format)
-      render status: :not_acceptable, text: "Request format #{request.format} not handled."
+      render status: :not_acceptable, plain: "Request format #{request.format} not handled."
     end
   end
 
   def can_handle_format?(format)
-    return true if format == Mime::HTML
+    return true if format == Mime[:html]
+
     format && self.class.acceptable_formats.fetch(params[:action].to_sym, []).include?(format.to_sym)
   end
 
@@ -81,11 +93,13 @@ class PublicFacingController < ApplicationController
     set_slimmer_format_header(Whitehall.analytics_format(analytics_format))
   end
 
-  def search_backend
-    if Locale.current.english?
-      Whitehall.search_backend
+  def search_backend(filter_type)
+    return Whitehall::DocumentFilter::Mysql unless Locale.current.english?
+
+    if filter_type == "announcements"
+      Whitehall::DocumentFilter::SearchRummager
     else
-      Whitehall::DocumentFilter::Mysql
+      Whitehall::DocumentFilter::AdvancedSearchRummager
     end
   end
 

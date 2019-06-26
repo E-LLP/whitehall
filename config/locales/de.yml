@@ -5,7 +5,6 @@ de:
         one: Dokument
         other: Dokumente
       applies_to_nations: Gilt für
-      field_of_operation: Einsatzbereich
       from:
       location:
       part_of:
@@ -16,6 +15,9 @@ de:
       authored_article:
         one: Namensartikel
         other: Namensartikel
+      blog_post:
+        one:
+        other:
       case_study:
         one: Fallstudie
         other: Fallstudien
@@ -46,9 +48,6 @@ de:
       draft_text:
         one: Entwurf
         other: Entwürfe
-      fatality_notice:
-        one: Bekanntgabe eines Todesfalls
-        other: Bekanntgabe von Todesfällen
       foi_release:
         one: Freigabe gemäß Freedom of Information Act
         other: Freigabe gemäß Freedom of Information Act
@@ -73,6 +72,9 @@ de:
       international_treaty:
         one:
         other:
+      manual:
+        one:
+        other:
       map:
         one: Karte
         other: Karten
@@ -85,9 +87,15 @@ de:
       news_story:
         one: Meldung
         other: Meldungen
+      nhs_content:
+        one:
+        other:
       notice:
         one:
         other:
+      official_statistics:
+        one: Statistik
+        other: Statistiken
       open_consultation:
         one: Laufende Konsultation
         other: Laufende Konsultationen
@@ -124,9 +132,6 @@ de:
       statistical_data_set:
         one: Statistischer Datensatz
         other: Statistische Datensätze
-      official_statistics:
-        one: Statistik
-        other: Statistiken
       statutory_guidance:
         one:
         other:
@@ -136,6 +141,9 @@ de:
       transparency:
         one: Transparenz-Daten
         other: Transparenz-Daten
+      world_news_story:
+        one:
+        other:
       written_statement:
         one: Schriftliche Erklärung vor dem Parlament
         other: Schriftliche Erklärungen vor dem Parlament
@@ -194,7 +202,7 @@ de:
       organisations: Organisationen
       publications: Unsere Veröffentlichungen
       quick_links: Quicklinks
-      related_policies: "Ähnliche Sachgebiete"
+      related_policies: Ähnliche Sachgebiete
       statistics: Unsere Statistiken
   activerecord:
     attributes:
@@ -215,6 +223,8 @@ de:
         unnumbered_hoc_paper:
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         file:
+      edition:
+        nation_inapplicabilities:
       policy_group/policy_group_attachments/attachment/attachment_data:
         file:
       response/consultation_response_attachments/attachment:
@@ -260,6 +270,12 @@ de:
     opendocument:
       help_html:
     see_more:
+  broken_links:
+    broken:
+      subheading:
+    caution:
+      subheading:
+    title:
   change_notes:
     page_history:
     published_at:
@@ -270,38 +286,34 @@ de:
     email: E-Mail
   corporate_information_page:
     type:
-      about:
-      about_our_services:
-      access_and_opening:
-      complaints_procedure:
-      equality_and_diversity:
-      media_enquiries:
-      membership:
-      our_energy_use:
-      our_governance:
-      personal_information_charter: Charta zum Schutz personenbezogener Daten
-      petitions_and_campaigns:
-      procurement:
-      publication_scheme: Publikationsprogramm
-      recruitment:
-      research:
-      social_media_use: Soziale Medien
-      staff_update:
-      statistics:
-      terms_of_reference:
-      welsh_language_scheme: Walisisches Sprachprogramm
+      link_text:
+        welsh_language_scheme:
+      title:
+        about:
+        about_our_services:
+        access_and_opening:
+        accessible_documents_policy:
+        complaints_procedure:
+        equality_and_diversity:
+        media_enquiries:
+        membership:
+        our_energy_use:
+        our_governance:
+        personal_information_charter: Charta zum Schutz personenbezogener Daten
+        petitions_and_campaigns:
+        procurement:
+        publication_scheme: Publikationsprogramm
+        recruitment:
+        research:
+        social_media_use: Soziale Medien
+        staff_update:
+        statistics:
+        terms_of_reference:
+        welsh_language_scheme: Walisisches Sprachprogramm
   date:
     formats:
       default: "%d %B %Y"
       long_ordinal: "%e %B %Y"
-  detailed_guidance:
-    back_to_contents:
-    contents:
-    more:
-    part_of_published_collection:
-    published_related_detailed_guides:
-    related_mainstream_content:
-    see_more_like_this:
   document_filters:
     description: Mit Hilfe der Filter erhalten Sie nur Ergebnisse, die Ihrem Interesse
       entsprechen.
@@ -338,6 +350,7 @@ de:
       access_our_info: Information ansehen
       foi_how_to: Wie Sie eine Anfrage nach dem Freedom of Information Act stellen
       foi_releases: Veröffentlichungen nach dem Freedom of Information Act
+      jobs:
       jobs_and_contacts: Stellenanzeigen
       organisation_chart:
       transparency: Transparenzdaten
@@ -441,8 +454,9 @@ de:
         in %{link}
     find_out_more: Vollständiges Profil und alle Kontaktdaten
     headings:
-      about_us: "Über uns"
+      about_us: Über uns
       contact_us: Schreiben Sie uns
+      contents:
       corporate_information: Administrative Informationen
       follow_us: Folgen Sie uns
       our_people: Unsere Mitarbeiter

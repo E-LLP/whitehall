@@ -18,6 +18,8 @@ id:
         unnumbered_hoc_paper:
       corporate_information_page/corporate_information_page_attachments/attachment/attachment_data:
         file:
+      edition:
+        nation_inapplicabilities:
       policy_group/policy_group_attachments/attachment/attachment_data:
         file:
       response/consultation_response_attachments/attachment:
@@ -62,6 +64,12 @@ id:
     opendocument:
       help_html:
     see_more:
+  broken_links:
+    broken:
+      subheading:
+    caution:
+      subheading:
+    title:
   change_notes:
     page_history:
     published_at:
@@ -72,38 +80,34 @@ id:
     email: Email
   corporate_information_page:
     type:
-      about:
-      about_our_services:
-      access_and_opening:
-      complaints_procedure:
-      equality_and_diversity:
-      media_enquiries:
-      membership:
-      our_energy_use:
-      our_governance:
-      personal_information_charter: Piagam informasi pribadi
-      petitions_and_campaigns:
-      procurement:
-      publication_scheme: Skema publikasi
-      recruitment:
-      research:
-      social_media_use: Penggunaan media sosial
-      staff_update:
-      statistics:
-      terms_of_reference:
-      welsh_language_scheme: Skema bahasa Wales
+      link_text:
+        welsh_language_scheme:
+      title:
+        about:
+        about_our_services:
+        access_and_opening:
+        accessible_documents_policy:
+        complaints_procedure:
+        equality_and_diversity:
+        media_enquiries:
+        membership:
+        our_energy_use:
+        our_governance:
+        personal_information_charter: Piagam informasi pribadi
+        petitions_and_campaigns:
+        procurement:
+        publication_scheme: Skema publikasi
+        recruitment:
+        research:
+        social_media_use: Penggunaan media sosial
+        staff_update:
+        statistics:
+        terms_of_reference:
+        welsh_language_scheme: Skema bahasa Wales
   date:
     formats:
       default: "%d %B %Y"
       long_ordinal: "%e %B %Y"
-  detailed_guidance:
-    back_to_contents:
-    contents:
-    more:
-    part_of_published_collection:
-    published_related_detailed_guides:
-    related_mainstream_content:
-    see_more_like_this:
   document:
     contents:
     footer_meta:
@@ -116,7 +120,6 @@ id:
       attachments:
         one: Dokumen
         other: Dokumen-dokumen
-      field_of_operation: Area operasi
       from:
       location:
       part_of:
@@ -138,6 +141,9 @@ id:
       authored_article:
         one: Artikel yang ditulis
         other: Artikel-artikel yang ditulis
+      blog_post:
+        one:
+        other:
       case_study:
         one: Studi kasus
         other: Studi-studi kasus
@@ -168,9 +174,6 @@ id:
       draft_text:
         one: Rancangan teks
         other: Rancangan tulisan
-      fatality_notice:
-        one: Pemberitahuan kematian
-        other: Pemberitahuan-pemberitahuan kematian
       foi_release:
         one: Rilis FOI
         other: Rilis FOI
@@ -195,6 +198,9 @@ id:
       international_treaty:
         one:
         other:
+      manual:
+        one:
+        other:
       map:
         one: Peta
         other: Peta-peta
@@ -207,9 +213,15 @@ id:
       news_story:
         one: Berita
         other: Berita-berita
+      nhs_content:
+        one:
+        other:
       notice:
         one:
         other:
+      official_statistics:
+        one: Statistik
+        other: Statistik-statistik
       open_consultation:
         one: Konsultasi terbuka
         other: Konsultasi-konsultasi terbuka
@@ -246,9 +258,6 @@ id:
       statistical_data_set:
         one: Set data statistik
         other: Set data statistik
-      official_statistics:
-        one: Statistik
-        other: Statistik-statistik
       statutory_guidance:
         one:
         other:
@@ -258,6 +267,9 @@ id:
       transparency:
         one: Transparansi data
         other: Transparansi data
+      world_news_story:
+        one:
+        other:
       written_statement:
         one: Pernyataan tertulis kepada parlemen
         other: Pernyataan-pernyatan tertulis kepada parlemen
@@ -299,6 +311,7 @@ id:
       access_our_info: Akses informasi kami
       foi_how_to: Bagaimana membuat permintaan FOI
       foi_releases: Rilis-rilis FOI
+      jobs:
       jobs_and_contacts: Pekerjaan dan kontrak
       organisation_chart:
       transparency: Transparansi data
@@ -442,6 +455,7 @@ id:
     headings:
       about_us: Tentang kami
       contact_us: Hubungi kami
+      contents:
       corporate_information: Informasi korporat
       follow_us: Ikuti kami
       our_people: Staf kami

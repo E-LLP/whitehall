@@ -1,8 +1,8 @@
 # encoding: UTF-8
+
 require "test_helper"
 
 class CsvPreviewTest < ActiveSupport::TestCase
-
   def csv_preview
     @csv_preview ||= CsvPreview.new(Rails.root.join('test/fixtures/csv_encodings/utf-8.csv'))
   end
@@ -12,8 +12,8 @@ class CsvPreviewTest < ActiveSupport::TestCase
   end
 
   test "yields the data, row by row" do
-    expected_data = [['Office for Facial Hair Studies', '£12000000' , '£10000000'],
-                      ['Department of Grooming', '£15000000', '£15600000']]
+    expected_data = [['Office for Facial Hair Studies', '£12000000', '£10000000'],
+                     ['Department of Grooming', '£15000000', '£15600000']]
 
     assert_csv_data expected_data, csv_preview
   end
@@ -22,10 +22,10 @@ class CsvPreviewTest < ActiveSupport::TestCase
     iso_encoded_preview = CsvPreview.new(Rails.root.join('test/fixtures/csv_encodings/iso-8859-1.csv'))
 
     assert_equal ['ECO Lot', 'Band', 'Contract Term', 'Price Per Unit', 'Above reserve price?', 'Reserve Price (£)'],
-      iso_encoded_preview.headings
+                 iso_encoded_preview.headings
 
     expected_data = [['Carbon Saving Communities', 'Carbon Saving Band 1 [1K-3K]', '3 months', '£69.10', 'YES', nil],
-                      ['Carbon Saving Communities', 'Carbon Saving Band 1 [1K-3K]', '12 months', '£62.10', 'YES', '£40.00']]
+                     ['Carbon Saving Communities', 'Carbon Saving Band 1 [1K-3K]', '12 months', '£62.10', 'YES', '£40.00']]
 
     assert_csv_data(expected_data, iso_encoded_preview)
   end
@@ -34,7 +34,7 @@ class CsvPreviewTest < ActiveSupport::TestCase
     iso_encoded_preview = CsvPreview.new(File.open(Rails.root.join('test/fixtures/csv_encodings/windows-1252.csv')))
 
     assert_equal %w(name address1 address2 town postcode access_notes general_notes url email phone fax text_phone),
-      iso_encoded_preview.headings
+                 iso_encoded_preview.headings
   end
 
   test "raises CsvPreview::FileEncodingError if the encoding cannot be handled by the CSV library" do
@@ -60,7 +60,7 @@ class CsvPreviewTest < ActiveSupport::TestCase
 
   test 'the size of the preview can be overridden' do
     preview       = CsvPreview.new(File.open(Rails.root.join('test/fixtures/csv_encodings/utf-8.csv')), 1)
-    expected_data = [['Office for Facial Hair Studies', '£12000000' , '£10000000']]
+    expected_data = [['Office for Facial Hair Studies', '£12000000', '£10000000']]
 
     assert_csv_data(expected_data, preview)
   end
@@ -86,8 +86,19 @@ class CsvPreviewTest < ActiveSupport::TestCase
 
   test 'raises CSV::MalformedCSVError early if the data cannot be handled by the CSV library' do
     assert_raise CSV::MalformedCSVError do
-      csv_with_blank_lines = CsvPreview.new(Rails.root.join('test/fixtures/csv_encodings/eof.csv'))
+      CsvPreview.new(Rails.root.join('test/fixtures/csv_encodings/eof.csv'))
     end
+  end
+
+  test 'handles files with a newline embedded in a cell in the first row that is not the same as the newlines used to separate the rows' do
+    mixed_newlines_preview = CsvPreview.new(Rails.root.join('test/fixtures/csv_encodings/mixed-newlines.csv'))
+
+    assert_equal ['this', 'header row', "has an embedded new\nline but", 'it is different to', 'the row separator'],
+                 mixed_newlines_preview.headings
+
+    expected_data = [['this', 'is', 'the', 'second', 'line in the file']]
+
+    assert_csv_data(expected_data, mixed_newlines_preview)
   end
 
 private

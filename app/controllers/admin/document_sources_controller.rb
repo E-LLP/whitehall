@@ -1,6 +1,6 @@
 class Admin::DocumentSourcesController < Admin::BaseController
-  before_filter :require_import_permission!
-  before_filter :find_edition
+  before_action :require_import_permission!
+  before_action :find_edition
 
   def update
     @document_sources = params[:document_sources]
@@ -12,7 +12,7 @@ class Admin::DocumentSourcesController < Admin::BaseController
     redirect_to admin_edition_path(@edition, anchor: 'document-sources')
   end
 
-  private
+private
 
   def find_edition
     @edition = Edition.find(params[:edition_id])

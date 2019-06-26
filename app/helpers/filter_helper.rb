@@ -5,8 +5,13 @@ module FilterHelper
     options_for_select(Organisation.with_statistics_announcements.alphabetical.map { |org| [org.name, org.slug] }.unshift(['All departments', nil]), Array(selected_slug))
   end
 
-  def topic_options_for_statistics_announcement_filter(selected_slug = nil)
-    options_for_select(Topic.with_statistics_announcements.alphabetical.map { |topic| [topic.name, topic.slug] }.unshift(['All policy areas', nil]), Array(selected_slug))
+  def topic_options_for_statistics_announcement_filter(content_id = nil)
+    options_for_select(
+      Taxonomy::TopicTaxonomy
+        .new
+        .ordered_taxons
+        .map { |taxon| [taxon.name, taxon.content_id] }.unshift(['All topics', nil]), Array(content_id)
+    )
   end
 
   def describe_filter(filter, base_url, opts = {})
@@ -36,6 +41,7 @@ module FilterHelper
     end
 
   private
+
     def count_fragment
       [
         content_tag(:span, number_with_delimiter(filter.result_count), class: 'count'),
@@ -51,15 +57,15 @@ module FilterHelper
 
     def topics_fragment
       if filter.respond_to?(:topics) && filter.topics.any?
-        "about " + filter.topics.map {|topic|
-          "<strong>#{CGI::escapeHTML(topic.name)}</strong> #{remove_field_link(:topics, topic.slug, topic.name)}"
+        "about " + filter.topics.map { |topic|
+          "<strong>#{CGI::escapeHTML(topic.name)}</strong> #{remove_field_link(:topics, topic.base_path, topic.name)}"
         }.to_sentence
       end
     end
 
     def organisations_fragment
       if filter.respond_to?(:organisations) && filter.organisations.any?
-        "by " + filter.organisations.map {|organisation|
+        "by " + filter.organisations.map { |organisation|
           "<strong>#{CGI::escapeHTML(organisation.name)}</strong> #{remove_field_link(:organisations, organisation.slug, organisation.name)}"
         }.to_sentence
       end
@@ -73,14 +79,14 @@ module FilterHelper
 
     def to_date_fragment
       @to_date_fragment ||= if filter.respond_to?(:to_date) && filter.to_date.present?
-        "<strong>before #{filter.to_date.to_s(:long_ordinal)}</strong> #{remove_field_link(:to_date, filter.to_date, "#{date_prefix_text} before date")}"
-      end
+                              "<strong>before #{filter.to_date.to_s(:long_ordinal)}</strong> #{remove_field_link(:to_date, filter.to_date, "#{date_prefix_text} before date")}"
+                            end
     end
 
     def from_date_fragment
       @from_date_fragment ||= if filter.respond_to?(:from_date) && filter.from_date.present?
-        "<strong>after #{filter.from_date.to_s(:long_ordinal)}</strong> #{remove_field_link(:from_date, filter.from_date, "#{date_prefix_text} after date")}"
-      end
+                                "<strong>after #{filter.from_date.to_s(:long_ordinal)}</strong> #{remove_field_link(:from_date, filter.from_date, "#{date_prefix_text} after date")}"
+                              end
     end
 
     def remove_field_link(field, value, text)

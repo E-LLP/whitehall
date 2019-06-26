@@ -1,7 +1,6 @@
 require "test_helper"
 
 class Edition::LimitedAccessTest < ActiveSupport::TestCase
-
   class LimitedAccessEdition < Edition
     include Edition::LimitedAccess
     include Edition::Organisations
@@ -13,7 +12,7 @@ class Edition::LimitedAccessTest < ActiveSupport::TestCase
     end
   end
 
-  FactoryGirl.define do
+  FactoryBot.define do
     factory :limited_access_edition, class: LimitedAccessEdition, parent: :edition_with_organisations do
     end
     factory :limited_by_default_edition, class: LimitedByDefaultEdition, parent: :limited_access_edition do
@@ -36,7 +35,8 @@ class Edition::LimitedAccessTest < ActiveSupport::TestCase
   end
 
   test "can select all editions accessible to a particular user" do
-    my_organisation, other_organisation = create(:organisation), create(:organisation)
+    my_organisation = create(:organisation)
+    other_organisation = create(:organisation)
     user = create(:user, organisation: my_organisation)
     accessible = [
       create(:draft_news_article),
@@ -53,8 +53,10 @@ class Edition::LimitedAccessTest < ActiveSupport::TestCase
   end
 
   test "can select all editions accessible to a particular world user, respecting access_limit, org and location" do
-    my_organisation, other_organisation = create(:organisation), create(:organisation)
-    my_location, other_location = create(:world_location), create(:world_location)
+    my_organisation = create(:organisation)
+    other_organisation = create(:organisation)
+    my_location = create(:world_location)
+    other_location = create(:world_location)
     user = create(:world_writer, organisation: my_organisation, world_locations: [my_location])
     accessible = [
       create(:draft_publication, access_limited: false, world_locations: [my_location]),
@@ -76,4 +78,41 @@ class Edition::LimitedAccessTest < ActiveSupport::TestCase
     end
   end
 
+  test '#access_limited_object returns self' do
+    edition = LimitedAccessEdition.new
+
+    assert_equal edition, edition.access_limited_object
+  end
+
+  test 'is not accessible if no user specified' do
+    edition = LimitedAccessEdition.new
+
+    refute edition.accessible_to?(nil)
+  end
+
+  test 'is not accessible if edition is not accessible to user' do
+    user = build(:user)
+    edition_id = 123
+    edition = LimitedAccessEdition.new(id: edition_id)
+    accessible_scope = stub('accessible-scope')
+    LimitedAccessEdition.stubs(:accessible_to).with(user)
+      .returns(accessible_scope)
+
+    accessible_scope.stubs(:where).with(id: edition_id).returns([])
+
+    refute edition.accessible_to?(user)
+  end
+
+  test 'is accessible if edition is accessible to user' do
+    user = build(:user)
+    edition_id = 123
+    edition = LimitedAccessEdition.new(id: edition_id)
+    accessible_scope = stub('accessible-scope')
+    LimitedAccessEdition.stubs(:accessible_to).with(user)
+      .returns(accessible_scope)
+
+    accessible_scope.stubs(:where).with(id: edition_id).returns([edition_id])
+
+    assert edition.accessible_to?(user)
+  end
 end

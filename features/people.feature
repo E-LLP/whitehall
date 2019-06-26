@@ -6,25 +6,15 @@ So that I can find a specific person
 Background:
   Given I am an admin
 
-Scenario: Viewing all people
-  Given "Johnny Macaroon" is the "Minister of Crazy" for the "Department of Woah"
-  And "Fred Bloggs" is the "Minister of Sane" for the "Department of Foo"
-  When I visit the people page
-  Then I should see that "Johnny Macaroon" is listed under "m"
-  And I should see that "Fred Bloggs" is listed under "b"
-
 Scenario: Viewing the person page for a person
   Given a person called "Benjamin Disraeli"
   When I visit the person page for "Benjamin Disraeli"
   Then I should see information about the person "Benjamin Disraeli"
 
-Scenario: Announcements by that person over their career are shown
+Scenario: Announcements by that person are shown
   Given I am an editor
-  And "Don Deputy" is the "Deputy Prime Minister" for the "Cabinet Office"
   And "Harriet Home" is the "Home Secretary" for the "Cabinet Office"
-  And a published news article "News from Harriet, Home Sec" associated with "Harriet Home"
-  And there is a reshuffle and "Harriet Home" is now "Deputy Prime Minister"
-  And a published news article "News from Harriet, Deputy PM" associated with "Harriet Home"
+  And "Harriet Home" has news associated with her
   When I visit the person page for "Harriet Home"
   Then I should see both the news articles for Harriet Home
 
@@ -60,12 +50,6 @@ Scenario: Editing an existing translation
     | biography         | Elle est née. Elle a vécu. Elle est morte.                  |
   Then when viewing the person "Amanda Appleford" with the locale "Français" I should see:
     | biography         | Elle est née. Elle a vécu. Elle est morte.                  |
-
-Scenario: Images are virus-checked before publication
-  When I add a new person called "Dave Cameroon"
-  Then the image will be quarantined for virus checking
-  When the image has been virus-checked
-  Then the virus checked image will be available for viewing
 
 Scenario: Viewing a person that previously had a role
   Given "Dale Cooper" is a minister with a history

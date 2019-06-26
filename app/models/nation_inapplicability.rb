@@ -1,9 +1,9 @@
-class NationInapplicability < ActiveRecord::Base
+class NationInapplicability < ApplicationRecord
   delegate :name, to: :nation
 
   belongs_to :edition
 
-  scope :for_nation, -> nation {
+  scope :for_nation, ->(nation) {
     where(nation_id: nation.id)
   }
 
@@ -13,7 +13,7 @@ class NationInapplicability < ActiveRecord::Base
   attr_accessor :excluded
 
   def excluded?
-    @excluded.present? ? ActiveRecord::Type::Boolean.new.type_cast_from_database(@excluded) : persisted?
+    @excluded.present? ? ActiveRecord::Type::Boolean.new.deserialize(@excluded) : persisted?
   end
 
   def nation

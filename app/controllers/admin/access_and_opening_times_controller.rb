@@ -1,5 +1,5 @@
 class Admin::AccessAndOpeningTimesController < Admin::BaseController
-  before_filter :load_accessible
+  before_action :load_accessible
   helper_method :accessible_path
 
   def edit
@@ -25,7 +25,7 @@ class Admin::AccessAndOpeningTimesController < Admin::BaseController
     end
   end
 
-  private
+private
 
   def load_accessible
     @worldwide_organisation = WorldwideOrganisation.friendly.find(params[:worldwide_organisation_id])

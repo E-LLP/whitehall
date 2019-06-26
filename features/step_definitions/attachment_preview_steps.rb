@@ -1,4 +1,5 @@
 # encoding: UTF-8
+
 Given(/^there is a publicly visible CSV attachment on the site$/) do
   @publication = create(:published_publication, :with_file_attachment, attachments: [
     @attachment = build(:csv_attachment)
@@ -6,11 +7,18 @@ Given(/^there is a publicly visible CSV attachment on the site$/) do
 end
 
 When(/^I preview the contents of the attachment$/) do
-  visit publication_path(@publication.document)
+  fn = Rails.root.join('test', 'fixtures', 'sample.csv')
 
-  within record_css_selector(@attachment.becomes(Attachment)) do
-    click_link "View online"
-  end
+  asset_host = URI.parse(Plek.new.public_asset_host).host
+  stub_request(:get, "https://#{asset_host}/government/uploads/system/uploads/attachment_data/file/#{@attachment.attachment_data.id}/sample.csv")
+    .with(headers: { 'Range'=>'bytes=0-300000' })
+    .to_return(status: 206, body: File.read(fn))
+
+  visit csv_preview_path(
+    id: @attachment.attachment_data.id,
+    file: @attachment.filename_without_extension,
+    extension: @attachment.file_extension,
+  )
 end
 
 Then(/^I should see the CSV data previewed on the page$/) do

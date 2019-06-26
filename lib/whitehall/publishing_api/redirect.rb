@@ -12,9 +12,9 @@ module Whitehall
 
       def as_json
         {
-          content_id: SecureRandom.uuid,
           base_path: base_path,
-          format: "redirect",
+          document_type: "redirect",
+          schema_name: "redirect",
           publishing_app: "whitehall",
           update_type: "major",
           redirects: redirects,
@@ -22,6 +22,7 @@ module Whitehall
       end
 
     private
+
       attr_reader :redirects
     end
   end

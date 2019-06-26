@@ -1,9 +1,13 @@
 class DocumentListExportWorker < WorkerBase
-  def call(filter_options, user_id)
+  def perform(filter_options, user_id)
     user = User.find(user_id)
     filter = create_filter(filter_options, user)
-    csv = generate_csv(filter)
-    send_mail(csv, user, filter)
+
+    Tempfile.open("document_list_export_worker") do |file|
+      file.unlink
+      csv = generate_csv(filter, file)
+      send_mail(csv, user, filter)
+    end
   end
 
 private
@@ -13,16 +17,19 @@ private
   end
 
   def create_filter(filter_options, user)
-    Admin::EditionFilter.new(Edition, user, filter_options.symbolize_keys)
+    Admin::EditionFilter.new(Edition, user, filter_options.symbolize_keys.merge(include_unpublishing: true))
   end
 
-  def generate_csv(filter)
-    CSV.generate do |csv|
-      csv << DocumentListExportPresenter.header_row
-      filter.each_edition_for_csv do |edition|
-        presenter = DocumentListExportPresenter.new(edition)
-        csv << presenter.row
-      end
+  def generate_csv(filter, csv_file)
+    headers = DocumentListExportPresenter.header_row
+    csv = CSV.new(csv_file, headers: headers, write_headers: true)
+
+    filter.each_edition_for_csv do |edition|
+      presenter = DocumentListExportPresenter.new(edition)
+      csv << presenter.row
     end
+
+    csv_file.rewind
+    csv_file.read
   end
 end

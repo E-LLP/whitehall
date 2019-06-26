@@ -22,8 +22,8 @@ class DocumentCollectionTest < ActiveSupport::TestCase
     pub_1 = create(:publication)
     pub_2 = create(:publication)
 
-    group_1 = create(:document_collection_group, document_collection: doc_collection, documents: [pub_1.document])
-    group_2 = create(:document_collection_group, document_collection: doc_collection, documents: [pub_2.document])
+    create(:document_collection_group, document_collection: doc_collection, documents: [pub_1.document])
+    create(:document_collection_group, document_collection: doc_collection, documents: [pub_2.document])
 
     assert doc_collection.editions.include? pub_1
     assert doc_collection.editions.include? pub_2
@@ -100,8 +100,8 @@ class DocumentCollectionTest < ActiveSupport::TestCase
 
   test "indexes the body without markup as indexable_content" do
     collection = create(:document_collection,
-                    title: "A doc collection", body: "This is a *body*")
-    assert_match /^This is a body$/, collection.search_index["indexable_content"]
+                        title: "A doc collection", body: "This is a *body*")
+    assert_match %r[^This is a body$], collection.search_index["indexable_content"]
   end
 
   test 'indexes the group headings and body copy without markup as indexable_content' do
@@ -111,9 +111,9 @@ class DocumentCollectionTest < ActiveSupport::TestCase
 
     collection = create(:document_collection, groups: [empty_group, visible_group])
 
-    assert_match /^The Heading$/, collection.search_index['indexable_content']
-    refute_match /^Empty Heading$/, collection.search_index['indexable_content']
-    assert_match /^The Body$/, collection.search_index['indexable_content']
+    assert_match %r[^The Heading$], collection.search_index['indexable_content']
+    refute_match %r[^Empty Heading$], collection.search_index['indexable_content']
+    assert_match %r[^The Body$], collection.search_index['indexable_content']
   end
 
   test 'indexes the summary as description' do
@@ -140,5 +140,10 @@ class DocumentCollectionTest < ActiveSupport::TestCase
     group.documents = [scheduled_publication.document, publication.document]
 
     assert_equal [scheduled_publication], collection.scheduled_editions
+  end
+
+  test 'specifies the rendering app as government frontend' do
+    document_collection = DocumentCollection.new
+    assert_equal Whitehall::RenderingApp::GOVERNMENT_FRONTEND, document_collection.rendering_app
   end
 end

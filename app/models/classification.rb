@@ -1,9 +1,15 @@
 # @abstract
-class Classification < ActiveRecord::Base
+class Classification < ApplicationRecord
   include Searchable
   include SimpleWorkflow
-  include PublishesToPublishingApi
 
+  # DID YOU MEAN: Policy Area?
+  # "Policy area" is the newer name for "topic"
+  # (https://www.gov.uk/government/topics)
+  # "Topic" is the newer name for "specialist sector"
+  # (https://www.gov.uk/topic)
+  # You can help improve this code by renaming all usages of this field to use
+  # the new terminology.
   searchable title: :name,
              link: :search_link,
              content: :description,
@@ -18,23 +24,25 @@ class Classification < ActiveRecord::Base
   has_many :organisations, through: :organisation_classifications
   has_many :classification_relations, inverse_of: :classification
   has_many :related_classifications,
-            through: :classification_relations,
-            before_remove: -> pa, rpa {
-              ClassificationRelation.relation_for(pa.id, rpa.id).destroy_inverse_relation
-            }
+           through: :classification_relations,
+           before_remove: ->(pa, rpa) {
+             ClassificationRelation.relation_for(pa.id, rpa.id).destroy_inverse_relation
+           }
 
   has_many :classification_featurings,
-            -> { where("editions.state = 'published' or classification_featurings.edition_id is null").
-                 references(:edition).
-                 includes(edition: :translations).
-                 order("classification_featurings.ordering asc") },
-            foreign_key: :classification_id,
-            inverse_of: :classification
+           -> {
+             where("editions.state = 'published' or classification_featurings.edition_id is null").
+               references(:edition).
+               includes(edition: :translations).
+               order("classification_featurings.ordering asc")
+           },
+           foreign_key: :classification_id,
+           inverse_of: :classification
 
   has_many :featured_editions,
-            -> { order("classification_featurings.ordering ASC") },
-            through: :classification_featurings,
-            source: :edition
+           -> { order("classification_featurings.ordering ASC") },
+           through: :classification_featurings,
+           source: :edition
 
   has_many :classification_policies
 
@@ -95,7 +103,7 @@ class Classification < ActiveRecord::Base
   end
 
   def lead_organisations
-    organisations.where(organisation_classifications: {lead: true}).reorder("organisation_classifications.lead_ordering")
+    organisations.where(organisation_classifications: { lead: true }).reorder("organisation_classifications.lead_ordering")
   end
 
   def lead_organisation_classifications
@@ -106,12 +114,12 @@ class Classification < ActiveRecord::Base
     organisations.reorder("organisation_classifications.lead DESC, organisation_classifications.lead_ordering")
   end
 
-  def destroyable?
-    policies.empty?
+  def base_path
+    Whitehall.url_maker.topic_path(slug)
   end
 
   def search_link
-    Whitehall.url_maker.topic_path(slug)
+    base_path
   end
 
   def latest(limit = 3)
@@ -124,6 +132,7 @@ class Classification < ActiveRecord::Base
 
   def featured?(edition)
     return false unless edition.persisted?
+
     featuring_of(edition).present?
   end
 
@@ -132,7 +141,7 @@ class Classification < ActiveRecord::Base
   end
 
   def feature(featuring_params)
-    classification_featurings.create({ordering: next_ordering}.merge(featuring_params))
+    classification_featurings.create({ ordering: next_ordering }.merge(featuring_params.to_h))
   end
 
   def next_ordering
@@ -163,10 +172,10 @@ class Classification < ActiveRecord::Base
     parent_ids = Set.new
 
     content_ids.each do |policy_content_id|
-      link_response = publishing_api.get_links(policy_content_id)
+      link_response = Services.publishing_api.get_links(policy_content_id)
       next unless link_response
 
-      if (pa_links = publishing_api.get_links(policy_content_id)["links"]["policy_areas"])
+      if (pa_links = Services.publishing_api.get_links(policy_content_id)["links"]["policy_areas"])
         parent_ids += pa_links
       end
     end
@@ -174,15 +183,12 @@ class Classification < ActiveRecord::Base
     parent_ids
   end
 
-  def publishing_api
-    @publishing_api ||= Whitehall.publishing_api_v2_client
-  end
-
   def policies
     Policy.from_content_ids(policy_content_ids)
   end
 
 private
+
   def logo_changed?
     changes["carrierwave_image"].present?
   end

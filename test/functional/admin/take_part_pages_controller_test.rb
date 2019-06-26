@@ -29,8 +29,15 @@ class Admin::TakePartPagesControllerTest < ActionController::TestCase
   end
 
   test 'POST :create saves a new instance with the supplied valid params' do
-    attrs = attributes_for(:take_part_page, title: 'Wear a monocle!')
-    post :create, take_part_page: attrs.merge(image: fixture_file_upload('minister-of-funk.960x640.jpg'))
+    take_part_page_attrs = attributes_for(:take_part_page, title: 'Wear a monocle!')
+                             .merge(
+                               image: fixture_file_upload(
+                                 'minister-of-funk.960x640.jpg',
+                                 'image/jpg',
+                               )
+                             )
+
+    post :create, params: { take_part_page: take_part_page_attrs }
 
     puts assigns(:take_part_page).errors.full_messages
     assert assigns(:take_part_page).persisted?
@@ -40,7 +47,7 @@ class Admin::TakePartPagesControllerTest < ActionController::TestCase
 
   test 'POST :create doesn\'t save the new instance when the supplied params are invalid' do
     attrs = attributes_for(:take_part_page, title: '')
-    post :create, take_part_page: attrs
+    post :create, params: { take_part_page: attrs }
 
     refute assigns(:take_part_page).persisted?
     assert_response :success
@@ -50,7 +57,7 @@ class Admin::TakePartPagesControllerTest < ActionController::TestCase
   test 'GET :edit fetches the supplied instance' do
     page = create(:take_part_page)
 
-    get :edit, id: page
+    get :edit, params: { id: page }
 
     assert_equal page, assigns(:take_part_page)
     assert_response :success
@@ -60,7 +67,7 @@ class Admin::TakePartPagesControllerTest < ActionController::TestCase
   test 'PUT :update changes the supplied instance with the supplied params' do
     attrs = attributes_for(:take_part_page, title: 'Wear a monocle!')
     page = create(:take_part_page, title: 'Drink in a gin palace!')
-    post :update, id: page, take_part_page: attrs
+    post :update, params: { id: page, take_part_page: attrs }
 
     assert_equal page, assigns(:take_part_page)
     assert_equal 'Wear a monocle!', page.reload.title
@@ -70,7 +77,7 @@ class Admin::TakePartPagesControllerTest < ActionController::TestCase
   test 'PUT :update doesn\'t save the new instance when the supplied params are invalid' do
     attrs = attributes_for(:take_part_page, title: '')
     page = create(:take_part_page, title: 'Drink in a gin palace!')
-    post :update, id: page, take_part_page: attrs
+    post :update, params: { id: page, take_part_page: attrs }
 
     assert_equal page, assigns(:take_part_page)
     refute_equal '', page.reload.title
@@ -80,18 +87,19 @@ class Admin::TakePartPagesControllerTest < ActionController::TestCase
   end
 
   test 'DELETE :destroy removes the suppliued instance' do
+    Services.asset_manager.stubs(:whitehall_asset).returns('id' => 'http://asset-manager/assets/asset-id')
     page = create(:take_part_page)
 
-    delete :destroy, id: page
+    delete :destroy, params: { id: page }
 
     refute TakePartPage.exists?(page.id)
     assert_redirected_to admin_take_part_pages_path
   end
 
   test 'POST :reorder asks TakePartPage to reorder using the supplied ordering params' do
-    TakePartPage.expects(:reorder!).with(['1', '5', '20', '9'])
+    TakePartPage.expects(:reorder!).with(%w[1 5 20 9])
 
-    post :reorder, ordering: { '1' => '1', '20' => '4', '9' => '12', '5' => '3'}
+    post :reorder, params: { ordering: { '1' => '1', '20' => '4', '9' => '12', '5' => '3' } }
 
     assert_redirected_to admin_take_part_pages_path
   end

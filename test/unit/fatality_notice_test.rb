@@ -24,7 +24,7 @@ class FatalityNoticeTest < ActiveSupport::TestCase
 
   test "casualties are persisted across new editions" do
     notice = create(:published_fatality_notice, operational_field: create(:operational_field),)
-    casualty = create(:fatality_notice_casualty, fatality_notice: notice)
+    _casualty = create(:fatality_notice_casualty, fatality_notice: notice)
     assert_equal 1, notice.fatality_notice_casualties.length
     new_notice = notice.create_draft(build(:user))
     assert_equal 1, new_notice.fatality_notice_casualties.length
@@ -40,5 +40,9 @@ class FatalityNoticeTest < ActiveSupport::TestCase
     operational_field = create(:operational_field)
     fatality_notice = create(:published_fatality_notice, operational_field: operational_field)
     assert_equal operational_field.slug, fatality_notice.search_index["operational_field"]
+  end
+
+  test "is rendered by government-frontend" do
+    assert FatalityNotice.new.rendering_app == Whitehall::RenderingApp::GOVERNMENT_FRONTEND
   end
 end

@@ -5,6 +5,8 @@ class Api::OrganisationPresenterTest < PresenterTestCase
     @organisation = stub_record(:organisation, organisation_type: OrganisationType.ministerial_department)
     @organisation.stubs(:parent_organisations).returns([])
     @organisation.stubs(:child_organisations).returns([])
+    @organisation.stubs(:superseded_organisations).returns([])
+    @organisation.stubs(:superseding_organisations).returns([])
     @presenter = Api::OrganisationPresenter.new(@organisation, @view_context)
     stubs_helper_method(:params).returns(format: :json)
   end
@@ -23,9 +25,9 @@ class Api::OrganisationPresenterTest < PresenterTestCase
   end
 
   test 'links has a self link, pointing to the request-relative api organisation url' do
-    self_link = @presenter.links.detect { |(url, attrs)| attrs['rel'] == 'self'}
+    self_link = @presenter.links.detect { |(_url, attrs)| attrs['rel'] == 'self' }
     assert self_link
-    url, attrs = *self_link
+    url, _attrs = *self_link
     assert_equal api_organisation_url(@organisation), url
   end
 
@@ -64,6 +66,11 @@ class Api::OrganisationPresenterTest < PresenterTestCase
     assert_equal "live", @presenter.as_json[:details][:govuk_status]
   end
 
+  test "json includes govuk_closed_status in details hash" do
+    @organisation.stubs(:govuk_closed_status).returns("split")
+    assert_equal "split", @presenter.as_json[:details][:govuk_closed_status]
+  end
+
   test "json includes analytics_identifier in details hash" do
     @organisation.stubs(:analytics_identifier).returns("O123")
     assert_equal "O123", @presenter.as_json[:analytics_identifier]
@@ -89,5 +96,17 @@ class Api::OrganisationPresenterTest < PresenterTestCase
     @organisation.stubs(:child_organisations).returns([child])
     assert_equal api_organisation_url(child), @presenter.as_json[:child_organisations].first[:id]
     assert_equal Whitehall.url_maker.organisation_url(child), @presenter.as_json[:child_organisations].first[:web_url]
+  end
+
+  test "json includes superseding_organisations and superseded_organisations" do
+    superseded = stub_record(:organisation)
+    superseding = stub_record(:organisation)
+    @organisation.stubs(:superseded_organisations).returns([superseded])
+    @organisation.stubs(:superseding_organisations).returns([superseding])
+
+    json = @presenter.as_json
+
+    assert_equal api_organisation_url(superseded), json[:superseded_organisations].first[:id]
+    assert_equal api_organisation_url(superseding), json[:superseding_organisations].first[:id]
   end
 end

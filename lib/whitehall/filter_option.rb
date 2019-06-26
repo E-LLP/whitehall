@@ -2,7 +2,7 @@ module Whitehall
   class FilterOption
     include ActiveRecordLikeInterface
 
-    attr_accessor :id, :label, :search_format_types, :group_key
+    attr_accessor :id, :label, :search_format_types, :group_key, :document_type
     attr_writer :edition_types, :slug
 
     def slug
@@ -19,8 +19,12 @@ module Whitehall
 
     def self.find_by_search_format_types(format_types)
       all.detect do |at|
-        format_types.any? {|t| at.search_format_types.include?(t)}
+        format_types.any? { |t| at.search_format_types.include?(t) }
       end
+    end
+
+    def self.document_types
+      all.map(&:document_type)
     end
   end
 end

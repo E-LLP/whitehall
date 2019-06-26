@@ -186,7 +186,7 @@ class OrganisationTest < ActiveSupport::TestCase
     parent_org_2 = create(:organisation)
     child_org_1 = create(:organisation, parent_organisations: [parent_org_1])
     child_org_2 = create(:organisation, parent_organisations: [parent_org_1])
-    child_org_3 = create(:organisation, parent_organisations: [parent_org_2])
+    _child_org_3 = create(:organisation, parent_organisations: [parent_org_2])
 
     assert_equal [child_org_1, child_org_2], parent_org_1.child_organisations
   end
@@ -196,7 +196,7 @@ class OrganisationTest < ActiveSupport::TestCase
     child_org_2 = create(:organisation)
     parent_org_1 = create(:organisation, child_organisations: [child_org_1])
     parent_org_2 = create(:organisation, child_organisations: [child_org_1])
-    parent_org_3 = create(:organisation, child_organisations: [child_org_2])
+    _parent_org_3 = create(:organisation, child_organisations: [child_org_2])
 
     assert_equal [parent_org_1, parent_org_2], child_org_1.parent_organisations
   end
@@ -226,13 +226,13 @@ class OrganisationTest < ActiveSupport::TestCase
 
   test '#ministerial_roles includes all ministerial roles' do
     minister = create(:ministerial_role)
-    organisation = create(:organisation, roles:  [minister])
+    organisation = create(:organisation, roles: [minister])
     assert_equal [minister], organisation.ministerial_roles
   end
 
   test '#ministerial_roles excludes non-ministerial roles' do
     permanent_secretary = create(:board_member_role)
-    organisation = create(:organisation, roles:  [permanent_secretary])
+    organisation = create(:organisation, roles: [permanent_secretary])
     assert_equal [], organisation.ministerial_roles
   end
 
@@ -244,54 +244,54 @@ class OrganisationTest < ActiveSupport::TestCase
 
   test "#traffic_commissioner_roles excludes all non traffic commissioner roles" do
     permanent_secretary = create(:board_member_role)
-    organisation = create(:organisation, roles:  [permanent_secretary])
+    organisation = create(:organisation, roles: [permanent_secretary])
     assert_equal [], organisation.traffic_commissioner_roles
   end
 
   test '#management_roles includes all board member roles' do
     permanent_secretary = create(:board_member_role)
-    organisation = create(:organisation, roles:  [permanent_secretary])
+    organisation = create(:organisation, roles: [permanent_secretary])
     assert_equal [permanent_secretary], organisation.management_roles
   end
 
   test '#management_roles excludes any ministerial roles' do
     minister = create(:ministerial_role)
-    organisation = create(:organisation, roles:  [minister])
+    organisation = create(:organisation, roles: [minister])
     assert_equal [], organisation.management_roles
   end
 
   test '#management_roles also includes chief scientific advisor roles' do
     chief_scientific_advisor = create(:chief_scientific_advisor_role)
-    organisation = create(:organisation, roles:  [chief_scientific_advisor])
+    organisation = create(:organisation, roles: [chief_scientific_advisor])
     assert_equal [chief_scientific_advisor], organisation.management_roles
   end
 
   test '#special_representative_roles includes all special representatives' do
     representative = create(:special_representative_role)
-    organisation = create(:organisation, roles:  [representative])
+    organisation = create(:organisation, roles: [representative])
     assert_equal [representative], organisation.special_representative_roles
   end
 
   test '#chief_professional_officers includes all chief professional officers' do
     chief_professional_officer = create(:chief_professional_officer_role)
-    organisation = create(:organisation, roles:  [chief_professional_officer])
+    organisation = create(:organisation, roles: [chief_professional_officer])
     assert_equal [chief_professional_officer], organisation.chief_professional_officer_roles
   end
 
   test '#judge_roles includes only judges' do
     judge = create(:judge_role)
     chief_professional_officer = create(:chief_professional_officer_role)
-    organisation = create(:organisation, roles:  [chief_professional_officer, judge])
+    organisation = create(:organisation, roles: [chief_professional_officer, judge])
     assert_equal [judge], organisation.judge_roles
   end
 
   test 'should be creatable with featured link data' do
     params = {
       featured_links_attributes: [
-        {url: "https://www.gov.uk/blah/blah",
-         title: "Blah blah"},
-        {url: "https://www.gov.uk/wah/wah",
-         title: "Wah wah"},
+        { url: "https://www.gov.uk/blah/blah",
+         title: "Blah blah" },
+        { url: "https://www.gov.uk/wah/wah",
+         title: "Wah wah" },
       ]
     }
     organisation = create(:organisation, params)
@@ -320,8 +320,8 @@ class OrganisationTest < ActiveSupport::TestCase
   test 'should ignore blank featured link attributes' do
     params = {
       featured_links_attributes: [
-        {url: "",
-         title: ""}
+        { url: "",
+         title: "" }
       ]
     }
     organisation = build(:organisation, params)
@@ -369,7 +369,11 @@ class OrganisationTest < ActiveSupport::TestCase
   end
 
   test 'should return search index data suitable for Rummageable' do
-    organisation = create(:organisation, name: 'Ministry of Funk', acronym: 'MoF')
+    organisation = create(:organisation,
+                          name: 'Ministry of Funk',
+                          acronym: 'MoF',
+                          organisation_logo_type_id: OrganisationLogoType::HomeOffice.id,
+                          organisation_brand_colour_id: OrganisationBrandColour::HomeOffice.id)
 
     assert_equal 'Ministry of Funk', organisation.search_index['title']
     assert_equal 'MoF', organisation.search_index['acronym']
@@ -377,6 +381,33 @@ class OrganisationTest < ActiveSupport::TestCase
     assert_equal organisation.indexable_content, organisation.search_index['indexable_content']
     assert_equal 'organisation', organisation.search_index['format']
     assert_equal 'live', organisation.search_index['organisation_state']
+    assert_equal 'other', organisation.search_index['organisation_type'].to_s
+    assert_equal OrganisationLogoType::HomeOffice.class_name, organisation.search_index['organisation_crest']
+    assert_equal OrganisationBrandColour::HomeOffice.class_name, organisation.search_index['organisation_brand']
+    assert_equal "Ministry\nof\nFunk", organisation.search_index['logo_formatted_title']
+    assert_equal [], organisation.search_index['organisations']
+  end
+
+  test 'should return search index data suitable for Rummageable with a custom logo' do
+    organisation = build(:organisation,
+                         slug: 'ministry-of-funk',
+                         name: 'Ministry of Funk',
+                         acronym: 'MoF',
+                         logo: File.open(fixture_path.join('images', '960x640_gif.gif')),
+                         organisation_logo_type_id: OrganisationLogoType::CustomLogo.id,
+                         organisation_brand_colour_id: OrganisationBrandColour::HomeOffice.id)
+
+    assert_equal 'Ministry of Funk', organisation.search_index['title']
+    assert_equal 'MoF', organisation.search_index['acronym']
+    assert_equal "/government/organisations/#{organisation.slug}", organisation.search_index['link']
+    assert_equal organisation.indexable_content, organisation.search_index['indexable_content']
+    assert_equal 'organisation', organisation.search_index['format']
+    assert_equal 'live', organisation.search_index['organisation_state']
+    assert_equal 'other', organisation.search_index['organisation_type'].to_s
+    assert_equal OrganisationLogoType::CustomLogo.class_name, organisation.search_index['organisation_crest']
+    assert_equal OrganisationBrandColour::HomeOffice.class_name, organisation.search_index['organisation_brand']
+    assert_equal "Ministry\nof\nFunk", organisation.search_index['logo_formatted_title']
+    assert organisation.search_index['logo_url'].include? '960x640_gif.gif'
     assert_equal [], organisation.search_index['organisations']
   end
 
@@ -389,7 +420,7 @@ class OrganisationTest < ActiveSupport::TestCase
       corporate_information_page_type: CorporateInformationPageType.find('about')
     }
 
-    page = create(:published_corporate_information_page, page_params)
+    create(:published_corporate_information_page, page_params)
 
     assert_equal 'The home of HMRC on GOV.UK. A text-rendered summary.', organisation.search_index['description']
   end
@@ -461,7 +492,7 @@ class OrganisationTest < ActiveSupport::TestCase
 
   test 'should return search index data for all organisations' do
     about_type = CorporateInformationPageType.find('about')
-    sport = create(:organisation, name: 'Department for Culture and Sports', govuk_status: 'closed', govuk_closed_status: 'no_longer_exists')
+    sport = create(:organisation, name: 'Department for Culture and Sports', govuk_status: 'closed', govuk_closed_status: 'no_longer_exists', closed_at: 10.days.ago)
     create(:published_corporate_information_page, corporate_information_page_type: about_type, summary: 'Sporty.', organisation: sport)
     ed = create(:organisation, name: 'Department of Education')
     create(:published_corporate_information_page, corporate_information_page_type: about_type, summary: 'Bookish.', organisation: ed)
@@ -475,57 +506,115 @@ class OrganisationTest < ActiveSupport::TestCase
     results = Organisation.search_index.to_a
 
     assert_equal 6, results.length
-    assert_equal({'title' => 'Closed organisation: Department for Culture and Sports',
-                  'content_id' => sport.content_id,
-                  'link' => '/government/organisations/department-for-culture-and-sports',
-                  'slug' => 'department-for-culture-and-sports',
-                  'indexable_content' => 'Sporty. Some stuff',
-                  'format' => 'organisation',
-                  'description' => 'Sporty.',
-                  'organisations' => [],
-                  'organisation_state' => 'closed'}, results[0])
-    assert_equal({'title' => 'Department of Education',
-                  'content_id' => ed.content_id,
-                  'link' => '/government/organisations/department-of-education',
-                  'slug' => 'department-of-education',
-                  'indexable_content' => 'Bookish. Some stuff',
-                  'format' => 'organisation',
-                  'description' => 'The home of Department of Education on GOV.UK. Bookish.',
-                  'organisations' => [],
-                  'organisation_state' => 'live'}, results[1])
-    assert_equal({'title' => 'HMRC',
-                  'content_id' => hmrc.content_id,
-                  'acronym' => 'hmrc',
-                  'link' => '/government/organisations/hmrc',
-                  'slug' => 'hmrc',
-                  'indexable_content' => 'Taxing. Some stuff',
-                  'format' => 'organisation',
-                  'boost_phrases' => 'hmrc',
-                  'description' => 'The home of HMRC on GOV.UK. Taxing.',
-                  'organisations' => [],
-                  'organisation_state' => 'live'}, results[2])
-    assert_equal({'title' => 'Ministry of Defence',
-                  'content_id' => mod.content_id,
-                  'acronym' => 'mod',
-                  'link' => '/government/organisations/ministry-of-defence',
-                  'slug' => 'ministry-of-defence',
-                  'indexable_content' => 'Defensive. Some stuff',
-                  'format' => 'organisation',
-                  'boost_phrases' => 'mod',
-                  'description' => 'The home of Ministry of Defence on GOV.UK. Defensive.',
-                  'organisations' => [],
-                  'organisation_state' => 'live'}, results[3])
-    assert_equal({'title' => 'Closed organisation: Devolved organisation',
-                  'content_id' => devolved.content_id,
-                  'acronym' => 'dev',
-                  'link' => '/government/organisations/devolved-organisation',
-                  'slug' => 'devolved-organisation',
-                  'indexable_content' => '',
-                  'description' => '',
-                  'organisations' => [],
-                  'format' => 'organisation',
-                  'boost_phrases' => 'dev',
-                  'organisation_state' => 'devolved'}, results[5])
+    assert_equal({
+      'title' => 'Closed organisation: Department for Culture and Sports',
+      'content_id' => sport.content_id,
+      'link' => '/government/organisations/department-for-culture-and-sports',
+      'slug' => 'department-for-culture-and-sports',
+      'indexable_content' => 'Sporty. Some stuff',
+      'format' => 'organisation',
+      'description' => 'Sporty.',
+      'analytics_identifier' => sport.analytics_identifier,
+      'organisations' => [],
+      'parent_organisations' => [],
+      'child_organisations' => [],
+      'superseded_organisations' => [],
+      'superseding_organisations' => [],
+      'organisation_type' => :other,
+      'organisation_state' => 'closed',
+      'organisation_closed_state' => 'no_longer_exists',
+      'logo_formatted_title' => "Department\nfor\nCulture\nand\nSports",
+      'organisation_crest' => 'single-identity',
+      'closed_at' => 10.days.ago,
+      'public_timestamp' => Time.zone.now
+    }, results[0])
+    assert_equal({
+      'title' => 'Department of Education',
+      'content_id' => ed.content_id,
+      'link' => '/government/organisations/department-of-education',
+      'slug' => 'department-of-education',
+      'indexable_content' => 'Bookish. Some stuff',
+      'format' => 'organisation',
+      'description' => 'The home of Department of Education on GOV.UK. Bookish.',
+      'analytics_identifier' => ed.analytics_identifier,
+      'organisations' => [],
+      'parent_organisations' => [],
+      'child_organisations' => [],
+      'superseded_organisations' => [],
+      'superseding_organisations' => [],
+      'organisation_type' => :other,
+      'organisation_state' => 'live',
+      'logo_formatted_title' => "Department\nof\nEducation",
+      'organisation_crest' => 'single-identity',
+      'public_timestamp' => Time.zone.now
+    }, results[1])
+    assert_equal({
+      'title' => 'HMRC',
+      'content_id' => hmrc.content_id,
+      'acronym' => 'hmrc',
+      'link' => '/government/organisations/hmrc',
+      'slug' => 'hmrc',
+      'indexable_content' => 'Taxing. Some stuff',
+      'format' => 'organisation',
+      'boost_phrases' => 'hmrc',
+      'description' => 'The home of HMRC on GOV.UK. Taxing.',
+      'analytics_identifier' => hmrc.analytics_identifier,
+      'organisations' => [],
+      'parent_organisations' => [],
+      'child_organisations' => [],
+      'superseded_organisations' => [],
+      'superseding_organisations' => [],
+      'organisation_type' => :other,
+      'organisation_state' => 'live',
+      'logo_formatted_title' => 'HMRC',
+      'organisation_crest' => 'single-identity',
+      'public_timestamp' => Time.zone.now
+    }, results[2])
+    assert_equal({
+      'title' => 'Ministry of Defence',
+      'content_id' => mod.content_id,
+      'acronym' => 'mod',
+      'link' => '/government/organisations/ministry-of-defence',
+      'slug' => 'ministry-of-defence',
+      'indexable_content' => 'Defensive. Some stuff',
+      'format' => 'organisation',
+      'boost_phrases' => 'mod',
+      'description' => 'The home of Ministry of Defence on GOV.UK. Defensive.',
+      'analytics_identifier' => mod.analytics_identifier,
+      'organisations' => [],
+      'parent_organisations' => [],
+      'child_organisations' => [],
+      'superseded_organisations' => [],
+      'superseding_organisations' => [],
+      'organisation_type' => :other,
+      'organisation_state' => 'live',
+      'logo_formatted_title' => "Ministry\nof\nDefence",
+      'organisation_crest' => 'single-identity',
+      'public_timestamp' => Time.zone.now
+    }, results[3])
+    assert_equal({
+      'title' => 'Closed organisation: Devolved organisation',
+      'content_id' => devolved.content_id,
+      'acronym' => 'dev',
+      'link' => '/government/organisations/devolved-organisation',
+      'slug' => 'devolved-organisation',
+      'indexable_content' => '',
+      'description' => '',
+      'analytics_identifier' => devolved.analytics_identifier,
+      'organisations' => [],
+      'parent_organisations' => [],
+      'child_organisations' => [],
+      'superseded_organisations' => [],
+      'superseding_organisations' => ['devolved-administration'],
+      'format' => 'organisation',
+      'boost_phrases' => 'dev',
+      'organisation_type' => :other,
+      'organisation_state' => 'devolved',
+      'organisation_closed_state' => 'devolved',
+      'logo_formatted_title' => "Devolved\norganisation",
+      'organisation_crest' => 'single-identity',
+      'public_timestamp' => Time.zone.now
+    }, results[5])
   end
 
   test '#published_announcements returns published news or speeches' do
@@ -551,7 +640,7 @@ class OrganisationTest < ActiveSupport::TestCase
 
   test 'destroy removes edition relationships' do
     organisation = create(:organisation)
-    edition = create(:published_publication, organisations: [organisation])
+    create(:published_publication, organisations: [organisation])
     organisation.destroy
     assert_equal 0, EditionOrganisation.count
   end
@@ -560,6 +649,14 @@ class OrganisationTest < ActiveSupport::TestCase
     organisation = create(:organisation)
     topic = create(:topic)
     topic.organisations << organisation
+    organisation.destroy
+    assert_equal 0, OrganisationClassification.count
+  end
+
+  test 'destroy removes topical_event relationships' do
+    organisation = create(:organisation)
+    topical_event = create(:topical_event)
+    topical_event.organisations << organisation
     organisation.destroy
     assert_equal 0, OrganisationClassification.count
   end
@@ -613,7 +710,7 @@ class OrganisationTest < ActiveSupport::TestCase
   test "should be able to list unused corporate information types" do
     organisation = create(:organisation)
     types = CorporateInformationPageType.all
-    t = create(:corporate_information_page, corporate_information_page_type: types.pop, organisation: organisation)
+    create(:corporate_information_page, corporate_information_page_type: types.pop, organisation: organisation)
     organisation.reload
     assert_equal types, organisation.unused_corporate_information_page_types
   end
@@ -664,13 +761,22 @@ class OrganisationTest < ActiveSupport::TestCase
     organisation = create(:organisation)
     organisation.organisation_classifications.create(classification_id: topics[0].id, ordering: 2)
     organisation.organisation_classifications.create(classification_id: topics[1].id, ordering: 1)
-    assert_match /order by/i, organisation.topics.to_sql
+    assert_match %r[order by]i, organisation.topics.to_sql
     assert_equal [topics[1], topics[0]], organisation.topics
+  end
+
+  test "topical_events are explicitly ordered" do
+    topical_events = [create(:topical_event), create(:topical_event)]
+    organisation = create(:organisation)
+    organisation.organisation_classifications.create(classification_id: topical_events[0].id, ordering: 2)
+    organisation.organisation_classifications.create(classification_id: topical_events[1].id, ordering: 1)
+    assert_match %r[order by]i, organisation.topical_events.to_sql
+    assert_equal [topical_events[1], topical_events[0]], organisation.topical_events
   end
 
   test "can have associated contacts" do
     organisation = create(:organisation)
-    contact = organisation.contacts.create(title: "Main office")
+    organisation.contacts.create(title: "Main office")
   end
 
   test 'destroy deletes related contacts' do
@@ -683,12 +789,14 @@ class OrganisationTest < ActiveSupport::TestCase
   test "can have associated social media accounts" do
     service = create(:social_media_service)
     organisation = create(:organisation)
-    contact = organisation.social_media_accounts.create(social_media_service_id: service.id, url: "http://example.com")
+    organisation.social_media_accounts.create(social_media_service_id: service.id, url: "http://example.com")
   end
 
   test 'destroy deletes related social media accounts' do
     organisation = create(:organisation)
     social_media_account = create(:social_media_account, socialable: organisation)
+    organisation.social_media_accounts.reload
+
     organisation.destroy
     assert_nil SocialMediaAccount.find_by(id: social_media_account.id)
   end
@@ -785,13 +893,13 @@ class OrganisationTest < ActiveSupport::TestCase
 
   test 'can reorder the contacts on the list' do
     organisation = build(:organisation)
-    c1 = create(:contact)
-    c2 = create(:contact)
+    contact_1 = create(:contact)
+    contact_2 = create(:contact)
     h = build(:home_page_list)
     HomePageList.stubs(:get).returns(h)
-    h.expects(:reorder_items!).with([c1, c2]).returns :a_result
+    h.expects(:reorder_items!).with([contact_1, contact_2]).returns :a_result
 
-    assert_equal :a_result, organisation.reorder_contacts_on_home_page!([c1, c2])
+    assert_equal :a_result, organisation.reorder_contacts_on_home_page!([contact_1, contact_2])
   end
 
   test 'maintains a home page list for storing contacts' do
@@ -808,15 +916,15 @@ class OrganisationTest < ActiveSupport::TestCase
   end
 
   test 'Organisation.with_published_editions returns organisations with published editions' do
-    org1 = create(:organisation)
-    org2 = create(:organisation)
-    org3 = create(:organisation)
-    org4 = create(:organisation)
+    organisation_1 = create(:organisation)
+    _organisation_2 = create(:organisation)
+    organisation_3 = create(:organisation)
+    _organisation_4 = create(:organisation)
 
-    create(:published_news_article, organisations: [org1])
-    create(:published_publication, organisations: [org3])
+    create(:published_news_article, organisations: [organisation_1])
+    create(:published_publication, organisations: [organisation_3])
 
-    assert_same_elements [org1, org3], Organisation.with_published_editions
+    assert_same_elements [organisation_1, organisation_3], Organisation.with_published_editions
   end
 
   test '#organisation_brand_colour fetches the brand colour' do
@@ -832,11 +940,11 @@ class OrganisationTest < ActiveSupport::TestCase
 
   test "excluding_govuk_status_closed scopes to all organisations which don't have a govuk_state of 'closed'" do
     open_org = create(:organisation, govuk_status: 'live')
-    closed_org = create(:closed_organisation)
+    _closed_org = create(:closed_organisation)
     assert_equal [open_org], Organisation.excluding_govuk_status_closed
   end
   test "closed scopes to organisations which have a govuk_state of 'closed'" do
-    open_org = create(:organisation, govuk_status: 'live')
+    _open_org = create(:organisation, govuk_status: 'live')
     closed_org = create(:closed_organisation)
     assert_equal [closed_org], Organisation.closed
   end
@@ -844,7 +952,7 @@ class OrganisationTest < ActiveSupport::TestCase
   test "with_statistics_announcements scopes to organisations with associated statistics_announcements" do
     org_with_announcement = create(:organisation)
     create(:statistics_announcement, organisation_ids: [org_with_announcement.id])
-    org_without_announcement = create(:organisation)
+    _org_without_announcement = create(:organisation)
     assert_equal [org_with_announcement], Organisation.with_statistics_announcements
   end
 
@@ -883,7 +991,7 @@ class OrganisationTest < ActiveSupport::TestCase
 
   test '#statistics_announcements returns all statistics_announcements associated with the organisation' do
     organisation = create(:organisation)
-    statistics_announcement_organisations = create_list(:statistics_announcement, 2, organisation_ids: [organisation.id])
+    create_list(:statistics_announcement, 2, organisation_ids: [organisation.id])
 
     assert_equal organisation.statistics_announcements, StatisticsAnnouncementOrganisation.all.map(&:statistics_announcement)
   end
@@ -916,5 +1024,67 @@ class OrganisationTest < ActiveSupport::TestCase
     create(:published_corporate_information_page, corporate_information_page_type: about_type, summary: 'A summary.', organisation: sport)
 
     assert_equal sport.description_for_search, "The home of Department for Culture and Sports on GOV.UK. A summary."
+  end
+
+  test "#save triggers organisation with a changed chart url to republish about page" do
+    organisation = create(
+      :organisation,
+      organisation_chart_url: 'http://www.example.com/path/to/chart',
+    )
+
+    about_page = create(
+      :about_corporate_information_page,
+      organisation: organisation,
+    )
+
+    PublishingApiDocumentRepublishingWorker
+      .expects(:perform_async)
+      .with(about_page.document.id)
+
+    organisation.update_attribute(
+      :organisation_chart_url,
+      'http://www.example.com/path/to/new_chart',
+    )
+  end
+
+  test "#save triggers an update of the organisations index page" do
+    organisation = build(:organisation)
+    UpdateOrganisationsIndexPageWorker.expects(:perform_async)
+    organisation.save!
+  end
+
+  test "#save does not trigger organisation with a changed chart url to republish about page if it does not exist" do
+    organisation = create(
+      :organisation,
+      organisation_chart_url: 'http://www.example.com/path/to/chart',
+    )
+
+    PublishingApiDocumentRepublishingWorker
+      .expects(:perform_async)
+      .never
+
+    organisation.update_attribute(
+      :organisation_chart_url,
+      'http://www.example.com/path/to/new_chart',
+    )
+  end
+
+  test "#save triggers organisation with a changed default news organisation image to republish news articles" do
+    organisation = create(:organisation)
+
+    documents = NewsArticle
+      .in_organisation(organisation)
+      .includes(:images)
+      .where(images: { id: nil })
+      .map(&:document)
+
+    documents.each do |d|
+      Whitehall::PublishingApi.expects(:republish_document_async).with(d)
+    end
+
+    organisation.update_attribute(
+      :default_news_image,
+      create(:default_news_organisation_image_data),
+    )
   end
 end

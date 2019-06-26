@@ -6,14 +6,14 @@
       <fieldset>
         <div class="form-group">
           <%= form.label :role_ids, 'Role(s)' %>
-          <%= form.select :role_ids, options_from_collection_for_select(person.roles.where(supports_historical_accounts: true).uniq, :id, :name, historical_account.role_ids),
+          <%= form.select :role_ids, options_from_collection_for_select(person.roles.where(supports_historical_accounts: true).distinct, :id, :name, historical_account.role_ids),
                         { include_blank: true },
                         multiple: true,
                         class: 'chzn-select form-control',
                         data: { placeholder: "Role(s) this account is for…"} %>
         </div>
         <%= form.text_area :summary , rows: 2 %>
-        <div class="summary-length-info">Summary text should be 140 characters or fewer. <span class="count"></span></div>
+        <div class="summary-length-info">Summary text should be 160 characters or fewer. <span class="count"></span></div>
 
         <div class="form-group">
           <%= form.label :political_party_ids, 'Political parties' %>

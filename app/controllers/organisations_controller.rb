@@ -2,24 +2,21 @@ class OrganisationsController < PublicFacingController
   include CacheControlHelper
 
   enable_request_formats show: [:atom]
-  before_filter :load_organisation, only: [:show]
-  before_filter :set_organisation_slimmer_headers, only: [:show]
-  skip_before_filter :set_cache_control_headers, only: [:show]
-  before_filter :set_cache_max_age, only: [:show]
+  before_action :load_organisation, only: [:show]
+  before_action :set_organisation_slimmer_headers, only: [:show]
+  skip_before_action :set_cache_control_headers, only: [:show]
+  before_action :set_cache_max_age, only: [:show]
 
   def index
-    if params[:courts_only]
-      @courts = Organisation.courts.listable.ordered_by_name_ignoring_prefix
-      @hmcts_tribunals = Organisation.hmcts_tribunals.listable.ordered_by_name_ignoring_prefix
-      render :courts_index
-    else
-      @organisations = OrganisationsIndexPresenter.new(
-        Organisation.excluding_courts_and_tribunals.listable.ordered_by_name_ignoring_prefix)
-      render :index
-    end
+    @content_item = Whitehall.content_store.content_item("/courts-tribunals")
+    @courts = Organisation.courts.listable.ordered_by_name_ignoring_prefix
+    @hmcts_tribunals = Organisation.hmcts_tribunals.listable.ordered_by_name_ignoring_prefix
+    render :courts_index
   end
 
   def show
+    @content_item = Whitehall.content_store.content_item(@organisation.base_path)
+
     recently_updated_source = @organisation.published_non_corporate_information_pages.in_reverse_chronological_order
     set_expiry 5.minutes
     respond_to do |format|
@@ -32,7 +29,6 @@ class OrganisationsController < PublicFacingController
         if @organisation.live?
           @recently_updated = recently_updated_source.with_translations(I18n.locale).limit(3)
           @feature_list = OrganisationFeatureListPresenter.new(@organisation, view_context)
-          @policies = @organisation.featured_policies.order('ordering').limit(5)
           set_meta_description(@organisation.summary)
 
           expire_on_next_scheduled_publication(@organisation.scheduled_editions)
@@ -114,6 +110,7 @@ private
     RolesPresenter.new(roles, view_context)
   end
 
+  # rubocop:disable Style/IfInsideElse
   def load_organisation
     @organisation = Organisation.with_translations(I18n.locale).find(params[:id])
     if params[:courts_only]
@@ -121,6 +118,17 @@ private
     else
       raise ActiveRecord::RecordNotFound if @organisation.court_or_hmcts_tribunal?
     end
+  end
+  # rubocop:enable Style/IfInsideElse
+
+  def organisation_content
+    @organisation_content ||= begin
+                                path = Whitehall.url_maker.organisation_path(@organisation)
+                                Whitehall.content_store.content_item(path)
+                              rescue GdsApi::ContentStore::ItemNotFound
+                                :content_not_found
+                              end
+    @organisation_content != :content_not_found ? @organisation_content : nil
   end
 
   def set_cache_max_age

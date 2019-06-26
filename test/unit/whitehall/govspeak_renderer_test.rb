@@ -5,7 +5,7 @@ class Whitehall::GovspeakRendererTest < ActiveSupport::TestCase
     edition = build(:edition, body: 'Some content')
 
     assert_equivalent_html '<div class="govspeak"><p>Some content</p></div>',
-      render_govspeak(edition)
+                           render_govspeak(edition)
   end
 
   test "interpolates images into rendered HTML" do
@@ -14,7 +14,7 @@ class Whitehall::GovspeakRendererTest < ActiveSupport::TestCase
     edition.stubs(:images).returns([image])
 
     assert_equivalent_html govspeak_with_image_html(image),
-      render_govspeak(edition)
+                           render_govspeak(edition)
   end
 
   test "converts inline attachments" do
@@ -49,16 +49,16 @@ class Whitehall::GovspeakRendererTest < ActiveSupport::TestCase
 private
 
   def govspeak_with_image_html(image)
-    <<-END
+    <<-HTML
       <div class="govspeak">
         <p>Some content with an image.</p>
 
         <figure class="image embedded">
           <div class="img">
-            <img alt="#{image.alt_text}" src="#{Whitehall.public_asset_host}#{image.url}">
+            <img alt="#{image.alt_text}" src="#{image.url}">
           </div>
         </figure>
       </div>
-    END
+    HTML
   end
 end
